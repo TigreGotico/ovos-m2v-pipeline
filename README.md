@@ -9,10 +9,11 @@ This plugin uses a pretrained [Model2Vec](https://github.com/MinishLab/model2vec
 ## ✨ Features
 
 * ✅ Powered by Model2Vec for high-quality intent classification
+* ✅ Plug-and-play integration with OVOS pipelines
+* ✅ Model2Vec [trained](https://huggingface.co/Jarbas/ovos-model2vec-intents) on [GitLocalize](https://gitlocalize.com/users/OpenVoiceOS) exports
+* ✅ Multilingual model, distilled from [LaBSE](https://huggingface.co/minishlab/M2V_multilingual_output)
 * ✅ Syncs Adapt and Padatious intents dynamically at runtime
 * ✅ Only considers intents from loaded skills, ignoring unregistered labels
-* ✅ Plug-and-play integration with OVOS pipelines
-* ✅ Pretrained Model2Vec model based on GitLocalize exports, distilled from [LaBSE](https://huggingface.co/minishlab/M2V_multilingual_output) (multilingual)
 
 ---
 
@@ -34,8 +35,7 @@ In your `mycroft.conf` or OVOS config file:
 {
   "intents": {
     "ovos-m2v-pipeline": {
-      "model": "/path/to/your/model",
-      "timeout": 1,
+      "model": "Jarbas/ovos-model2vec-intents",
       "min_conf": 0.5,
       "ignore_intents": []
     }
@@ -43,8 +43,7 @@ In your `mycroft.conf` or OVOS config file:
 }
 ```
 
-* `model`: Path to your pretrained Model2Vec model.
-* `timeout`: Timeout for intent syncing, in seconds (default: `1`).
+* `model`: Path to your pretrained Model2Vec model or huggingface repo.
 * `min_conf`: Minimum confidence threshold for intent matching (default: `0.5`).
 * `ignore_intents`: List of intents to ignore during matching.
 
@@ -66,9 +65,8 @@ The `Model2VecIntentPipeline` class integrates with the OVOS intent system. It:
 ## 🧪 Tips
 
 * Tune `min_conf` to control the confidence threshold for intent matching.
-* Use the `ignore_intents` list to filter out specific intent labels from predictions.
+* Use the `ignore_intents` list to filter out specific problematic intent from predictions.
 * Syncing of Adapt and Padatious intents is done automatically at runtime via the OVOS message bus.
-* You can adjust the `timeout` setting to control the time for retrieving intent names from the bus.
 
 ---
 

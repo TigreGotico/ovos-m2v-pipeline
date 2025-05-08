@@ -31,7 +31,7 @@ class Model2VecIntentPipeline(ConfidenceMatcherPipeline):
         """
         config = config or Configuration().get('intents', {}).get("ovos_m2v_pipeline") or dict()
         super().__init__(bus, config)
-        model_path = self.config.get("model")
+        model_path = self.config.get("model", "Jarbas/ovos-model2vec-intents")
         if not model_path:
             raise FileNotFoundError("'model' not set in configuration for ovos_m2v_pipeline")
 
