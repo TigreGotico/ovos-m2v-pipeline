@@ -10,10 +10,13 @@ This plugin uses a pretrained [Model2Vec](https://github.com/MinishLab/model2vec
 
 * ✅ Powered by Model2Vec for high-quality intent classification
 * ✅ Plug-and-play integration with OVOS pipelines
-* ✅ Model2Vec [trained](https://huggingface.co/Jarbas/ovos-model2vec-intents) on [GitLocalize](https://gitlocalize.com/users/OpenVoiceOS) exports
+* ✅ Model2Vec trained on [GitLocalize](https://gitlocalize.com/users/OpenVoiceOS) exports
+* ✅ English models in various sizes, distilled from [Potion](https://huggingface.co/collections/minishlab/potion-6721e0abd4ea41881417f062)
 * ✅ Multilingual model, distilled from [LaBSE](https://huggingface.co/minishlab/M2V_multilingual_output)
 * ✅ Syncs Adapt and Padatious intents dynamically at runtime
 * ✅ Only considers intents from loaded skills, ignoring unregistered labels
+
+> ⚠️ english models size ranges from 8MB to 150MB, the multilingual model (default) is over 500MB
 
 ---
 
@@ -29,13 +32,13 @@ pip install ovos-m2v-pipeline
 
 ## ⚙️ Configuration
 
-In your `mycroft.conf` or OVOS config file:
+In your `mycroft.conf`:
 
 ```json
 {
   "intents": {
     "ovos-m2v-pipeline": {
-      "model": "Jarbas/ovos-model2vec-intents",
+      "model": "Jarbas/ovos-model2vec-intents-labse",
       "min_conf": 0.5,
       "ignore_intents": []
     }
@@ -46,6 +49,8 @@ In your `mycroft.conf` or OVOS config file:
 * `model`: Path to your pretrained Model2Vec model or huggingface repo.
 * `min_conf`: Minimum confidence threshold for intent matching (default: `0.5`).
 * `ignore_intents`: List of intents to ignore during matching.
+
+> 💡 pre-trained models available in this huggingface collection [ovos-model2vec-intents](https://huggingface.co/collections/Jarbas/ovos-model2vec-intents-681c478aecb9979e659b17f8)
 
 ---
 
@@ -58,7 +63,7 @@ The `Model2VecIntentPipeline` class integrates with the OVOS intent system. It:
 3. Filters out intents that are not part of the loaded skills.
 4. Returns a match for the highest-confidence intent from the list of valid intents.
 
-> Note: The Model2Vec model is pretrained based on GitLocalize exports and **cannot learn new skills** dynamically.
+> ⚠️  The Model2Vec model is pretrained based on GitLocalize exports and **cannot learn new skills** dynamically.
 
 ---
 
