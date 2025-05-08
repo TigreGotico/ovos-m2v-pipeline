@@ -65,26 +65,27 @@ The `Model2VecIntentPipeline` class integrates with the OVOS intent system. It:
 
 ---
 
-## Model Comparison
-
-| Language     | Model                                       | Accuracy | F1 Score |
-|:-------------|:--------------------------------------------|---------:|---------:|
-| english      | ovos-model2vec-intents-potion-2M            | 0.909408 | 0.893153 |
-| english      | ovos-model2vec-intents-potion-4M            | 0.912892 | 0.902595 |
-| english      | ovos-model2vec-intents-potion-8M            | 0.930314 | 0.922183 |
-| english      | ovos-model2vec-intents-potion-32M           | 0.926829 | 0.917479 |
-| english      | ovos-model2vec-intents-potion-retrieval-32M | 0.930314 | 0.921883 |
-| multilingual | ovos-model2vec-intents-potion-labse         |          |          |
-
-> 💡 pre-trained models available in this huggingface collection [ovos-model2vec-intents](https://huggingface.co/collections/Jarbas/ovos-model2vec-intents-681c478aecb9979e659b17f8)
-
----
-
 ## 🧪 Tips
 
 * Tune `min_conf` to control the confidence threshold for intent matching.
 * Use the `ignore_intents` list to filter out specific problematic intent from predictions.
 * Syncing of Adapt and Padatious intents is done automatically at runtime via the OVOS message bus.
+
+---
+
+## Model Comparison
+
+| Language     | Model                                       |  Accuracy |  F1 Score |
+|:-------------|:--------------------------------------------|----------:|----------:|
+| english      | ovos-model2vec-intents-potion-2M            |  0.909408 |  0.893153 |
+| english      | ovos-model2vec-intents-potion-4M            |  0.912892 |  0.902595 |
+| english      | ovos-model2vec-intents-potion-8M            |  0.930314 |  0.922183 |
+| english      | ovos-model2vec-intents-potion-32M           |  0.926829 |  0.917479 |
+| english      | ovos-model2vec-intents-potion-retrieval-32M |  0.930314 |  0.921883 |
+| multilingual | ovos-model2vec-intents-potion-labse         |  0.992301 |  0.991894 |
+
+> 💡 pre-trained models available in this huggingface collection [ovos-model2vec-intents](https://huggingface.co/collections/Jarbas/ovos-model2vec-intents-681c478aecb9979e659b17f8)
+
 
 ---
 
