@@ -21,8 +21,11 @@ BLACKLIST_INTENTS = [
 INTENT_REPLACEMENTS = {  # merge similar intents
     "is_rain": "do-i-need-an-umbrella.intent",
     "howto.intent": "wikihow.intent",
-    "howareyou.intent": "greetings.intent",
-    "handle_show_time": "handle_query_time"
+    "HowAreYou.intent": "Greetings.intent",
+    "handle_show_time": "what.time.is.it.intent",
+    "handle_query_time": "what.time.is.it.intent",
+    "how_hot_or_cold": "is_hot_cold",
+    "current_wind": "is_wind"
 }
 
 def normalize(text):

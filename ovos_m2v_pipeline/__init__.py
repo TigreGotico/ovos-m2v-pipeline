@@ -135,8 +135,16 @@ class Model2VecIntentPipeline(ConfidenceMatcherPipeline):
                     continue
                 if prob < self.config.get("min_conf", 0.5):
                     break
+
+                # HACK: special case for OCP, it isnt a regular intent
+                skill_id = label.split(":")[0]
+                if label == "ocp:play":
+                    skill_id = "ovos.common_play"
+                    label = "ovos.common_play.play_search"
+
                 return IntentHandlerMatch(
-                    match_type=label, match_data={}, skill_id="ovos-m2v-pipeline", utterance=utterances[0]
+                    match_type=label, match_data={"utterance": utterances[0]},
+                    skill_id=skill_id or "ovos-m2v-pipeline", utterance=utterances[0]
                 )
 
         return None
