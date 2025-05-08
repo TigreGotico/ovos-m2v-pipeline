@@ -1,7 +1,7 @@
 # Model Evaluation Metrics Summary
 ## en - Model: minishlab/potion-base-8M
-### Accuracy: 0.9233449477351916
-### F1 Score: 0.9166084233219246
+### Accuracy: 0.9303135888501742
+### F1 Score: 0.9254644047388817
 ### Classification Report:
 ```
                                                                         precision    recall  f1-score   support
@@ -10,7 +10,6 @@
                         ovos-skill-alerts.openvoiceos:ChangeProperties       0.00      0.00      0.00         0
                              ovos-skill-alerts.openvoiceos:CreateEvent       0.00      0.00      0.00         1
                           ovos-skill-alerts.openvoiceos:CreateReminder       0.00      0.00      0.00         1
-                             ovos-skill-alerts.openvoiceos:CreateTimer       0.00      0.00      0.00         0
                               ovos-skill-alerts.openvoiceos:ListAlerts       0.00      0.00      0.00         0
                          ovos-skill-alerts.openvoiceos:RescheduleAlert       0.00      0.00      0.00         1
                              ovos-skill-alerts.openvoiceos:TimerStatus       0.00      0.00      0.00         1
@@ -21,15 +20,13 @@ ovos-skill-boot-finished.openvoiceos:disable_ready_notification.intent       1.0
  ovos-skill-boot-finished.openvoiceos:enable_ready_notification.intent       1.00      1.00      1.00         8
            ovos-skill-date-time.openvoiceos:date.future.weekend.intent       1.00      0.89      0.94         9
              ovos-skill-date-time.openvoiceos:date.last.weekend.intent       0.83      1.00      0.91         5
-                    ovos-skill-date-time.openvoiceos:handle_query_time       0.00      0.00      0.00         2
               ovos-skill-date-time.openvoiceos:what.month.is.it.intent       1.00      1.00      1.00         1
-               ovos-skill-date-time.openvoiceos:what.time.is.it.intent       0.78      1.00      0.88         7
+               ovos-skill-date-time.openvoiceos:what.time.is.it.intent       1.00      1.00      1.00         9
           ovos-skill-date-time.openvoiceos:what.time.will.it.be.intent       1.00      1.00      1.00         6
        ovos-skill-days-in-history.openvoiceos:births_in_history.intent       0.00      0.00      0.00         1
        ovos-skill-days-in-history.openvoiceos:deaths_in_history.intent       0.00      0.00      0.00         0
         ovos-skill-days-in-history.openvoiceos:today_in_history.intent       1.00      1.00      1.00         3
                         ovos-skill-ddg.openvoiceos:age_at_death.intent       1.00      1.00      1.00         1
-                                ovos-skill-ddg.openvoiceos:died.intent       0.00      0.00      0.00         0
                        ovos-skill-ddg.openvoiceos:resting_place.intent       0.00      0.00      0.00         1
              ovos-skill-diagnostics.openvoiceos:query_cpu_usage.intent       1.00      1.00      1.00         1
                  ovos-skill-diagnostics.openvoiceos:query_langs.intent       1.00      1.00      1.00         3
@@ -38,8 +35,7 @@ ovos-skill-boot-finished.openvoiceos:disable_ready_notification.intent       1.0
              ovos-skill-diagnostics.openvoiceos:query_user_lang.intent       1.00      1.00      1.00         2
                ovos-skill-dictation.openvoiceos:start_dictation.intent       1.00      0.90      0.95        21
                 ovos-skill-dictation.openvoiceos:stop_dictation.intent       1.00      1.00      1.00         9
-                   ovos-skill-hello-world.openvoiceos:Greetings.intent       0.50      0.50      0.50         2
-                   ovos-skill-hello-world.openvoiceos:HowAreYou.intent       1.00      1.00      1.00         1
+                   ovos-skill-hello-world.openvoiceos:Greetings.intent       0.67      0.67      0.67         3
              ovos-skill-icanhazdadjokes.openvoiceos:search_joke.intent       1.00      1.00      1.00         1
                             ovos-skill-ip.openvoiceos:what.ssid.intent       1.00      1.00      1.00         2
                       ovos-skill-iss-location.openvoiceos:about.intent       1.00      1.00      1.00         1
@@ -79,14 +75,14 @@ ovos-skill-boot-finished.openvoiceos:disable_ready_notification.intent       1.0
                         ovos-skill-weather.openvoiceos:low_temperature       0.00      0.00      0.00         1
                               ovos-skill-weather.openvoiceos:next_rain       0.00      0.00      0.00         1
                                 ovos-skill-weather.openvoiceos:weather       0.50      1.00      0.67         1
-                         ovos-skill-wikihow.openvoiceos:wikihow.intent       1.00      1.00      1.00         1
+                         ovos-skill-wikihow.openvoiceos:wikihow.intent       0.50      1.00      0.67         1
                           ovos-skill-wikipedia.openvoiceos:wiki.intent       1.00      1.00      1.00         3
                       ovos-skill-wordnet.openvoiceos:definition.intent       1.00      1.00      1.00         1
                            ovos-skill-wordnet.openvoiceos:lemma.intent       1.00      1.00      1.00         2
 
-                                                              accuracy                           0.92       287
-                                                             macro avg       0.62      0.64      0.62       287
-                                                          weighted avg       0.91      0.92      0.92       287
+                                                              accuracy                           0.93       287
+                                                             macro avg       0.64      0.66      0.64       287
+                                                          weighted avg       0.93      0.93      0.93       287
 
 ```
 

@@ -34,12 +34,12 @@ en,ovos-skill-weather.openvoiceos:high_temperature,what is the high temperature 
 en,ovos-skill-weather.openvoiceos:low_temperature,what is the low temperature tomorrow
 en,ovos-skill-weather.openvoiceos:low_temperature,what is the low temperature in london on tuesday
 en,ovos-skill-weather.openvoiceos:is_hot_cold,is it going to be hot today
-en,ovos-skill-weather.openvoiceos:how_hot_or_cold,how cold will it be today
-en,ovos-skill-weather.openvoiceos:how_hot_or_cold,how cold is today
-en,ovos-skill-weather.openvoiceos:how_hot_or_cold,how hot will it be today
-en,ovos-skill-weather.openvoiceos:how_hot_or_cold,how hot is today
+en,ovos-skill-weather.openvoiceos:is_hot_cold,how cold will it be today
+en,ovos-skill-weather.openvoiceos:is_hot_cold,how cold is today
+en,ovos-skill-weather.openvoiceos:is_hot_cold,how hot will it be today
+en,ovos-skill-weather.openvoiceos:is_hot_cold,how hot is today
 en,ovos-skill-weather.openvoiceos:is_wind,is it windy today
-en,ovos-skill-weather.openvoiceos:current_wind,how windy is it
+en,ovos-skill-weather.openvoiceos:is_wind,how windy is it
 en,ovos-skill-weather.openvoiceos:is_snow,is it snowing today
 en,ovos-skill-weather.openvoiceos:is_snow,is there snow in the forecast
 en,ovos-skill-weather.openvoiceos:is_clear,is the sky clear today
@@ -166,7 +166,7 @@ en,ovos-skill-ip.openvoiceos:IPIntent,tell me your ip address
 en,ovos-skill-ip.openvoiceos:IPIntent,what's your ip address
 en,ovos-skill-volume.openvoiceos:volume.high.intent,volume level to high
 en,ovos-skill-volume.openvoiceos:volume.max.intent,max volume
-en,ovos-skill-weather.openvoiceos:how_hot_or_cold,will it be cold on tuesday
+en,ovos-skill-weather.openvoiceos:is_hot_cold,will it be cold on tuesday
 en,ovos-skill-weather.openvoiceos:current_temperature,what's the temperature
 en,ovos-skill-volume.openvoiceos:volume.default.intent,set volume to default
 en,ovos-skill-audio-recording.openvoiceos:start_recording.intent,begin recording
@@ -174,10 +174,10 @@ en,ovos-skill-volume.openvoiceos:volume.max.intent,top volume
 en,ovos-skill-volume.openvoiceos:volume.low.intent,low volume
 en,ovos-skill-personal.OpenVoiceOS.openvoiceos:WhoMadeYou.intent,who made you
 en,ovos-skill-audio-recording.openvoiceos:start_recording.intent,start recording
-en,ovos-skill-date-time.openvoiceos:handle_query_time,what time is it
+en,ovos-skill-date-time.openvoiceos:what.time.is.it.intent,what time is it
 en,ovos-skill-screenshot.openvoiceos:take.screenshot.intent,screenshot the display
 en,ovos-skill-volume.openvoiceos:volume.mute.intent,mute
-en,ovos-skill-date-time.openvoiceos:handle_query_time,show me the time
+en,ovos-skill-date-time.openvoiceos:what.time.is.it.intent,show me the time
 en,ovos-skill-weather.openvoiceos:do-i-need-an-umbrella.intent,is it raining
 en,ovos-skill-weather.openvoiceos:daily_temperature,what's the temperature in paris tomorrow in celsius
 en,ovos-skill-hello-world.openvoiceos:ThankYouIntent,thank you
@@ -211,7 +211,7 @@ en,ovos-skill-naptime.openvoiceos:naptime.intent,go to sleep
 en,ovos-skill-parrot.openvoiceos:speak.intent,speak i can say anything you'd like!
 en,ovos-skill-parrot.openvoiceos:repeat.tts.intent,repeat what you just said
 en,ovos-skill-iss-location.openvoiceos:when_iss.intent,when is the iss passing over
-en,ovos-skill-hello-world.openvoiceos:HowAreYou.intent,how are you
+en,ovos-skill-hello-world.openvoiceos:Greetings.intent,how are you
 en,ovos-skill-volume.openvoiceos:volume.mute.intent,mute audio
 en,ovos-skill-iss-location.openvoiceos:WhoISSIntent,who is on board of the space station
 en,ovos-skill-wallpapers.openvoiceos:wallpaper.random.intent,new wallpaper
@@ -244,7 +244,7 @@ en,ovos-skill-moviemaster.openvoiceos:movie.information.intent,look for informat
 en,ovos-skill-moviemaster.openvoiceos:movie.cast.intent,who plays in the movie _______
 en,ovos-skill-moviemaster.openvoiceos:movie.description.intent,tell me about the movie _______
 en,ovos-skill-moviemaster.openvoiceos:movie.recommendations.intent,what films do you recommend like _______
-en,ovos-skill-date-time.openvoiceos:handle_query_time,what time is it in paris
+en,ovos-skill-date-time.openvoiceos:what.time.is.it.intent,what time is it in paris
 en,ovos-skill-date-time.openvoiceos:handle_day_for_date,what day is memorial day 2020
 en,ovos-skill-date-time.openvoiceos:handle_query_relative_date,how many days until july 4th
 en,ovos-skill-date-time.openvoiceos:handle_weekday,tell me the day of the week
@@ -2508,9 +2508,9 @@ en,ovos-skill-ddg.openvoiceos:birthdate.intent,what is {person} birthday
 en,ovos-skill-ddg.openvoiceos:birthdate.intent,when was born {person}
 en,ovos-skill-ddg.openvoiceos:birthdate.intent,when was {person} born
 en,ovos-skill-ddg.openvoiceos:official_website.intent,what is {query} official website
-en,ovos-skill-hello-world.openvoiceos:HowAreYou.intent,how are you doing
-en,ovos-skill-hello-world.openvoiceos:HowAreYou.intent,how has your day been
-en,ovos-skill-hello-world.openvoiceos:HowAreYou.intent,how have you been
+en,ovos-skill-hello-world.openvoiceos:Greetings.intent,how are you doing
+en,ovos-skill-hello-world.openvoiceos:Greetings.intent,how has your day been
+en,ovos-skill-hello-world.openvoiceos:Greetings.intent,how have you been
 en,ovos-skill-hello-world.openvoiceos:Greetings.intent,ahoy
 en,ovos-skill-hello-world.openvoiceos:Greetings.intent,g'day
 en,ovos-skill-hello-world.openvoiceos:Greetings.intent,good afternoon
