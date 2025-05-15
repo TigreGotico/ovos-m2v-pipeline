@@ -31,7 +31,7 @@ class Model2VecIntentPipeline(ConfidenceMatcherPipeline):
         """
         config = config or Configuration().get('intents', {}).get("ovos_m2v_pipeline") or dict()
         super().__init__(bus, config)
-        model_path = self.config.get("model", "Jarbas/ovos-model2vec-intents-labse")
+        model_path = self.config.get("model", "Jarbas/ovos-model2vec-intents-distiluse-base-multilingual-cased-v2")
         if not model_path:
             raise FileNotFoundError("'model' not set in configuration for ovos_m2v_pipeline")
 
@@ -103,7 +103,7 @@ class Model2VecIntentPipeline(ConfidenceMatcherPipeline):
         self._syncing = True
         time.sleep(3)
         timeout = self.config.get("timeout", 1)
-        self.intents = self._get_adapt_intents(timeout) + self._get_padatious_intents(timeout)
+        self.intents = set(self._get_adapt_intents(timeout) + self._get_padatious_intents(timeout))
         self._syncing = False
         LOG.debug(f"Model2Vec registered intents: {len(self.intents)}")
 
@@ -131,16 +131,28 @@ class Model2VecIntentPipeline(ConfidenceMatcherPipeline):
             # Sort by probability descending
             class_probs.sort(key=lambda x: x[1], reverse=True)
             for label, prob in class_probs:
-                if label not in self.intents:
-                    continue
-                if prob < self.config.get("min_conf", 0.5):
-                    break
+                LOG.debug(f"Match candidate: {label} - prob: {prob}")
 
                 # HACK: special case for OCP, it isnt a regular intent
                 skill_id = label.split(":")[0]
                 if label == "ocp:play":
                     skill_id = "ovos.common_play"
                     label = "ovos.common_play.play_search"
+                elif label == "common_query:common_query":
+                    skill_id = "common_query.openvoiceos"
+                    label = "common_query.question"
+                elif label == "stop:stop":
+                    skill_id = "stop.openvoiceos"
+                    label = "mycroft.stop"
+                elif label.lower().strip() not in self.intents:
+                    LOG.debug(f"discarding match: {label} - intent not detected")
+                    continue
+
+                min_conf = self.config.get("min_conf", 0.5)
+                if prob < min_conf:
+                    LOG.debug(f"discarding match: {label} - confidence < {min_conf}")
+                    break
+
 
                 return IntentHandlerMatch(
                     match_type=label, match_data={"utterance": utterances[0]},

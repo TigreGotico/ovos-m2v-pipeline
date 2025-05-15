@@ -82,7 +82,7 @@ The `Model2VecIntentPipeline` class integrates with the OVOS intent system. It:
 | english      | ovos-model2vec-intents-potion-8M            |  0.930314 |  0.922183 |
 | english      | ovos-model2vec-intents-potion-32M           |  0.926829 |  0.917479 |
 | english      | ovos-model2vec-intents-potion-retrieval-32M |  0.930314 |  0.921883 |
-| multilingual | ovos-model2vec-intents-potion-labse         |  0.992301 |  0.991894 |
+| multilingual | ovos-model2vec-intents-labse         |  0.992301 |  0.991894 |
 
 > 💡 pre-trained models available in this huggingface collection [ovos-model2vec-intents](https://huggingface.co/collections/Jarbas/ovos-model2vec-intents-681c478aecb9979e659b17f8)
 
