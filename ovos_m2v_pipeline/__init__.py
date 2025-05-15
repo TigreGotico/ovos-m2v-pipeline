@@ -141,6 +141,9 @@ class Model2VecIntentPipeline(ConfidenceMatcherPipeline):
                 elif label == "common_query:common_query":
                     skill_id = "common_query.openvoiceos"
                     label = "common_query.question"
+                elif label == "stop:stop":
+                    skill_id = "stop.openvoiceos"
+                    label = "mycroft.stop"
                 elif label.lower().strip() not in self.intents:
                     LOG.debug(f"discarding match: {label} - intent not detected")
                     continue
