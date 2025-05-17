@@ -8,7 +8,6 @@ from ovos_config.config import Configuration
 from ovos_plugin_manager.templates.pipeline import IntentHandlerMatch, ConfidenceMatcherPipeline
 from ovos_utils.fakebus import FakeBus
 from ovos_utils.log import LOG
-from functools import lru_cache
 
 
 class Model2VecIntentPipeline(ConfidenceMatcherPipeline):
@@ -111,7 +110,6 @@ class Model2VecIntentPipeline(ConfidenceMatcherPipeline):
             pass
         self._syncing = False
 
-    @lru_cache()
     def _match(self, utterance: str) -> Iterable[Tuple[str, str, float]]:
         """
         Matches the most likely intent for a given list of utterances using Model2Vec.
