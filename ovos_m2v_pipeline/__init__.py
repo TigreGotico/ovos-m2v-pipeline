@@ -10,6 +10,7 @@ from ovos_utils.fakebus import FakeBus
 from ovos_utils.log import LOG
 from functools import lru_cache
 
+
 class Model2VecIntentPipeline(ConfidenceMatcherPipeline):
     """
     A pipeline that integrates Model2Vec with OVOS for intent matching.
@@ -110,6 +111,7 @@ class Model2VecIntentPipeline(ConfidenceMatcherPipeline):
             pass
         self._syncing = False
 
+    @lru_cache()
     def _match(self, utterance: str) -> Iterable[Tuple[str, str, float]]:
         """
         Matches the most likely intent for a given list of utterances using Model2Vec.
@@ -147,10 +149,7 @@ class Model2VecIntentPipeline(ConfidenceMatcherPipeline):
                     label = "mycroft.stop"
                 elif label not in self.intents:
                     LOG.debug(f"discarding match: {label} - intent not detected at runtime")
-                    from pprint import pprint
-                    pprint(self.intents)
                     continue
-
                 yield skill_id, label, float(prob)
 
     def match_high(self, utterances: List[str], lang: str, message: Message) -> Optional[IntentHandlerMatch]:
