@@ -181,6 +181,7 @@ class Model2VecIntentPipeline(ConfidenceMatcherPipeline):
             return match
         return None
 
+
     def match_medium(self, utterances: List[str], lang: str, message: Message) -> Optional[IntentHandlerMatch]:
         """
         Matches the most likely intent for a given list of utterances using Model2Vec.
