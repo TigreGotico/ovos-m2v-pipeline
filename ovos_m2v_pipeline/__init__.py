@@ -21,14 +21,13 @@ class Model2VecIntentPipeline(ConfidenceMatcherPipeline):
     def __init__(self, bus: Optional[Union[MessageBusClient, FakeBus]] = None,
                  config: Optional[Dict] = None):
         """
-        Initializes the Model2VecIntentPipeline with configuration and event handlers.
-
-        Args:
-            bus: The message bus client used to interact with the system.
-            config: Optional configuration dictionary for setting pipeline options.
-
-        Registers message bus event handlers to synchronize intents on relevant system events.
-        """
+                 Initializes the Model2VecIntentPipeline with configuration, model, and event handlers.
+                 
+                 Loads the Model2Vec model from the specified path in the configuration, sets up internal intent tracking, and registers message bus event handlers to synchronize available intents when relevant system events occur.
+                 
+                 Raises:
+                     FileNotFoundError: If the model path is not specified in the configuration.
+                 """
         config = config or Configuration().get('intents', {}).get("ovos_m2v_pipeline") or dict()
         super().__init__(bus, config)
         model_path = self.config.get("model", "Jarbas/ovos-model2vec-intents-distiluse-base-multilingual-cased-v2")
@@ -92,10 +91,9 @@ class Model2VecIntentPipeline(ConfidenceMatcherPipeline):
 
     def handle_sync_intents(self, message: Message) -> None:
         """
-        Synchronizes registered intents when new skills are loaded or existing ones are detached.
-
-        Args:
-            message: The message that triggered intent synchronization.
+        Synchronizes the internal set of registered intents with those currently available in the system.
+        
+        Waits briefly to debounce rapid events, then retrieves Adapt and Padatious intents from the message bus and updates the internal intent set. Ignores errors during retrieval.
         """
         # Sync newly (de)registered intents with debounce
         if self._syncing:
@@ -112,15 +110,9 @@ class Model2VecIntentPipeline(ConfidenceMatcherPipeline):
 
     def _match(self, utterance: str) -> Iterable[Tuple[str, str, float]]:
         """
-        Matches the most likely intent for a given list of utterances using Model2Vec.
-
-        Args:
-            utterances: A list of utterances to match against the model.
-            lang: The language of the input utterance.
-            message: The incoming message containing additional context.
-
-        Returns:
-            An IntentHandlerMatch if a high-confidence match is found, None otherwise.
+        Yields candidate intent matches with probabilities for a given utterance using Model2Vec.
+        
+        For each predicted intent, applies special remapping rules and filters out intents not currently registered in the system. Yields tuples containing the skill ID, intent label, and probability for each valid candidate.
         """
         inputs = [utterance]
         probs = self.model.predict_proba(inputs)
@@ -155,15 +147,10 @@ class Model2VecIntentPipeline(ConfidenceMatcherPipeline):
 
     def match_high(self, utterances: List[str], lang: str, message: Message) -> Optional[IntentHandlerMatch]:
         """
-        Matches the most likely intent for a given list of utterances using Model2Vec.
-
-        Args:
-            utterances: A list of utterances to match against the model.
-            lang: The language of the input utterance.
-            message: The incoming message containing additional context.
-
+        Attempts to find a high-confidence intent match for the first utterance using Model2Vec.
+        
         Returns:
-            An IntentHandlerMatch if a high-confidence match is found, None otherwise.
+            An IntentHandlerMatch if a candidate intent exceeds the configured high confidence threshold; otherwise, None.
         """
         min_conf = self.config.get("conf_high", 0.7)
         LOG.debug(f"Matching intents via Model2Vec (min_conf: {min_conf}) - {utterances[0]}")
@@ -183,15 +170,10 @@ class Model2VecIntentPipeline(ConfidenceMatcherPipeline):
 
     def match_medium(self, utterances: List[str], lang: str, message: Message) -> Optional[IntentHandlerMatch]:
         """
-        Matches the most likely intent for a given list of utterances using Model2Vec.
-
-        Args:
-            utterances: A list of utterances to match against the model.
-            lang: The language of the input utterance.
-            message: The incoming message containing additional context.
-
+        Attempts to find a medium-confidence intent match for the first utterance using Model2Vec.
+        
         Returns:
-            An IntentHandlerMatch if a medium -confidence match is found, None otherwise.
+            An IntentHandlerMatch if a candidate intent meets or exceeds the medium confidence threshold; otherwise, None.
         """
         min_conf = self.config.get("conf_medium", 0.5)
         LOG.debug(f"Matching intents via Model2Vec (min_conf: {min_conf}) - {utterances[0]}")
@@ -211,15 +193,9 @@ class Model2VecIntentPipeline(ConfidenceMatcherPipeline):
 
     def match_low(self, utterances: List[str], lang: str, message: Message) -> Optional[IntentHandlerMatch]:
         """
-        Matches the most likely intent for a given list of utterances using Model2Vec.
-
-        Args:
-            utterances: A list of utterances to match against the model.
-            lang: The language of the input utterance.
-            message: The incoming message containing additional context.
-
-        Returns:
-            An IntentHandlerMatch if a low-confidence match is found, None otherwise.
+        Attempts to find a low-confidence intent match for the given utterances using Model2Vec.
+        
+        Returns the first intent candidate with confidence above the configured low threshold, or None if no suitable match is found.
         """
         min_conf = self.config.get("conf_low", 0.15)
         LOG.debug(f"Matching intents via Model2Vec (min_conf: {min_conf}) - {utterances[0]}")
