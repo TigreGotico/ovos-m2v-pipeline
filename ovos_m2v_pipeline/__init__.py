@@ -1,5 +1,5 @@
 import time
-from typing import List, Optional, Union, Dict
+from typing import List, Optional, Union, Dict, Iterable, Tuple
 
 from model2vec.inference import StaticModelPipeline
 from ovos_bus_client.client import MessageBusClient
@@ -103,11 +103,14 @@ class Model2VecIntentPipeline(ConfidenceMatcherPipeline):
         self._syncing = True
         time.sleep(3)
         timeout = self.config.get("timeout", 1)
-        self.intents = set(self._get_adapt_intents(timeout) + self._get_padatious_intents(timeout))
+        try:
+            self.intents = set(self._get_adapt_intents(timeout) + self._get_padatious_intents(timeout))
+            LOG.debug(f"Model2Vec registered intents: {len(self.intents)}")
+        except RuntimeError:
+            pass
         self._syncing = False
-        LOG.debug(f"Model2Vec registered intents: {len(self.intents)}")
 
-    def match_high(self, utterances: List[str], lang: str, message: Message) -> Optional[IntentHandlerMatch]:
+    def _match(self, utterance: str) -> Iterable[Tuple[str, str, float]]:
         """
         Matches the most likely intent for a given list of utterances using Model2Vec.
 
@@ -119,9 +122,7 @@ class Model2VecIntentPipeline(ConfidenceMatcherPipeline):
         Returns:
             An IntentHandlerMatch if a high-confidence match is found, None otherwise.
         """
-        LOG.debug("Matching intents via Model2Vec")
-
-        inputs = [utterances[0]]
+        inputs = [utterance]
         probs = self.model.predict_proba(inputs)
 
         # Associate predictions with labels
@@ -144,19 +145,92 @@ class Model2VecIntentPipeline(ConfidenceMatcherPipeline):
                 elif label == "stop:stop":
                     skill_id = "stop.openvoiceos"
                     label = "mycroft.stop"
-                elif label.lower().strip() not in self.intents:
-                    LOG.debug(f"discarding match: {label} - intent not detected")
+                elif label not in self.intents:
+                    LOG.debug(f"discarding match: {label} - intent not detected at runtime")
                     continue
+                yield skill_id, label, float(prob)
 
-                min_conf = self.config.get("min_conf", 0.5)
-                if prob < min_conf:
-                    LOG.debug(f"discarding match: {label} - confidence < {min_conf}")
-                    break
+    def match_high(self, utterances: List[str], lang: str, message: Message) -> Optional[IntentHandlerMatch]:
+        """
+        Matches the most likely intent for a given list of utterances using Model2Vec.
+
+        Args:
+            utterances: A list of utterances to match against the model.
+            lang: The language of the input utterance.
+            message: The incoming message containing additional context.
+
+        Returns:
+            An IntentHandlerMatch if a high-confidence match is found, None otherwise.
+        """
+        min_conf = self.config.get("conf_high", 0.7)
+        LOG.debug(f"Matching intents via Model2Vec (min_conf: {min_conf}) - {utterances[0]}")
+        for skill_id, label, prob in self._match(utterances[0]):
+            if prob < min_conf:
+                LOG.debug(f"discarding match: {label} - confidence < {min_conf}")
+                return None
+            match = IntentHandlerMatch(
+                match_type=label,
+                match_data={"utterance": utterances[0], "confidence": prob},
+                skill_id=skill_id or "ovos-m2v-pipeline",
+                utterance=utterances[0]
+            )
+            LOG.debug(f"Match candidate: {match}")
+            return match
+        return None
 
 
-                return IntentHandlerMatch(
-                    match_type=label, match_data={"utterance": utterances[0]},
-                    skill_id=skill_id or "ovos-m2v-pipeline", utterance=utterances[0]
-                )
+    def match_medium(self, utterances: List[str], lang: str, message: Message) -> Optional[IntentHandlerMatch]:
+        """
+        Matches the most likely intent for a given list of utterances using Model2Vec.
 
+        Args:
+            utterances: A list of utterances to match against the model.
+            lang: The language of the input utterance.
+            message: The incoming message containing additional context.
+
+        Returns:
+            An IntentHandlerMatch if a medium -confidence match is found, None otherwise.
+        """
+        min_conf = self.config.get("conf_medium", 0.5)
+        LOG.debug(f"Matching intents via Model2Vec (min_conf: {min_conf}) - {utterances[0]}")
+        for skill_id, label, prob in self._match(utterances[0]):
+            if prob < min_conf:
+                LOG.debug(f"discarding match: {label} - confidence < {min_conf}")
+                return None
+            match = IntentHandlerMatch(
+                match_type=label,
+                match_data={"utterance": utterances[0], "confidence": prob},
+                skill_id=skill_id or "ovos-m2v-pipeline",
+                utterance=utterances[0]
+            )
+            LOG.debug(f"Match: {match}")
+            return match
+        return None
+
+    def match_low(self, utterances: List[str], lang: str, message: Message) -> Optional[IntentHandlerMatch]:
+        """
+        Matches the most likely intent for a given list of utterances using Model2Vec.
+
+        Args:
+            utterances: A list of utterances to match against the model.
+            lang: The language of the input utterance.
+            message: The incoming message containing additional context.
+
+        Returns:
+            An IntentHandlerMatch if a low-confidence match is found, None otherwise.
+        """
+        min_conf = self.config.get("conf_low", 0.15)
+        LOG.debug(f"Matching intents via Model2Vec (min_conf: {min_conf}) - {utterances[0]}")
+        for skill_id, label, prob in self._match(utterances[0]):
+            if prob < min_conf:
+                LOG.debug(f"discarding match: {label} - confidence < {min_conf}")
+                return None
+            match = IntentHandlerMatch(
+                match_type=label,
+                match_data={"utterance": utterances[0], "confidence": prob},
+                skill_id=skill_id or "ovos-m2v-pipeline",
+                utterance=utterances[0]
+            )
+            LOG.debug(f"Match candidate: {match}")
+            return match
         return None
