@@ -1,12 +1,12 @@
 # Changelog
 
-## [0.0.4a1](https://github.com/TigreGotico/ovos-m2v-pipeline/tree/0.0.4a1) (2025-05-15)
+## [0.0.5a1](https://github.com/TigreGotico/ovos-m2v-pipeline/tree/0.0.5a1) (2025-05-19)
 
-[Full Changelog](https://github.com/TigreGotico/ovos-m2v-pipeline/compare/0.0.3...0.0.4a1)
+[Full Changelog](https://github.com/TigreGotico/ovos-m2v-pipeline/compare/0.0.4...0.0.5a1)
 
 **Merged pull requests:**
 
-- fix: update intent labels and default models [\#1](https://github.com/TigreGotico/ovos-m2v-pipeline/pull/1) ([JarbasAl](https://github.com/JarbasAl))
+- Match levels [\#3](https://github.com/TigreGotico/ovos-m2v-pipeline/pull/3) ([JarbasAl](https://github.com/JarbasAl))
 
 
 
