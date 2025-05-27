@@ -52,6 +52,8 @@ In your `mycroft.conf`:
 * `conf_xxx`: Minimum confidence threshold for intent matching.
 * `ignore_intents`: List of intents to ignore during matching.
 
+> ⚠️  The Model2Vec model is pretrained based on GitLocalize exports and **cannot learn new skills** dynamically.
+
 ---
 
 ## 🧠 Usage
@@ -63,7 +65,6 @@ The `Model2VecIntentPipeline` class integrates with the OVOS intent system. It:
 3. Filters out intents that are not part of the loaded skills.
 4. Returns a match for the highest-confidence intent from the list of valid intents.
 
-> ⚠️  The Model2Vec model is pretrained based on GitLocalize exports and **cannot learn new skills** dynamically.
 
 ---
 
