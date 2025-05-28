@@ -1,4 +1,6 @@
-# 🧠 OVOS Model2Vec Intent Pipeline
+[![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/TigreGotico/ovos-m2v-pipeline)
+
+# OVOS Model2Vec Intent Pipeline
 
 An intent matching pipeline for [OpenVoiceOS (OVOS)](https://openvoiceos.org), powered by the Model2Vec model for intent classification.
 
