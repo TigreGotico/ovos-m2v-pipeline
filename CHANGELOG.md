@@ -1,12 +1,12 @@
 # Changelog
 
-## [0.0.5a1](https://github.com/TigreGotico/ovos-m2v-pipeline/tree/0.0.5a1) (2025-05-19)
+## [0.0.6a1](https://github.com/TigreGotico/ovos-m2v-pipeline/tree/0.0.6a1) (2025-06-08)
 
-[Full Changelog](https://github.com/TigreGotico/ovos-m2v-pipeline/compare/0.0.4...0.0.5a1)
+[Full Changelog](https://github.com/TigreGotico/ovos-m2v-pipeline/compare/0.0.5...0.0.6a1)
 
 **Merged pull requests:**
 
-- Match levels [\#3](https://github.com/TigreGotico/ovos-m2v-pipeline/pull/3) ([JarbasAl](https://github.com/JarbasAl))
+- fix: compatibility with ovos-plugin-manager 1.X.X [\#6](https://github.com/TigreGotico/ovos-m2v-pipeline/pull/6) ([JarbasAl](https://github.com/JarbasAl))
 
 
 

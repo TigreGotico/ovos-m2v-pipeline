@@ -1,4 +1,6 @@
-# 🧠 OVOS Model2Vec Intent Pipeline
+[![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/TigreGotico/ovos-m2v-pipeline)
+
+# OVOS Model2Vec Intent Pipeline
 
 An intent matching pipeline for [OpenVoiceOS (OVOS)](https://openvoiceos.org), powered by the Model2Vec model for intent classification.
 
@@ -38,8 +40,10 @@ In your `mycroft.conf`:
 {
   "intents": {
     "ovos-m2v-pipeline": {
-      "model": "Jarbas/ovos-model2vec-intents-labse",
-      "min_conf": 0.5,
+      "model": "Jarbas/ovos-model2vec-intents-LaBSE",
+      "conf_high": 0.7,
+      "conf_medium": 0.5,
+      "conf_low": 0.15,
       "ignore_intents": []
     }
   }
@@ -47,8 +51,10 @@ In your `mycroft.conf`:
 ```
 
 * `model`: Path to your pretrained Model2Vec model or huggingface repo.
-* `min_conf`: Minimum confidence threshold for intent matching (default: `0.5`).
+* `conf_xxx`: Minimum confidence threshold for intent matching.
 * `ignore_intents`: List of intents to ignore during matching.
+
+> ⚠️  The Model2Vec model is pretrained based on GitLocalize exports and **cannot learn new skills** dynamically.
 
 ---
 
@@ -61,7 +67,6 @@ The `Model2VecIntentPipeline` class integrates with the OVOS intent system. It:
 3. Filters out intents that are not part of the loaded skills.
 4. Returns a match for the highest-confidence intent from the list of valid intents.
 
-> ⚠️  The Model2Vec model is pretrained based on GitLocalize exports and **cannot learn new skills** dynamically.
 
 ---
 
@@ -71,21 +76,7 @@ The `Model2VecIntentPipeline` class integrates with the OVOS intent system. It:
 * Use the `ignore_intents` list to filter out specific problematic intent from predictions.
 * Syncing of Adapt and Padatious intents is done automatically at runtime via the OVOS message bus.
 
----
-
-## Model Comparison
-
-| Language     | Model                                       |  Accuracy |  F1 Score |
-|:-------------|:--------------------------------------------|----------:|----------:|
-| english      | ovos-model2vec-intents-potion-2M            |  0.909408 |  0.893153 |
-| english      | ovos-model2vec-intents-potion-4M            |  0.912892 |  0.902595 |
-| english      | ovos-model2vec-intents-potion-8M            |  0.930314 |  0.922183 |
-| english      | ovos-model2vec-intents-potion-32M           |  0.926829 |  0.917479 |
-| english      | ovos-model2vec-intents-potion-retrieval-32M |  0.930314 |  0.921883 |
-| multilingual | ovos-model2vec-intents-labse         |  0.992301 |  0.991894 |
-
 > 💡 pre-trained models available in this huggingface collection [ovos-model2vec-intents](https://huggingface.co/collections/Jarbas/ovos-model2vec-intents-681c478aecb9979e659b17f8)
-
 
 ---
 
