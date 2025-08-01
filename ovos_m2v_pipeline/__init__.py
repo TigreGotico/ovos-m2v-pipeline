@@ -134,7 +134,7 @@ class Model2VecIntentPipeline(ConfidenceMatcherPipeline):
         # Associate predictions with labels
         for input_text, prob_row in zip(inputs, probs):
             # Zip together class labels with their probabilities
-            class_probs = zip(classes, prob_row)
+            class_probs = list(zip(classes, prob_row))
             # Sort by probability descending
             class_probs.sort(key=lambda x: x[1], reverse=True)
             for label, prob in class_probs:
