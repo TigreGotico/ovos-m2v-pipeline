@@ -129,9 +129,8 @@ class Model2VecIntentPipeline(ConfidenceMatcherPipeline):
         probs_ = self.model.predict_proba(inputs)
         mask = np.in1d(self.model.classes_, self.intents)
         classes = self.model.classes_[mask]
-        # Renormalize probs
         probs = probs_[:, mask]
-        
+        # Renormalize probs
         if self.renormalize:
             probs /= probs.sum(axis=1, keepdims=True)
 
