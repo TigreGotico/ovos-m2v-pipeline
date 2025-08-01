@@ -107,7 +107,7 @@ class Model2VecIntentPipeline(ConfidenceMatcherPipeline):
         time.sleep(3)
         timeout = self.config.get("timeout", 1)
         try:
-            self.intents = set(self._get_adapt_intents(timeout) + self._get_padatious_intents(timeout))
+            self.intents = list(set(self._get_adapt_intents(timeout) + self._get_padatious_intents(timeout)))
             LOG.debug(f"Model2Vec registered intents: {len(self.intents)}")
         except RuntimeError:
             pass
