@@ -128,6 +128,9 @@ class Model2VecIntentPipeline(ConfidenceMatcherPipeline):
         inputs = [utterance]
         probs_ = self.model.predict_proba(inputs)
         mask = np.in1d(self.model.classes_, self.intents)
+        if not mask.any():
+            LOG.warning("No model classes match registered intents")
+            return
         classes = self.model.classes_[mask]
         probs = probs_[:, mask]
         # Renormalize probs
