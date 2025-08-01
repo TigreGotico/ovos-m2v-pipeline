@@ -1,4 +1,5 @@
 import time
+import numpy as np
 from typing import List, Optional, Union, Dict, Iterable, Tuple
 
 from model2vec.inference import StaticModelPipeline
@@ -123,12 +124,17 @@ class Model2VecIntentPipeline(ConfidenceMatcherPipeline):
             An IntentHandlerMatch if a high-confidence match is found, None otherwise.
         """
         inputs = [utterance]
-        probs = self.model.predict_proba(inputs)
+        probs_ = self.model.predict_proba(inputs)
+        mask = np.in1d(self.model.classes_, self.intents)
+        classes = self.model.classes_[mask]
+        # Renormalize probs
+        probs = probs_[:, mask] / probs_[:, mask].sum(axis=1, keepdims=True)
+
 
         # Associate predictions with labels
         for input_text, prob_row in zip(inputs, probs):
             # Zip together class labels with their probabilities
-            class_probs = list(zip(self.model.classes_, prob_row))
+            class_probs = zip(classes, prob_row)
             # Sort by probability descending
             class_probs.sort(key=lambda x: x[1], reverse=True)
             for label, prob in class_probs:
@@ -145,9 +151,8 @@ class Model2VecIntentPipeline(ConfidenceMatcherPipeline):
                 elif label == "stop:stop":
                     skill_id = "stop.openvoiceos"
                     label = "mycroft.stop"
-                elif label not in self.intents:
-                    LOG.debug(f"discarding match: {label} - intent not detected at runtime")
-                    continue
+                else:
+                    pass
                 yield skill_id, label, float(prob)
 
     def match_high(self, utterances: List[str], lang: str, message: Message) -> Optional[IntentHandlerMatch]:
