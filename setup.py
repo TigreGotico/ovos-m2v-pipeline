@@ -44,7 +44,7 @@ def required(requirements_file):
 PLUGIN_ENTRY_POINT = 'ovos-m2v-pipeline=ovos_m2v_pipeline:Model2VecIntentPipeline'
 
 setup(
-    name="ovos-m2v-pipeline",
+    name="ovos_m2v_pipeline",
     version=get_version(),
     author="JarbasAI",
     description="Model2Vec intent engine for OVOS",
