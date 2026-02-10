@@ -1,4 +1,5 @@
 import time
+import numpy as np
 from typing import List, Optional, Union, Dict, Iterable, Tuple
 
 from model2vec.inference import StaticModelPipeline
@@ -19,16 +20,19 @@ class Model2VecIntentPipeline(ConfidenceMatcherPipeline):
     """
 
     def __init__(self, bus: Optional[Union[MessageBusClient, FakeBus]] = None,
-                 config: Optional[Dict] = None):
+                 config: Optional[Dict] = None,
+                 renormalize: bool = True):
         """
-        Initializes the Model2VecIntentPipeline with configuration and event handlers.
-
-        Args:
-            bus: The message bus client used to interact with the system.
-            config: Optional configuration dictionary for setting pipeline options.
-
-        Registers message bus event handlers to synchronize intents on relevant system events.
-        """
+                 Initialize the Model2VecIntentPipeline, load the pretrained Model2Vec model, and register bus event handlers to keep intent lists synchronized.
+                 
+                 Loads pipeline configuration (from the provided config or OVOS intents.ovos_m2v_pipeline), determines the model path and loads the model via StaticModelPipeline.from_pretrained. Initializes internal state (intent list and ignore labels) and registers handlers for intent-related bus events. Raises FileNotFoundError if no model path is configured.
+                 
+                 Parameters:
+                     renormalize (bool): If true, probabilities returned by the model are renormalized to sum to 1 after filtering to loaded intents.
+                 
+                 Raises:
+                     FileNotFoundError: If the pipeline configuration does not include a 'model' path.
+                 """
         config = config or Configuration().get('intents', {}).get("ovos_m2v_pipeline") or dict()
         super().__init__(bus, config)
         model_path = self.config.get("model", "Jarbas/ovos-model2vec-intents-distiluse-base-multilingual-cased-v2")
@@ -38,6 +42,7 @@ class Model2VecIntentPipeline(ConfidenceMatcherPipeline):
         # Load the model
         self.model = StaticModelPipeline.from_pretrained(model_path)
 
+        self.renormalize = renormalize
         self.intents = []
         self.ignore_labels = self.config.get("ignore_intents") or []
 
@@ -92,10 +97,12 @@ class Model2VecIntentPipeline(ConfidenceMatcherPipeline):
 
     def handle_sync_intents(self, message: Message) -> None:
         """
-        Synchronizes registered intents when new skills are loaded or existing ones are detached.
-
-        Args:
-            message: The message that triggered intent synchronization.
+        Debounced refresh of the pipeline's registered intents by querying Adapt and Padatious and updating self.intents.
+        
+        Attempts to retrieve intent manifests from adapt and padatious (using `timeout` from config, default 1), combines the results into a unique list assigned to `self.intents`, and logs the count. This method is debounced using the `_syncing` flag and a short sleep; concurrent invocations return immediately. Retrieval failures are ignored so synchronization does not raise.
+        
+        Parameters:
+            message (Message): The bus message that triggered synchronization (may be unused).
         """
         # Sync newly (de)registered intents with debounce
         if self._syncing:
@@ -104,7 +111,7 @@ class Model2VecIntentPipeline(ConfidenceMatcherPipeline):
         time.sleep(3)
         timeout = self.config.get("timeout", 1)
         try:
-            self.intents = set(self._get_adapt_intents(timeout) + self._get_padatious_intents(timeout))
+            self.intents = list(set(self._get_adapt_intents(timeout) + self._get_padatious_intents(timeout)))
             LOG.debug(f"Model2Vec registered intents: {len(self.intents)}")
         except RuntimeError:
             pass
@@ -112,23 +119,39 @@ class Model2VecIntentPipeline(ConfidenceMatcherPipeline):
 
     def _match(self, utterance: str) -> Iterable[Tuple[str, str, float]]:
         """
-        Matches the most likely intent for a given list of utterances using Model2Vec.
-
-        Args:
-            utterances: A list of utterances to match against the model.
-            lang: The language of the input utterance.
-            message: The incoming message containing additional context.
-
+        Map a single utterance to ranked intent candidates from the loaded Model2Vec model.
+        
+        Given an input utterance, yields candidate intent matches filtered to the pipeline's currently registered intents. Each yielded tuple contains the resolved skill id, the intent label (possibly remapped for special cases), and the match probability. Probabilities are restricted to classes present in self.intents and, if `self.renormalize` is True, renormalized to sum to 1 across the returned classes.
+        
+        Parameters:
+            utterance (str): The input utterance to match.
+        
         Returns:
-            An IntentHandlerMatch if a high-confidence match is found, None otherwise.
+            Iterable[Tuple[str, str, float]]: An iterator of (skill_id, label, probability) tuples ordered by descending probability. If no model classes overlap with registered intents, the iterator yields nothing.
+        
+        Notes:
+            - Certain labels are remapped to concrete skill_id/label pairs for compatibility:
+              - "ocp:play" -> ("ovos.common_play", "ovos.common_play.play_search")
+              - "common_query:common_query" -> ("common_query.openvoiceos", "common_query.question")
+              - "stop:stop" -> ("stop.openvoiceos", "mycroft.stop")
         """
         inputs = [utterance]
-        probs = self.model.predict_proba(inputs)
+        probs_ = self.model.predict_proba(inputs)
+        mask = np.in1d(self.model.classes_, self.intents)
+        if not mask.any():
+            LOG.warning("No model classes match registered intents")
+            return
+        classes = self.model.classes_[mask]
+        probs = probs_[:, mask]
+        # Renormalize probs
+        if self.renormalize:
+            probs /= probs.sum(axis=1, keepdims=True)
+
 
         # Associate predictions with labels
         for input_text, prob_row in zip(inputs, probs):
             # Zip together class labels with their probabilities
-            class_probs = list(zip(self.model.classes_, prob_row))
+            class_probs = list(zip(classes, prob_row))
             # Sort by probability descending
             class_probs.sort(key=lambda x: x[1], reverse=True)
             for label, prob in class_probs:
@@ -145,9 +168,8 @@ class Model2VecIntentPipeline(ConfidenceMatcherPipeline):
                 elif label == "stop:stop":
                     skill_id = "stop.openvoiceos"
                     label = "mycroft.stop"
-                elif label not in self.intents:
-                    LOG.debug(f"discarding match: {label} - intent not detected at runtime")
-                    continue
+                else:
+                    pass
                 yield skill_id, label, float(prob)
 
     def match_high(self, utterances: List[str], lang: str, message: Message) -> Optional[IntentHandlerMatch]:
