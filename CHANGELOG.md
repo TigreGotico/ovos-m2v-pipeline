@@ -1,12 +1,28 @@
 # Changelog
 
-## [0.0.7a1](https://github.com/TigreGotico/ovos-m2v-pipeline/tree/0.0.7a1) (2025-11-05)
+## [0.0.8a3](https://github.com/TigreGotico/ovos-m2v-pipeline/tree/0.0.8a3) (2026-03-02)
 
-[Full Changelog](https://github.com/TigreGotico/ovos-m2v-pipeline/compare/0.0.6...0.0.7a1)
+[Full Changelog](https://github.com/TigreGotico/ovos-m2v-pipeline/compare/0.0.8a2...0.0.8a3)
 
 **Merged pull requests:**
 
-- Update ovos-plugin-manager version range [\#10](https://github.com/TigreGotico/ovos-m2v-pipeline/pull/10) ([JarbasAl](https://github.com/JarbasAl))
+- Update ovos-workshop version constraint to \<9.0.0 [\#21](https://github.com/TigreGotico/ovos-m2v-pipeline/pull/21) ([JarbasAl](https://github.com/JarbasAl))
+
+## [0.0.8a2](https://github.com/TigreGotico/ovos-m2v-pipeline/tree/0.0.8a2) (2025-12-19)
+
+[Full Changelog](https://github.com/TigreGotico/ovos-m2v-pipeline/compare/0.0.8a1...0.0.8a2)
+
+**Merged pull requests:**
+
+- chore\(deps\): update actions/setup-python action to v6 [\#17](https://github.com/TigreGotico/ovos-m2v-pipeline/pull/17) ([renovate[bot]](https://github.com/apps/renovate))
+
+## [0.0.8a1](https://github.com/TigreGotico/ovos-m2v-pipeline/tree/0.0.8a1) (2025-12-18)
+
+[Full Changelog](https://github.com/TigreGotico/ovos-m2v-pipeline/compare/0.0.7...0.0.8a1)
+
+**Merged pull requests:**
+
+- chore: Configure Renovate [\#12](https://github.com/TigreGotico/ovos-m2v-pipeline/pull/12) ([renovate[bot]](https://github.com/apps/renovate))
 
 
 
