@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.0.9a3](https://github.com/TigreGotico/ovos-m2v-pipeline/tree/0.0.9a3) (2026-03-03)
+
+[Full Changelog](https://github.com/TigreGotico/ovos-m2v-pipeline/compare/0.0.9a1...0.0.9a3)
+
+**Merged pull requests:**
+
+- docs: add docs [\#24](https://github.com/TigreGotico/ovos-m2v-pipeline/pull/24) ([JarbasAl](https://github.com/JarbasAl))
+
 ## [0.0.9a1](https://github.com/TigreGotico/ovos-m2v-pipeline/tree/0.0.9a1) (2026-03-02)
 
 [Full Changelog](https://github.com/TigreGotico/ovos-m2v-pipeline/compare/0.0.8...0.0.9a1)
