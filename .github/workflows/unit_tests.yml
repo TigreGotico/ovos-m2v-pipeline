@@ -49,7 +49,7 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt install python3-dev swig libssl-dev
-          python -m pip install build wheel uv
+          python -m pip install build wheel uv pytest
       - name: Install core repo
         run: |
           uv pip install --system -e .
