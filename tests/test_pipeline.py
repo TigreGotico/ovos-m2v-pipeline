@@ -9,6 +9,7 @@ def _make_pipeline(config=None, intents=None, renormalize=True):
     """Helper: create a pipeline with a mocked model and FakeBus."""
     config = config or {}
     config.setdefault("model", "fake-model")
+    config["renormalize"] = renormalize
 
     mock_model = MagicMock()
     mock_model.classes_ = np.array([])
@@ -19,7 +20,7 @@ def _make_pipeline(config=None, intents=None, renormalize=True):
         MockSMP.from_pretrained.return_value = mock_model
         from ovos_m2v_pipeline import Model2VecIntentPipeline
         from ovos_utils.fakebus import FakeBus
-        pipeline = Model2VecIntentPipeline(bus=FakeBus(), config=config, renormalize=renormalize)
+        pipeline = Model2VecIntentPipeline(bus=FakeBus(), config=config)
 
     pipeline.model = mock_model
     if intents is not None:

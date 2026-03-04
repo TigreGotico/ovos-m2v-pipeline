@@ -23,8 +23,7 @@ class Model2VecIntentPipeline(ConfidenceMatcherPipeline):
     """
 
     def __init__(self, bus: Optional[Union[MessageBusClient, FakeBus]] = None,
-                 config: Optional[Dict] = None,
-                 renormalize: bool = True):
+                 config: Optional[Dict] = None):
         """
         Initializes the Model2VecIntentPipeline with configuration and event handlers.
 
@@ -43,7 +42,6 @@ class Model2VecIntentPipeline(ConfidenceMatcherPipeline):
         # Load the model
         self.model = StaticModelPipeline.from_pretrained(model_path)
 
-        self.renormalize = renormalize
         self.intents = []
         self.ignore_labels = self.config.get("ignore_intents") or []
 
@@ -138,7 +136,7 @@ class Model2VecIntentPipeline(ConfidenceMatcherPipeline):
         classes = self.model.classes_[mask]
         probs = probs_[:, mask]
         # Renormalize probs over the surviving subset
-        if self.renormalize:
+        if self.config.get("renormalize"):
             row_sum = probs.sum(axis=1, keepdims=True)
             probs = np.where(row_sum > 0, probs / row_sum, probs)
 
