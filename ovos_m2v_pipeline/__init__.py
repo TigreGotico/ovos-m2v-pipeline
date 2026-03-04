@@ -2,6 +2,9 @@ import time
 import numpy as np
 from typing import List, Optional, Union, Dict, Iterable, Tuple
 
+# Labels that bypass the registered-intent check and are always matched
+_SPECIAL_LABELS = {"ocp:play", "common_query:common_query", "stop:stop"}
+
 from model2vec.inference import StaticModelPipeline
 from ovos_bus_client.client import MessageBusClient
 from ovos_bus_client.message import Message
@@ -127,16 +130,17 @@ class Model2VecIntentPipeline(ConfidenceMatcherPipeline):
         """
         inputs = [utterance]
         probs_ = self.model.predict_proba(inputs)
-        mask = np.in1d(self.model.classes_, self.intents)
+        # Include special-case labels even if not in self.intents
+        mask = np.isin(self.model.classes_, list(self.intents) + list(_SPECIAL_LABELS))
         if not mask.any():
             LOG.warning("No model classes match registered intents")
             return
         classes = self.model.classes_[mask]
         probs = probs_[:, mask]
-        # Renormalize probs
+        # Renormalize probs over the surviving subset
         if self.renormalize:
-            probs /= probs.sum(axis=1, keepdims=True)
-
+            row_sum = probs.sum(axis=1, keepdims=True)
+            probs = np.where(row_sum > 0, probs / row_sum, probs)
 
         # Associate predictions with labels
         for input_text, prob_row in zip(inputs, probs):
@@ -158,8 +162,7 @@ class Model2VecIntentPipeline(ConfidenceMatcherPipeline):
                 elif label == "stop:stop":
                     skill_id = "stop.openvoiceos"
                     label = "mycroft.stop"
-                else:
-                    pass
+
                 yield skill_id, label, float(prob)
 
     def match_high(self, utterances: List[str], lang: str, message: Message) -> Optional[IntentHandlerMatch]:
