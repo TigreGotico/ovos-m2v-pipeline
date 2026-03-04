@@ -1,5 +1,9 @@
 import time
+import numpy as np
 from typing import List, Optional, Union, Dict, Iterable, Tuple
+
+# Labels that bypass the registered-intent check and are always matched
+_SPECIAL_LABELS = {"ocp:play", "common_query:common_query", "stop:stop"}
 
 from model2vec.inference import StaticModelPipeline
 from ovos_bus_client.client import MessageBusClient
@@ -104,7 +108,7 @@ class Model2VecIntentPipeline(ConfidenceMatcherPipeline):
         time.sleep(3)
         timeout = self.config.get("timeout", 1)
         try:
-            self.intents = set(self._get_adapt_intents(timeout) + self._get_padatious_intents(timeout))
+            self.intents = list(set(self._get_adapt_intents(timeout) + self._get_padatious_intents(timeout)))
             LOG.debug(f"Model2Vec registered intents: {len(self.intents)}")
         except RuntimeError:
             pass
@@ -123,12 +127,23 @@ class Model2VecIntentPipeline(ConfidenceMatcherPipeline):
             An IntentHandlerMatch if a high-confidence match is found, None otherwise.
         """
         inputs = [utterance]
-        probs = self.model.predict_proba(inputs)
+        probs_ = self.model.predict_proba(inputs)
+        # Include special-case labels even if not in self.intents
+        mask = np.isin(self.model.classes_, list(self.intents) + list(_SPECIAL_LABELS))
+        if not mask.any():
+            LOG.warning("No model classes match registered intents")
+            return
+        classes = self.model.classes_[mask]
+        probs = probs_[:, mask]
+        # Renormalize probs over the surviving subset
+        if self.config.get("renormalize"):
+            row_sum = probs.sum(axis=1, keepdims=True)
+            probs = np.where(row_sum > 0, probs / row_sum, probs)
 
         # Associate predictions with labels
         for input_text, prob_row in zip(inputs, probs):
             # Zip together class labels with their probabilities
-            class_probs = list(zip(self.model.classes_, prob_row))
+            class_probs = list(zip(classes, prob_row))
             # Sort by probability descending
             class_probs.sort(key=lambda x: x[1], reverse=True)
             for label, prob in class_probs:
@@ -145,9 +160,7 @@ class Model2VecIntentPipeline(ConfidenceMatcherPipeline):
                 elif label == "stop:stop":
                     skill_id = "stop.openvoiceos"
                     label = "mycroft.stop"
-                elif label not in self.intents:
-                    LOG.debug(f"discarding match: {label} - intent not detected at runtime")
-                    continue
+
                 yield skill_id, label, float(prob)
 
     def match_high(self, utterances: List[str], lang: str, message: Message) -> Optional[IntentHandlerMatch]:

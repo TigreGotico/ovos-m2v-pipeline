@@ -1,28 +1,29 @@
 # Changelog
 
-## [0.0.8a3](https://github.com/TigreGotico/ovos-m2v-pipeline/tree/0.0.8a3) (2026-03-02)
+## [0.0.9a4](https://github.com/TigreGotico/ovos-m2v-pipeline/tree/0.0.9a4) (2026-03-04)
 
-[Full Changelog](https://github.com/TigreGotico/ovos-m2v-pipeline/compare/0.0.8a2...0.0.8a3)
-
-**Merged pull requests:**
-
-- Update ovos-workshop version constraint to \<9.0.0 [\#21](https://github.com/TigreGotico/ovos-m2v-pipeline/pull/21) ([JarbasAl](https://github.com/JarbasAl))
-
-## [0.0.8a2](https://github.com/TigreGotico/ovos-m2v-pipeline/tree/0.0.8a2) (2025-12-19)
-
-[Full Changelog](https://github.com/TigreGotico/ovos-m2v-pipeline/compare/0.0.8a1...0.0.8a2)
+[Full Changelog](https://github.com/TigreGotico/ovos-m2v-pipeline/compare/0.0.9a3...0.0.9a4)
 
 **Merged pull requests:**
 
-- chore\(deps\): update actions/setup-python action to v6 [\#17](https://github.com/TigreGotico/ovos-m2v-pipeline/pull/17) ([renovate[bot]](https://github.com/apps/renovate))
+- chore\(deps\): update actions/checkout action to v6 [\#26](https://github.com/TigreGotico/ovos-m2v-pipeline/pull/26) ([renovate[bot]](https://github.com/apps/renovate))
+- Add optional probability renormalization to intent matching [\#8](https://github.com/TigreGotico/ovos-m2v-pipeline/pull/8) ([femelo](https://github.com/femelo))
 
-## [0.0.8a1](https://github.com/TigreGotico/ovos-m2v-pipeline/tree/0.0.8a1) (2025-12-18)
+## [0.0.9a3](https://github.com/TigreGotico/ovos-m2v-pipeline/tree/0.0.9a3) (2026-03-03)
 
-[Full Changelog](https://github.com/TigreGotico/ovos-m2v-pipeline/compare/0.0.7...0.0.8a1)
+[Full Changelog](https://github.com/TigreGotico/ovos-m2v-pipeline/compare/0.0.9a1...0.0.9a3)
 
 **Merged pull requests:**
 
-- chore: Configure Renovate [\#12](https://github.com/TigreGotico/ovos-m2v-pipeline/pull/12) ([renovate[bot]](https://github.com/apps/renovate))
+- docs: add docs [\#24](https://github.com/TigreGotico/ovos-m2v-pipeline/pull/24) ([JarbasAl](https://github.com/JarbasAl))
+
+## [0.0.9a1](https://github.com/TigreGotico/ovos-m2v-pipeline/tree/0.0.9a1) (2026-03-02)
+
+[Full Changelog](https://github.com/TigreGotico/ovos-m2v-pipeline/compare/0.0.8...0.0.9a1)
+
+**Merged pull requests:**
+
+- chore\(deps\): update actions/checkout action to v6 [\#15](https://github.com/TigreGotico/ovos-m2v-pipeline/pull/15) ([renovate[bot]](https://github.com/apps/renovate))
 
 
 
