@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.0.9a4](https://github.com/TigreGotico/ovos-m2v-pipeline/tree/0.0.9a4) (2026-03-04)
+
+[Full Changelog](https://github.com/TigreGotico/ovos-m2v-pipeline/compare/0.0.9a3...0.0.9a4)
+
+**Merged pull requests:**
+
+- chore\(deps\): update actions/checkout action to v6 [\#26](https://github.com/TigreGotico/ovos-m2v-pipeline/pull/26) ([renovate[bot]](https://github.com/apps/renovate))
+- Add optional probability renormalization to intent matching [\#8](https://github.com/TigreGotico/ovos-m2v-pipeline/pull/8) ([femelo](https://github.com/femelo))
+
 ## [0.0.9a3](https://github.com/TigreGotico/ovos-m2v-pipeline/tree/0.0.9a3) (2026-03-03)
 
 [Full Changelog](https://github.com/TigreGotico/ovos-m2v-pipeline/compare/0.0.9a1...0.0.9a3)
