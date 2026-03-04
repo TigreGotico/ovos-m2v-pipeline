@@ -55,7 +55,7 @@ jobs:
           uv pip install --system -e .
       - name: Run tests
         run: |
-          pytest --cov=ovos_core --cov-report xml test/
+          pytest --cov=ovos_core --cov-report xml tests/
 
       - name: Coverage comment
         id: coverage_comment
