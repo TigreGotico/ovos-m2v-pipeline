@@ -19,3 +19,24 @@ dist
 # Created by unit tests
 .pytest_cache/
 !/.gtm/
+/train/output/distilled/
+/train/output/dataset_cache/
+/train/output/by_lang/
+/train/output/model_mul_bert-base-multilingual-cased/
+/train/output/model_mul_LaBSE/
+/train/output/model_mul_MrBERT/
+/train/output/model_mul_multilingual-e5-small/
+/train/output/model_mul_paraphrase-multilingual-MiniLM-L12-v2/
+/train/output/model_mul_potion-multilingual-128M/
+/train/output/model_mono_ca_distilroberta-ca/
+/train/output/model_mono_ca_MrBERT-ca/
+/train/output/model_mono_ca_roberta-base-ca/
+/train/output/model_mono_ca_roberta-large-ca/
+/train/output/model_mono_es_MrBERT-biomed/
+/train/output/model_mono_es_MrBERT-es/
+/train/output/model_mono_es_MrBERT-legal/
+/train/output/model_mono_es_MrBERT-science/
+/train/output/model_mono_gl_bertinho-gl/
+/train/output/model_mono_pt_bert-base-pt/
+/train/output/model_mono_pt_bert-large-pt/
+/train/output/model_mono_pt_bertha-pt-small/

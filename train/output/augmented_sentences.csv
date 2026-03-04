@@ -1,0 +1,581 @@
+lang,domain,intent,label,sentence,model
+it,ovos-skill-weather.openvoiceos,N_days_forecast.intent,ovos-skill-weather.openvoiceos:N_days_forecast.intent,mi puoi dire il meteo per i prossimi cinque giorni?,gemma-3n-E4B-it-GGUF
+it,ovos-skill-weather.openvoiceos,N_days_forecast.intent,ovos-skill-weather.openvoiceos:N_days_forecast.intent,vorrei sapere le previsioni del tempo per la prossima settimana,gemma-3n-E4B-it-GGUF
+it,ovos-skill-weather.openvoiceos,N_days_forecast.intent,ovos-skill-weather.openvoiceos:N_days_forecast.intent,che tempo farà tra due settimane?,gemma-3n-E4B-it-GGUF
+it,ovos-skill-weather.openvoiceos,N_days_forecast.intent,ovos-skill-weather.openvoiceos:N_days_forecast.intent,previsioni meteo a lungo termine,gemma-3n-E4B-it-GGUF
+it,ovos-skill-weather.openvoiceos,N_days_forecast.intent,ovos-skill-weather.openvoiceos:N_days_forecast.intent,dimmi come sarà il tempo nei prossimi sette giorni,gemma-3n-E4B-it-GGUF
+it,ovos-skill-weather.openvoiceos,N_days_forecast.intent,ovos-skill-weather.openvoiceos:N_days_forecast.intent,meteo settimanale dettagliato,gemma-3n-E4B-it-GGUF
+it,ovos-skill-weather.openvoiceos,N_days_forecast.intent,ovos-skill-weather.openvoiceos:N_days_forecast.intent,previsioni per i prossimi giorni,gemma-3n-E4B-it-GGUF
+it,ovos-skill-weather.openvoiceos,N_days_forecast.intent,ovos-skill-weather.openvoiceos:N_days_forecast.intent,mi dai una previsione per i prossimi dieci giorni?,gemma-3n-E4B-it-GGUF
+it,ovos-skill-weather.openvoiceos,N_days_forecast.intent,ovos-skill-weather.openvoiceos:N_days_forecast.intent,che previsioni ci sono per la settimana prossima?,gemma-3n-E4B-it-GGUF
+it,ovos-skill-weather.openvoiceos,N_days_forecast.intent,ovos-skill-weather.openvoiceos:N_days_forecast.intent,quanto tempo farà la settimana prossima?,gemma-3n-E4B-it-GGUF
+it,ovos-skill-weather.openvoiceos,N_days_forecast.intent,ovos-skill-weather.openvoiceos:N_days_forecast.intent,"previsioni del tempo per la prossima settimana, per favore",gemma-3n-E4B-it-GGUF
+it,ovos-skill-weather.openvoiceos,N_days_forecast.intent,ovos-skill-weather.openvoiceos:N_days_forecast.intent,mi puoi aggiornare sulle previsioni meteo per i prossimi giorni?,gemma-3n-E4B-it-GGUF
+it,ovos-skill-weather.openvoiceos,N_days_forecast.intent,ovos-skill-weather.openvoiceos:N_days_forecast.intent,vorrei un bollettino meteorologico per la settimana,gemma-3n-E4B-it-GGUF
+it,ovos-skill-weather.openvoiceos,N_days_forecast.intent,ovos-skill-weather.openvoiceos:N_days_forecast.intent,qual è la situazione meteo prevista per i prossimi giorni?,gemma-3n-E4B-it-GGUF
+it,ovos-skill-weather.openvoiceos,N_days_forecast.intent,ovos-skill-weather.openvoiceos:N_days_forecast.intent,mi puoi dire se pioverà nei prossimi tre giorni?,gemma-3n-E4B-it-GGUF
+it,ovos-skill-weather.openvoiceos,N_days_forecast.intent,ovos-skill-weather.openvoiceos:N_days_forecast.intent,previsioni meteo per il fine settimana e la settimana successiva,gemma-3n-E4B-it-GGUF
+it,ovos-skill-weather.openvoiceos,N_days_forecast.intent,ovos-skill-weather.openvoiceos:N_days_forecast.intent,tempo previsto per la settimana,gemma-3n-E4B-it-GGUF
+it,ovos-skill-weather.openvoiceos,N_days_forecast.intent,ovos-skill-weather.openvoiceos:N_days_forecast.intent,cosa prevedono le previsioni per i prossimi giorni?,gemma-3n-E4B-it-GGUF
+it,ovos-skill-weather.openvoiceos,N_days_forecast.intent,ovos-skill-weather.openvoiceos:N_days_forecast.intent,mi puoi dire le previsioni meteo per la settimana?,gemma-3n-E4B-it-GGUF
+de,ovos-skill-alerts.openvoiceos,CreateReminder,ovos-skill-alerts.openvoiceos:CreateReminder,"erinnere mich bitte daran, morgen um 14 uhr den arzt anzurufen",gemma-3n-E4B-it-GGUF
+de,ovos-skill-alerts.openvoiceos,CreateReminder,ovos-skill-alerts.openvoiceos:CreateReminder,"kannst du mich erinnern, am freitag um 10 uhr die rechnung zu bezahlen?",gemma-3n-E4B-it-GGUF
+de,ovos-skill-alerts.openvoiceos,CreateReminder,ovos-skill-alerts.openvoiceos:CreateReminder,"ich möchte eine erinnerung für nächste woche erstellen, um die blumen zu gießen",gemma-3n-E4B-it-GGUF
+de,ovos-skill-alerts.openvoiceos,CreateReminder,ovos-skill-alerts.openvoiceos:CreateReminder,"bitte erinnere mich daran, um 18:30 uhr das abendessen vorzubereiten",gemma-3n-E4B-it-GGUF
+de,ovos-skill-alerts.openvoiceos,CreateReminder,ovos-skill-alerts.openvoiceos:CreateReminder,"erinnere mich daran, meine medikamente einzunehmen, um 7 uhr morgens",gemma-3n-E4B-it-GGUF
+de,ovos-skill-alerts.openvoiceos,CreateReminder,ovos-skill-alerts.openvoiceos:CreateReminder,"stelle eine erinnerung ein, um den kater zu füttern, wenn ich von der arbeit zurückkomme",gemma-3n-E4B-it-GGUF
+de,ovos-skill-alerts.openvoiceos,CreateReminder,ovos-skill-alerts.openvoiceos:CreateReminder,"erinnere mich daran, am samstag um 9 uhr zum markt zu gehen",gemma-3n-E4B-it-GGUF
+de,ovos-skill-alerts.openvoiceos,CreateReminder,ovos-skill-alerts.openvoiceos:CreateReminder,"kannst du mich daran erinnern, das fenster zu schließen, wenn ich gehe?",gemma-3n-E4B-it-GGUF
+de,ovos-skill-alerts.openvoiceos,CreateReminder,ovos-skill-alerts.openvoiceos:CreateReminder,"bitte erinnere mich daran, die post zu holen, sobald ich zu hause bin",gemma-3n-E4B-it-GGUF
+de,ovos-skill-alerts.openvoiceos,CreateReminder,ovos-skill-alerts.openvoiceos:CreateReminder,"erstelle eine erinnerung, um frau müller anzurufen",gemma-3n-E4B-it-GGUF
+de,ovos-skill-alerts.openvoiceos,CreateReminder,ovos-skill-alerts.openvoiceos:CreateReminder,"erinnere mich daran, um 16 uhr meinen termin beim friseur zu haben",gemma-3n-E4B-it-GGUF
+de,ovos-skill-alerts.openvoiceos,CreateReminder,ovos-skill-alerts.openvoiceos:CreateReminder,bitte setze eine erinnerung für den einkauf von milch und brot,gemma-3n-E4B-it-GGUF
+de,ovos-skill-alerts.openvoiceos,CreateReminder,ovos-skill-alerts.openvoiceos:CreateReminder,"erinnere mich daran, die wäsche zu waschen, am sonntag",gemma-3n-E4B-it-GGUF
+de,ovos-skill-alerts.openvoiceos,CreateReminder,ovos-skill-alerts.openvoiceos:CreateReminder,"stelle eine erinnerung ein, um die kerzen anzuzünden, wenn es dunkel wird",gemma-3n-E4B-it-GGUF
+de,ovos-skill-alerts.openvoiceos,CreateReminder,ovos-skill-alerts.openvoiceos:CreateReminder,"kannst du mich erinnern, das licht auszuschalten, bevor ich schlafen gehe?",gemma-3n-E4B-it-GGUF
+de,ovos-skill-alerts.openvoiceos,CreateReminder,ovos-skill-alerts.openvoiceos:CreateReminder,"bitte erinnere mich daran, meinen freund max anzurufen",gemma-3n-E4B-it-GGUF
+de,ovos-skill-alerts.openvoiceos,CreateReminder,ovos-skill-alerts.openvoiceos:CreateReminder,"erinnere mich daran, um 12 uhr mittags zu mittag zu essen",gemma-3n-E4B-it-GGUF
+de,ovos-skill-alerts.openvoiceos,CreateReminder,ovos-skill-alerts.openvoiceos:CreateReminder,"stelle eine erinnerung ein, um den hund auszuführen, wenn ich nach hause komme",gemma-3n-E4B-it-GGUF
+de,ovos-skill-alerts.openvoiceos,CreateReminder,ovos-skill-alerts.openvoiceos:CreateReminder,"erinnere mich daran, die pflanzen zu gießen, am dienstag",gemma-3n-E4B-it-GGUF
+de,ovos-skill-alerts.openvoiceos,CreateReminder,ovos-skill-alerts.openvoiceos:CreateReminder,"kannst du mich daran erinnern, die tür abzuschließen, wenn ich gehe?",gemma-3n-E4B-it-GGUF
+de,ovos-skill-alerts.openvoiceos,CreateReminder,ovos-skill-alerts.openvoiceos:CreateReminder,"bitte erinnere mich daran, meinen geburtstag zu feiern",gemma-3n-E4B-it-GGUF
+en,ovos-skill-application-launcher.openvoiceos,close.intent,ovos-skill-application-launcher.openvoiceos:close.intent,close the calculator,gemma-3n-E4B-it-GGUF
+en,ovos-skill-application-launcher.openvoiceos,close.intent,ovos-skill-application-launcher.openvoiceos:close.intent,exit the notes app,gemma-3n-E4B-it-GGUF
+en,ovos-skill-application-launcher.openvoiceos,close.intent,ovos-skill-application-launcher.openvoiceos:close.intent,kill the music player,gemma-3n-E4B-it-GGUF
+en,ovos-skill-application-launcher.openvoiceos,close.intent,ovos-skill-application-launcher.openvoiceos:close.intent,quit the browser,gemma-3n-E4B-it-GGUF
+en,ovos-skill-application-launcher.openvoiceos,close.intent,ovos-skill-application-launcher.openvoiceos:close.intent,terminate the game,gemma-3n-E4B-it-GGUF
+en,ovos-skill-application-launcher.openvoiceos,close.intent,ovos-skill-application-launcher.openvoiceos:close.intent,close the settings,gemma-3n-E4B-it-GGUF
+en,ovos-skill-application-launcher.openvoiceos,close.intent,ovos-skill-application-launcher.openvoiceos:close.intent,exit the email client,gemma-3n-E4B-it-GGUF
+en,ovos-skill-application-launcher.openvoiceos,close.intent,ovos-skill-application-launcher.openvoiceos:close.intent,kill the photo editor,gemma-3n-E4B-it-GGUF
+en,ovos-skill-application-launcher.openvoiceos,close.intent,ovos-skill-application-launcher.openvoiceos:close.intent,quit the weather app,gemma-3n-E4B-it-GGUF
+en,ovos-skill-application-launcher.openvoiceos,close.intent,ovos-skill-application-launcher.openvoiceos:close.intent,terminate the calendar,gemma-3n-E4B-it-GGUF
+en,ovos-skill-application-launcher.openvoiceos,close.intent,ovos-skill-application-launcher.openvoiceos:close.intent,close the messaging app,gemma-3n-E4B-it-GGUF
+en,ovos-skill-application-launcher.openvoiceos,close.intent,ovos-skill-application-launcher.openvoiceos:close.intent,exit the video player,gemma-3n-E4B-it-GGUF
+en,ovos-skill-application-launcher.openvoiceos,close.intent,ovos-skill-application-launcher.openvoiceos:close.intent,kill the audiobook player,gemma-3n-E4B-it-GGUF
+en,ovos-skill-application-launcher.openvoiceos,close.intent,ovos-skill-application-launcher.openvoiceos:close.intent,quit the file manager,gemma-3n-E4B-it-GGUF
+en,ovos-skill-application-launcher.openvoiceos,close.intent,ovos-skill-application-launcher.openvoiceos:close.intent,terminate the drawing app,gemma-3n-E4B-it-GGUF
+en,ovos-skill-application-launcher.openvoiceos,close.intent,ovos-skill-application-launcher.openvoiceos:close.intent,close the map application,gemma-3n-E4B-it-GGUF
+en,ovos-skill-application-launcher.openvoiceos,close.intent,ovos-skill-application-launcher.openvoiceos:close.intent,exit the news reader,gemma-3n-E4B-it-GGUF
+en,ovos-skill-application-launcher.openvoiceos,close.intent,ovos-skill-application-launcher.openvoiceos:close.intent,kill the calculator app,gemma-3n-E4B-it-GGUF
+en,ovos-skill-application-launcher.openvoiceos,close.intent,ovos-skill-application-launcher.openvoiceos:close.intent,quit the system monitor,gemma-3n-E4B-it-GGUF
+en,ovos-skill-application-launcher.openvoiceos,close.intent,ovos-skill-application-launcher.openvoiceos:close.intent,terminate the password manager,gemma-3n-E4B-it-GGUF
+eu,ovos-skill-weather.openvoiceos,daily_forecast.intent,ovos-skill-weather.openvoiceos:daily_forecast.intent,euria egingo duela ikusi dut?,gemma-3n-E4B-it-GGUF
+eu,ovos-skill-weather.openvoiceos,daily_forecast.intent,ovos-skill-weather.openvoiceos:daily_forecast.intent,biharra eguraldia zer izango da?,gemma-3n-E4B-it-GGUF
+eu,ovos-skill-weather.openvoiceos,daily_forecast.intent,ovos-skill-weather.openvoiceos:daily_forecast.intent,euria egingo duela esaten dute?,gemma-3n-E4B-it-GGUF
+eu,ovos-skill-weather.openvoiceos,daily_forecast.intent,ovos-skill-weather.openvoiceos:daily_forecast.intent,euria izango duela uste dut.,gemma-3n-E4B-it-GGUF
+eu,ovos-skill-weather.openvoiceos,daily_forecast.intent,ovos-skill-weather.openvoiceos:daily_forecast.intent,eguraldi onegi bat espero dut.,gemma-3n-E4B-it-GGUF
+eu,ovos-skill-weather.openvoiceos,daily_forecast.intent,ovos-skill-weather.openvoiceos:daily_forecast.intent,euria eta haruz egongo dira?,gemma-3n-E4B-it-GGUF
+eu,ovos-skill-weather.openvoiceos,daily_forecast.intent,ovos-skill-weather.openvoiceos:daily_forecast.intent,biharra zer motako eguraldi egongo da?,gemma-3n-E4B-it-GGUF
+eu,ovos-skill-weather.openvoiceos,daily_forecast.intent,ovos-skill-weather.openvoiceos:daily_forecast.intent,eguraldiaren iragarpena ikusi ahal izango duzu?,gemma-3n-E4B-it-GGUF
+eu,ovos-skill-weather.openvoiceos,daily_forecast.intent,ovos-skill-weather.openvoiceos:daily_forecast.intent,euria egingo duela jakin behar dut.,gemma-3n-E4B-it-GGUF
+eu,ovos-skill-weather.openvoiceos,daily_forecast.intent,ovos-skill-weather.openvoiceos:daily_forecast.intent,euria egingo duela dut erne.,gemma-3n-E4B-it-GGUF
+eu,ovos-skill-weather.openvoiceos,daily_forecast.intent,ovos-skill-weather.openvoiceos:daily_forecast.intent,eguraldia zer izango da aste honetan?,gemma-3n-E4B-it-GGUF
+eu,ovos-skill-weather.openvoiceos,daily_forecast.intent,ovos-skill-weather.openvoiceos:daily_forecast.intent,biharra euria egiteko aukera dago?,gemma-3n-E4B-it-GGUF
+eu,ovos-skill-weather.openvoiceos,daily_forecast.intent,ovos-skill-weather.openvoiceos:daily_forecast.intent,euria egingo duela ikusi dut aplikazioan.,gemma-3n-E4B-it-GGUF
+es,ovos-skill-camera.openvoiceos,take_picture.intent,ovos-skill-camera.openvoiceos:take_picture.intent,¿podrías tomarme una foto?,gemma-3n-E4B-it-GGUF
+es,ovos-skill-camera.openvoiceos,take_picture.intent,ovos-skill-camera.openvoiceos:take_picture.intent,quiero hacer una fotografía.,gemma-3n-E4B-it-GGUF
+es,ovos-skill-camera.openvoiceos,take_picture.intent,ovos-skill-camera.openvoiceos:take_picture.intent,"toma una foto de mí, por favor.",gemma-3n-E4B-it-GGUF
+es,ovos-skill-camera.openvoiceos,take_picture.intent,ovos-skill-camera.openvoiceos:take_picture.intent,necesito una foto ahora.,gemma-3n-E4B-it-GGUF
+es,ovos-skill-camera.openvoiceos,take_picture.intent,ovos-skill-camera.openvoiceos:take_picture.intent,haz una foto rápida.,gemma-3n-E4B-it-GGUF
+es,ovos-skill-camera.openvoiceos,take_picture.intent,ovos-skill-camera.openvoiceos:take_picture.intent,¿me puedes tomar una foto?,gemma-3n-E4B-it-GGUF
+es,ovos-skill-camera.openvoiceos,take_picture.intent,ovos-skill-camera.openvoiceos:take_picture.intent,quiero sacar una foto.,gemma-3n-E4B-it-GGUF
+es,ovos-skill-camera.openvoiceos,take_picture.intent,ovos-skill-camera.openvoiceos:take_picture.intent,toma una foto de este momento.,gemma-3n-E4B-it-GGUF
+es,ovos-skill-camera.openvoiceos,take_picture.intent,ovos-skill-camera.openvoiceos:take_picture.intent,"por favor, hazme una foto.",gemma-3n-E4B-it-GGUF
+es,ovos-skill-camera.openvoiceos,take_picture.intent,ovos-skill-camera.openvoiceos:take_picture.intent,necesito una foto para compartir.,gemma-3n-E4B-it-GGUF
+es,ovos-skill-camera.openvoiceos,take_picture.intent,ovos-skill-camera.openvoiceos:take_picture.intent,toma una fotografía de la vista.,gemma-3n-E4B-it-GGUF
+es,ovos-skill-camera.openvoiceos,take_picture.intent,ovos-skill-camera.openvoiceos:take_picture.intent,¿podrías tomar una foto de nosotros?,gemma-3n-E4B-it-GGUF
+es,ovos-skill-camera.openvoiceos,take_picture.intent,ovos-skill-camera.openvoiceos:take_picture.intent,quiero una foto con mis amigos.,gemma-3n-E4B-it-GGUF
+es,ovos-skill-camera.openvoiceos,take_picture.intent,ovos-skill-camera.openvoiceos:take_picture.intent,haz una foto de mi mascota.,gemma-3n-E4B-it-GGUF
+es,ovos-skill-camera.openvoiceos,take_picture.intent,ovos-skill-camera.openvoiceos:take_picture.intent,toma una foto de la comida.,gemma-3n-E4B-it-GGUF
+es,ovos-skill-camera.openvoiceos,take_picture.intent,ovos-skill-camera.openvoiceos:take_picture.intent,necesito una foto de este lugar.,gemma-3n-E4B-it-GGUF
+es,ovos-skill-camera.openvoiceos,take_picture.intent,ovos-skill-camera.openvoiceos:take_picture.intent,saca una foto para mi perfil.,gemma-3n-E4B-it-GGUF
+es,ovos-skill-camera.openvoiceos,take_picture.intent,ovos-skill-camera.openvoiceos:take_picture.intent,toma una foto con la luz natural.,gemma-3n-E4B-it-GGUF
+es,ovos-skill-camera.openvoiceos,take_picture.intent,ovos-skill-camera.openvoiceos:take_picture.intent,¿puedes tomar una foto de este paisaje?,gemma-3n-E4B-it-GGUF
+es,ovos-skill-camera.openvoiceos,take_picture.intent,ovos-skill-camera.openvoiceos:take_picture.intent,necesito una foto para recordar.,gemma-3n-E4B-it-GGUF
+de,ovos-skill-moviemaster.openvoiceos,genre.movie.search.intent,ovos-skill-moviemaster.openvoiceos:genre.movie.search.intent,ich hätte gern filme im genre action,gemma-3n-E4B-it-GGUF
+de,ovos-skill-moviemaster.openvoiceos,genre.movie.search.intent,ovos-skill-moviemaster.openvoiceos:genre.movie.search.intent,gibt es filme im genre komödie?,gemma-3n-E4B-it-GGUF
+de,ovos-skill-moviemaster.openvoiceos,genre.movie.search.intent,ovos-skill-moviemaster.openvoiceos:genre.movie.search.intent,finde mir einen film im genre thriller,gemma-3n-E4B-it-GGUF
+de,ovos-skill-moviemaster.openvoiceos,genre.movie.search.intent,ovos-skill-moviemaster.openvoiceos:genre.movie.search.intent,zeige filme im genre science fiction,gemma-3n-E4B-it-GGUF
+de,ovos-skill-moviemaster.openvoiceos,genre.movie.search.intent,ovos-skill-moviemaster.openvoiceos:genre.movie.search.intent,kannst du mir filme im genre drama zeigen?,gemma-3n-E4B-it-GGUF
+de,ovos-skill-moviemaster.openvoiceos,genre.movie.search.intent,ovos-skill-moviemaster.openvoiceos:genre.movie.search.intent,finde filme im genre horror,gemma-3n-E4B-it-GGUF
+de,ovos-skill-moviemaster.openvoiceos,genre.movie.search.intent,ovos-skill-moviemaster.openvoiceos:genre.movie.search.intent,zeige mir einige filme aus dem genre fantasy,gemma-3n-E4B-it-GGUF
+da,ovos-skill-weather.openvoiceos,is_stormy.intent,ovos-skill-weather.openvoiceos:is_stormy.intent,er der risiko for kraftig regn?,gemma-3n-E4B-it-GGUF
+da,ovos-skill-weather.openvoiceos,is_stormy.intent,ovos-skill-weather.openvoiceos:is_stormy.intent,hvordan er vejret i dag?,gemma-3n-E4B-it-GGUF
+da,ovos-skill-weather.openvoiceos,is_stormy.intent,ovos-skill-weather.openvoiceos:is_stormy.intent,er det sandsynligt med skybrud?,gemma-3n-E4B-it-GGUF
+da,ovos-skill-weather.openvoiceos,is_stormy.intent,ovos-skill-weather.openvoiceos:is_stormy.intent,vil det blive stormfuldt senere i dag?,gemma-3n-E4B-it-GGUF
+da,ovos-skill-weather.openvoiceos,is_stormy.intent,ovos-skill-weather.openvoiceos:is_stormy.intent,er der kraftig vind forventet?,gemma-3n-E4B-it-GGUF
+da,ovos-skill-weather.openvoiceos,is_stormy.intent,ovos-skill-weather.openvoiceos:is_stormy.intent,skal jeg tage en paraply med?,gemma-3n-E4B-it-GGUF
+da,ovos-skill-weather.openvoiceos,is_stormy.intent,ovos-skill-weather.openvoiceos:is_stormy.intent,er der varslet torden i morgen?,gemma-3n-E4B-it-GGUF
+da,ovos-skill-weather.openvoiceos,is_stormy.intent,ovos-skill-weather.openvoiceos:is_stormy.intent,hvordan ser vejret ud i københavn?,gemma-3n-E4B-it-GGUF
+da,ovos-skill-weather.openvoiceos,is_stormy.intent,ovos-skill-weather.openvoiceos:is_stormy.intent,er der risiko for oversvømmelse?,gemma-3n-E4B-it-GGUF
+da,ovos-skill-weather.openvoiceos,is_stormy.intent,ovos-skill-weather.openvoiceos:is_stormy.intent,hvad er vejrudsigten for weekenden?,gemma-3n-E4B-it-GGUF
+da,ovos-skill-weather.openvoiceos,is_stormy.intent,ovos-skill-weather.openvoiceos:is_stormy.intent,er der tale om en alvorlig storm?,gemma-3n-E4B-it-GGUF
+da,ovos-skill-weather.openvoiceos,is_stormy.intent,ovos-skill-weather.openvoiceos:is_stormy.intent,er der varsel om ekstremt vejr?,gemma-3n-E4B-it-GGUF
+da,ovos-skill-weather.openvoiceos,is_stormy.intent,ovos-skill-weather.openvoiceos:is_stormy.intent,vil vejret blive dårligt?,gemma-3n-E4B-it-GGUF
+da,ovos-skill-weather.openvoiceos,is_stormy.intent,ovos-skill-weather.openvoiceos:is_stormy.intent,er der mulighed for hagl?,gemma-3n-E4B-it-GGUF
+da,ovos-skill-weather.openvoiceos,is_stormy.intent,ovos-skill-weather.openvoiceos:is_stormy.intent,hvordan er vejret i aarhus lige nu?,gemma-3n-E4B-it-GGUF
+da,ovos-skill-weather.openvoiceos,is_stormy.intent,ovos-skill-weather.openvoiceos:is_stormy.intent,er der tænkt på storm i roskilde?,gemma-3n-E4B-it-GGUF
+da,ovos-skill-weather.openvoiceos,is_stormy.intent,ovos-skill-weather.openvoiceos:is_stormy.intent,er der forventet kraftig blæst?,gemma-3n-E4B-it-GGUF
+da,ovos-skill-weather.openvoiceos,is_stormy.intent,ovos-skill-weather.openvoiceos:is_stormy.intent,er der en risiko for storm i nordjylland?,gemma-3n-E4B-it-GGUF
+da,ovos-skill-weather.openvoiceos,is_stormy.intent,ovos-skill-weather.openvoiceos:is_stormy.intent,hvordan bliver vejret i odense?,gemma-3n-E4B-it-GGUF
+da,ovos-skill-weather.openvoiceos,is_stormy.intent,ovos-skill-weather.openvoiceos:is_stormy.intent,er der fare for tordenbyger?,gemma-3n-E4B-it-GGUF
+it,ovos-skill-days-in-history.openvoiceos,births_in_history.intent,ovos-skill-days-in-history.openvoiceos:births_in_history.intent,dimmi chi è nato oggi,gemma-3n-E4B-it-GGUF
+it,ovos-skill-days-in-history.openvoiceos,births_in_history.intent,ovos-skill-days-in-history.openvoiceos:births_in_history.intent,raccontami chi ha visto la luce oggi,gemma-3n-E4B-it-GGUF
+it,ovos-skill-days-in-history.openvoiceos,births_in_history.intent,ovos-skill-days-in-history.openvoiceos:births_in_history.intent,chi ha compiuto gli anni oggi nella storia,gemma-3n-E4B-it-GGUF
+it,ovos-skill-days-in-history.openvoiceos,births_in_history.intent,ovos-skill-days-in-history.openvoiceos:births_in_history.intent,chi è nato il {data},gemma-3n-E4B-it-GGUF
+it,ovos-skill-days-in-history.openvoiceos,births_in_history.intent,ovos-skill-days-in-history.openvoiceos:births_in_history.intent,mostrami chi è nato in questo giorno,gemma-3n-E4B-it-GGUF
+it,ovos-skill-days-in-history.openvoiceos,births_in_history.intent,ovos-skill-days-in-history.openvoiceos:births_in_history.intent,chi è nato nel {mese} del {anno},gemma-3n-E4B-it-GGUF
+it,ovos-skill-days-in-history.openvoiceos,births_in_history.intent,ovos-skill-days-in-history.openvoiceos:births_in_history.intent,parlami di persone nate oggi,gemma-3n-E4B-it-GGUF
+it,ovos-skill-days-in-history.openvoiceos,births_in_history.intent,ovos-skill-days-in-history.openvoiceos:births_in_history.intent,chi ha avuto inizio oggi,gemma-3n-E4B-it-GGUF
+it,ovos-skill-days-in-history.openvoiceos,births_in_history.intent,ovos-skill-days-in-history.openvoiceos:births_in_history.intent,dimmi qualcosa su chi è nato oggi,gemma-3n-E4B-it-GGUF
+it,ovos-skill-days-in-history.openvoiceos,births_in_history.intent,ovos-skill-days-in-history.openvoiceos:births_in_history.intent,chi è nato in un giorno simile a oggi,gemma-3n-E4B-it-GGUF
+it,ovos-skill-days-in-history.openvoiceos,births_in_history.intent,ovos-skill-days-in-history.openvoiceos:births_in_history.intent,raccontami una nascita storica di oggi,gemma-3n-E4B-it-GGUF
+it,ovos-skill-days-in-history.openvoiceos,births_in_history.intent,ovos-skill-days-in-history.openvoiceos:births_in_history.intent,chi ha segnato la storia nascendo oggi,gemma-3n-E4B-it-GGUF
+it,ovos-skill-days-in-history.openvoiceos,births_in_history.intent,ovos-skill-days-in-history.openvoiceos:births_in_history.intent,chi è nato il 15 agosto,gemma-3n-E4B-it-GGUF
+it,ovos-skill-days-in-history.openvoiceos,births_in_history.intent,ovos-skill-days-in-history.openvoiceos:births_in_history.intent,chi è nato nel 1900,gemma-3n-E4B-it-GGUF
+it,ovos-skill-days-in-history.openvoiceos,births_in_history.intent,ovos-skill-days-in-history.openvoiceos:births_in_history.intent,mostrami le persone nate il 22 dicembre,gemma-3n-E4B-it-GGUF
+it,ovos-skill-days-in-history.openvoiceos,births_in_history.intent,ovos-skill-days-in-history.openvoiceos:births_in_history.intent,chi ha avuto una nascita importante oggi,gemma-3n-E4B-it-GGUF
+it,ovos-skill-days-in-history.openvoiceos,births_in_history.intent,ovos-skill-days-in-history.openvoiceos:births_in_history.intent,chi è nato in un giorno speciale,gemma-3n-E4B-it-GGUF
+it,ovos-skill-days-in-history.openvoiceos,births_in_history.intent,ovos-skill-days-in-history.openvoiceos:births_in_history.intent,dimmi chi è nato in un giorno storico,gemma-3n-E4B-it-GGUF
+it,ovos-skill-days-in-history.openvoiceos,births_in_history.intent,ovos-skill-days-in-history.openvoiceos:births_in_history.intent,raccontami una storia di nascita,gemma-3n-E4B-it-GGUF
+it,ovos-skill-days-in-history.openvoiceos,births_in_history.intent,ovos-skill-days-in-history.openvoiceos:births_in_history.intent,chi è nato oggi che ha fatto la differenza,gemma-3n-E4B-it-GGUF
+de,ovos-skill-naptime.openvoiceos,WakeUp,ovos-skill-naptime.openvoiceos:WakeUp,"guten morgen, ich bin wach",gemma-3n-E4B-it-GGUF
+de,ovos-skill-naptime.openvoiceos,WakeUp,ovos-skill-naptime.openvoiceos:WakeUp,"morgens, kannst du mich wecken?",gemma-3n-E4B-it-GGUF
+de,ovos-skill-naptime.openvoiceos,WakeUp,ovos-skill-naptime.openvoiceos:WakeUp,ich möchte aufwachen,gemma-3n-E4B-it-GGUF
+de,ovos-skill-naptime.openvoiceos,WakeUp,ovos-skill-naptime.openvoiceos:WakeUp,wachgeküsst werden,gemma-3n-E4B-it-GGUF
+de,ovos-skill-naptime.openvoiceos,WakeUp,ovos-skill-naptime.openvoiceos:WakeUp,bitte weck mich auf,gemma-3n-E4B-it-GGUF
+de,ovos-skill-naptime.openvoiceos,WakeUp,ovos-skill-naptime.openvoiceos:WakeUp,kannst du mir helfen aufzustehen?,gemma-3n-E4B-it-GGUF
+de,ovos-skill-naptime.openvoiceos,WakeUp,ovos-skill-naptime.openvoiceos:WakeUp,ich brauche einen wecker,gemma-3n-E4B-it-GGUF
+de,ovos-skill-naptime.openvoiceos,WakeUp,ovos-skill-naptime.openvoiceos:WakeUp,mach mich wach,gemma-3n-E4B-it-GGUF
+de,ovos-skill-naptime.openvoiceos,WakeUp,ovos-skill-naptime.openvoiceos:WakeUp,ich möchte jetzt aufstehen,gemma-3n-E4B-it-GGUF
+de,ovos-skill-naptime.openvoiceos,WakeUp,ovos-skill-naptime.openvoiceos:WakeUp,"wach werden, bitte",gemma-3n-E4B-it-GGUF
+de,ovos-skill-naptime.openvoiceos,WakeUp,ovos-skill-naptime.openvoiceos:WakeUp,"es ist zeit, aufzustehen",gemma-3n-E4B-it-GGUF
+de,ovos-skill-naptime.openvoiceos,WakeUp,ovos-skill-naptime.openvoiceos:WakeUp,ich bin noch müde,gemma-3n-E4B-it-GGUF
+de,ovos-skill-naptime.openvoiceos,WakeUp,ovos-skill-naptime.openvoiceos:WakeUp,bitte wecke mich sanft auf,gemma-3n-E4B-it-GGUF
+de,ovos-skill-naptime.openvoiceos,WakeUp,ovos-skill-naptime.openvoiceos:WakeUp,"kannst du mir sagen, wie spät es ist?",gemma-3n-E4B-it-GGUF
+de,ovos-skill-naptime.openvoiceos,WakeUp,ovos-skill-naptime.openvoiceos:WakeUp,ich möchte nicht schlafen,gemma-3n-E4B-it-GGUF
+de,ovos-skill-naptime.openvoiceos,WakeUp,ovos-skill-naptime.openvoiceos:WakeUp,ich fühle mich noch nicht fit,gemma-3n-E4B-it-GGUF
+de,ovos-skill-naptime.openvoiceos,WakeUp,ovos-skill-naptime.openvoiceos:WakeUp,ich möchte aufwachen und den tag beginnen,gemma-3n-E4B-it-GGUF
+de,ovos-skill-naptime.openvoiceos,WakeUp,ovos-skill-naptime.openvoiceos:WakeUp,bitte schalte den wecker ein,gemma-3n-E4B-it-GGUF
+de,ovos-skill-naptime.openvoiceos,WakeUp,ovos-skill-naptime.openvoiceos:WakeUp,"wach auf, die sonne scheint",gemma-3n-E4B-it-GGUF
+de,ovos-skill-naptime.openvoiceos,WakeUp,ovos-skill-naptime.openvoiceos:WakeUp,ich bin bereit aufzustehen,gemma-3n-E4B-it-GGUF
+da,ovos-skill-boot-finished.openvoiceos,enable_ready_notification.intent,ovos-skill-boot-finished.openvoiceos:enable_ready_notification.intent,aktiver venligst notifikation ved opstart,gemma-3n-E4B-it-GGUF
+da,ovos-skill-boot-finished.openvoiceos,enable_ready_notification.intent,ovos-skill-boot-finished.openvoiceos:enable_ready_notification.intent,slå opstart notifikationer til,gemma-3n-E4B-it-GGUF
+da,ovos-skill-boot-finished.openvoiceos,enable_ready_notification.intent,ovos-skill-boot-finished.openvoiceos:enable_ready_notification.intent,gør det således at jeg får besked når systemet er færdigt,gemma-3n-E4B-it-GGUF
+da,ovos-skill-boot-finished.openvoiceos,enable_ready_notification.intent,ovos-skill-boot-finished.openvoiceos:enable_ready_notification.intent,jeg vil gerne have at du aktiverer notifikationer efter opstart,gemma-3n-E4B-it-GGUF
+da,ovos-skill-boot-finished.openvoiceos,enable_ready_notification.intent,ovos-skill-boot-finished.openvoiceos:enable_ready_notification.intent,kan du tænde for lydsignal ved systemstart?,gemma-3n-E4B-it-GGUF
+da,ovos-skill-boot-finished.openvoiceos,enable_ready_notification.intent,ovos-skill-boot-finished.openvoiceos:enable_ready_notification.intent,aktiver notifikationer når ovos er startet,gemma-3n-E4B-it-GGUF
+da,ovos-skill-boot-finished.openvoiceos,enable_ready_notification.intent,ovos-skill-boot-finished.openvoiceos:enable_ready_notification.intent,start notifikationer skal aktiveres,gemma-3n-E4B-it-GGUF
+da,ovos-skill-boot-finished.openvoiceos,enable_ready_notification.intent,ovos-skill-boot-finished.openvoiceos:enable_ready_notification.intent,jeg ønsker at aktivere opstart meddelelser,gemma-3n-E4B-it-GGUF
+da,ovos-skill-boot-finished.openvoiceos,enable_ready_notification.intent,ovos-skill-boot-finished.openvoiceos:enable_ready_notification.intent,giv mig besked når systemet er klar ved at aktivere notifikationer,gemma-3n-E4B-it-GGUF
+da,ovos-skill-boot-finished.openvoiceos,enable_ready_notification.intent,ovos-skill-boot-finished.openvoiceos:enable_ready_notification.intent,aktiver lyd ved boot,gemma-3n-E4B-it-GGUF
+da,ovos-skill-boot-finished.openvoiceos,enable_ready_notification.intent,ovos-skill-boot-finished.openvoiceos:enable_ready_notification.intent,tænd for lyd når ovos er startet,gemma-3n-E4B-it-GGUF
+da,ovos-skill-boot-finished.openvoiceos,enable_ready_notification.intent,ovos-skill-boot-finished.openvoiceos:enable_ready_notification.intent,slå indlæste notifikationer til ved opstart,gemma-3n-E4B-it-GGUF
+da,ovos-skill-boot-finished.openvoiceos,enable_ready_notification.intent,ovos-skill-boot-finished.openvoiceos:enable_ready_notification.intent,jeg vil gerne have notifikationer ved systemets færdiggørelse,gemma-3n-E4B-it-GGUF
+da,ovos-skill-boot-finished.openvoiceos,enable_ready_notification.intent,ovos-skill-boot-finished.openvoiceos:enable_ready_notification.intent,aktiver opstart signalet,gemma-3n-E4B-it-GGUF
+da,ovos-skill-boot-finished.openvoiceos,enable_ready_notification.intent,ovos-skill-boot-finished.openvoiceos:enable_ready_notification.intent,kan du aktivere en lyd når ovos er færdig?,gemma-3n-E4B-it-GGUF
+da,ovos-skill-boot-finished.openvoiceos,enable_ready_notification.intent,ovos-skill-boot-finished.openvoiceos:enable_ready_notification.intent,tænd for en meddelelse når systemet er startet,gemma-3n-E4B-it-GGUF
+da,ovos-skill-boot-finished.openvoiceos,enable_ready_notification.intent,ovos-skill-boot-finished.openvoiceos:enable_ready_notification.intent,aktiver notifikationer efter ovos har startet,gemma-3n-E4B-it-GGUF
+da,ovos-skill-boot-finished.openvoiceos,enable_ready_notification.intent,ovos-skill-boot-finished.openvoiceos:enable_ready_notification.intent,jeg vil gerne have en lyd når ovos er startet,gemma-3n-E4B-it-GGUF
+da,ovos-skill-boot-finished.openvoiceos,enable_ready_notification.intent,ovos-skill-boot-finished.openvoiceos:enable_ready_notification.intent,gør det muligt at aktivere en start meddelelse,gemma-3n-E4B-it-GGUF
+da,ovos-skill-boot-finished.openvoiceos,enable_ready_notification.intent,ovos-skill-boot-finished.openvoiceos:enable_ready_notification.intent,aktiver venligst notifikation ved færdiggørelse,gemma-3n-E4B-it-GGUF
+ca,ovos-skill-parrot.openvoiceos,start_parrot.intent,ovos-skill-parrot.openvoiceos:start_parrot.intent,comença a repetir el que digui,gemma-3n-E4B-it-GGUF
+ca,ovos-skill-parrot.openvoiceos,start_parrot.intent,ovos-skill-parrot.openvoiceos:start_parrot.intent,imita cada paraula que pronunci,gemma-3n-E4B-it-GGUF
+ca,ovos-skill-parrot.openvoiceos,start_parrot.intent,ovos-skill-parrot.openvoiceos:start_parrot.intent,"repeteix el que estic dient, si us plau",gemma-3n-E4B-it-GGUF
+ca,ovos-skill-parrot.openvoiceos,start_parrot.intent,ovos-skill-parrot.openvoiceos:start_parrot.intent,inicia la imitació de la meva veu,gemma-3n-E4B-it-GGUF
+ca,ovos-skill-parrot.openvoiceos,start_parrot.intent,ovos-skill-parrot.openvoiceos:start_parrot.intent,"posa't en mode lloro, per favor",gemma-3n-E4B-it-GGUF
+ca,ovos-skill-parrot.openvoiceos,start_parrot.intent,ovos-skill-parrot.openvoiceos:start_parrot.intent,"repeteix tot, sense omissions",gemma-3n-E4B-it-GGUF
+ca,ovos-skill-parrot.openvoiceos,start_parrot.intent,ovos-skill-parrot.openvoiceos:start_parrot.intent,imita la meva dicció,gemma-3n-E4B-it-GGUF
+ca,ovos-skill-parrot.openvoiceos,start_parrot.intent,ovos-skill-parrot.openvoiceos:start_parrot.intent,posa't a repetir el que sentis,gemma-3n-E4B-it-GGUF
+ca,ovos-skill-parrot.openvoiceos,start_parrot.intent,ovos-skill-parrot.openvoiceos:start_parrot.intent,comença a sonar com jo,gemma-3n-E4B-it-GGUF
+ca,ovos-skill-parrot.openvoiceos,start_parrot.intent,ovos-skill-parrot.openvoiceos:start_parrot.intent,"repeteix el que digui, tal qual",gemma-3n-E4B-it-GGUF
+ca,ovos-skill-parrot.openvoiceos,start_parrot.intent,ovos-skill-parrot.openvoiceos:start_parrot.intent,imita el meu to de veu,gemma-3n-E4B-it-GGUF
+ca,ovos-skill-parrot.openvoiceos,start_parrot.intent,ovos-skill-parrot.openvoiceos:start_parrot.intent,repeteix el que jo pronunci,gemma-3n-E4B-it-GGUF
+ca,ovos-skill-parrot.openvoiceos,start_parrot.intent,ovos-skill-parrot.openvoiceos:start_parrot.intent,inicia la funció de repetició,gemma-3n-E4B-it-GGUF
+ca,ovos-skill-parrot.openvoiceos,start_parrot.intent,ovos-skill-parrot.openvoiceos:start_parrot.intent,posa't a imitar-me,gemma-3n-E4B-it-GGUF
+ca,ovos-skill-parrot.openvoiceos,start_parrot.intent,ovos-skill-parrot.openvoiceos:start_parrot.intent,imita com parlo jo,gemma-3n-E4B-it-GGUF
+ca,ovos-skill-parrot.openvoiceos,start_parrot.intent,ovos-skill-parrot.openvoiceos:start_parrot.intent,"repeteix el que digui, repetidament",gemma-3n-E4B-it-GGUF
+ca,ovos-skill-parrot.openvoiceos,start_parrot.intent,ovos-skill-parrot.openvoiceos:start_parrot.intent,"comença a sonar com jo, ara",gemma-3n-E4B-it-GGUF
+ca,ovos-skill-parrot.openvoiceos,start_parrot.intent,ovos-skill-parrot.openvoiceos:start_parrot.intent,repeteix el meu discurs,gemma-3n-E4B-it-GGUF
+ca,ovos-skill-parrot.openvoiceos,start_parrot.intent,ovos-skill-parrot.openvoiceos:start_parrot.intent,ves fent eco de tot el que digui,gemma-3n-E4B-it-GGUF
+es,ovos-skill-date-time.openvoiceos,what.time.is.it.intent,ovos-skill-date-time.openvoiceos:what.time.is.it.intent,qué hora es ahora,gemma-3n-E4B-it-GGUF
+es,ovos-skill-date-time.openvoiceos,what.time.is.it.intent,ovos-skill-date-time.openvoiceos:what.time.is.it.intent,"¿me podrías decir la hora, por favor?",gemma-3n-E4B-it-GGUF
+es,ovos-skill-date-time.openvoiceos,what.time.is.it.intent,ovos-skill-date-time.openvoiceos:what.time.is.it.intent,¿sabes qué hora es en nueva york?,gemma-3n-E4B-it-GGUF
+es,ovos-skill-date-time.openvoiceos,what.time.is.it.intent,ovos-skill-date-time.openvoiceos:what.time.is.it.intent,quiero saber la hora actual,gemma-3n-E4B-it-GGUF
+es,ovos-skill-date-time.openvoiceos,what.time.is.it.intent,ovos-skill-date-time.openvoiceos:what.time.is.it.intent,¿podrías decirme la hora?,gemma-3n-E4B-it-GGUF
+es,ovos-skill-date-time.openvoiceos,what.time.is.it.intent,ovos-skill-date-time.openvoiceos:what.time.is.it.intent,¿qué hora marca tu reloj?,gemma-3n-E4B-it-GGUF
+es,ovos-skill-date-time.openvoiceos,what.time.is.it.intent,ovos-skill-date-time.openvoiceos:what.time.is.it.intent,¿a qué hora es?,gemma-3n-E4B-it-GGUF
+es,ovos-skill-date-time.openvoiceos,what.time.is.it.intent,ovos-skill-date-time.openvoiceos:what.time.is.it.intent,necesito saber la hora en londres,gemma-3n-E4B-it-GGUF
+es,ovos-skill-date-time.openvoiceos,what.time.is.it.intent,ovos-skill-date-time.openvoiceos:what.time.is.it.intent,¿tienes la hora?,gemma-3n-E4B-it-GGUF
+es,ovos-skill-date-time.openvoiceos,what.time.is.it.intent,ovos-skill-date-time.openvoiceos:what.time.is.it.intent,¿podrías informarme la hora actual?,gemma-3n-E4B-it-GGUF
+es,ovos-skill-date-time.openvoiceos,what.time.is.it.intent,ovos-skill-date-time.openvoiceos:what.time.is.it.intent,¿qué hora es en tokio?,gemma-3n-E4B-it-GGUF
+es,ovos-skill-date-time.openvoiceos,what.time.is.it.intent,ovos-skill-date-time.openvoiceos:what.time.is.it.intent,"¿me puedes decir la hora, por favor?",gemma-3n-E4B-it-GGUF
+es,ovos-skill-date-time.openvoiceos,what.time.is.it.intent,ovos-skill-date-time.openvoiceos:what.time.is.it.intent,¿qué hora es ahora mismo?,gemma-3n-E4B-it-GGUF
+es,ovos-skill-date-time.openvoiceos,what.time.is.it.intent,ovos-skill-date-time.openvoiceos:what.time.is.it.intent,¿cuál es la hora actual?,gemma-3n-E4B-it-GGUF
+es,ovos-skill-date-time.openvoiceos,what.time.is.it.intent,ovos-skill-date-time.openvoiceos:what.time.is.it.intent,¿qué hora es en parís?,gemma-3n-E4B-it-GGUF
+es,ovos-skill-date-time.openvoiceos,what.time.is.it.intent,ovos-skill-date-time.openvoiceos:what.time.is.it.intent,¿puedes decirme la hora?,gemma-3n-E4B-it-GGUF
+es,ovos-skill-date-time.openvoiceos,what.time.is.it.intent,ovos-skill-date-time.openvoiceos:what.time.is.it.intent,¿a qué hora estamos?,gemma-3n-E4B-it-GGUF
+es,ovos-skill-date-time.openvoiceos,what.time.is.it.intent,ovos-skill-date-time.openvoiceos:what.time.is.it.intent,¿sabes la hora de la siesta?,gemma-3n-E4B-it-GGUF
+es,ovos-skill-date-time.openvoiceos,what.time.is.it.intent,ovos-skill-date-time.openvoiceos:what.time.is.it.intent,¿qué hora es en roma?,gemma-3n-E4B-it-GGUF
+es,ovos-skill-date-time.openvoiceos,what.time.is.it.intent,ovos-skill-date-time.openvoiceos:what.time.is.it.intent,¿me podrías decir la hora en madrid?,gemma-3n-E4B-it-GGUF
+pt,ovos-skill-alerts.openvoiceos,AddListSubitems,ovos-skill-alerts.openvoiceos:AddListSubitems,adicione pão integral à lista,gemma-3n-E4B-it-GGUF
+pt,ovos-skill-alerts.openvoiceos,AddListSubitems,ovos-skill-alerts.openvoiceos:AddListSubitems,"inclua leite na minha lista de compras, por favor",gemma-3n-E4B-it-GGUF
+pt,ovos-skill-alerts.openvoiceos,AddListSubitems,ovos-skill-alerts.openvoiceos:AddListSubitems,coloque café na lista de compras,gemma-3n-E4B-it-GGUF
+pt,ovos-skill-alerts.openvoiceos,AddListSubitems,ovos-skill-alerts.openvoiceos:AddListSubitems,adicione bananas à lista,gemma-3n-E4B-it-GGUF
+pt,ovos-skill-alerts.openvoiceos,AddListSubitems,ovos-skill-alerts.openvoiceos:AddListSubitems,lembre-me de comprar iogurte,gemma-3n-E4B-it-GGUF
+pt,ovos-skill-alerts.openvoiceos,AddListSubitems,ovos-skill-alerts.openvoiceos:AddListSubitems,inclua cenouras na lista,gemma-3n-E4B-it-GGUF
+pt,ovos-skill-alerts.openvoiceos,AddListSubitems,ovos-skill-alerts.openvoiceos:AddListSubitems,adicione queijo mussarela,gemma-3n-E4B-it-GGUF
+pt,ovos-skill-alerts.openvoiceos,AddListSubitems,ovos-skill-alerts.openvoiceos:AddListSubitems,coloque tomate e alface na lista,gemma-3n-E4B-it-GGUF
+pt,ovos-skill-alerts.openvoiceos,AddListSubitems,ovos-skill-alerts.openvoiceos:AddListSubitems,adicione arroz e feijão,gemma-3n-E4B-it-GGUF
+pt,ovos-skill-alerts.openvoiceos,AddListSubitems,ovos-skill-alerts.openvoiceos:AddListSubitems,"por favor, adicione azeite à lista de compras",gemma-3n-E4B-it-GGUF
+pt,ovos-skill-alerts.openvoiceos,AddListSubitems,ovos-skill-alerts.openvoiceos:AddListSubitems,inclua sal e pimenta,gemma-3n-E4B-it-GGUF
+pt,ovos-skill-alerts.openvoiceos,AddListSubitems,ovos-skill-alerts.openvoiceos:AddListSubitems,adicione maçãs e peras,gemma-3n-E4B-it-GGUF
+pt,ovos-skill-alerts.openvoiceos,AddListSubitems,ovos-skill-alerts.openvoiceos:AddListSubitems,coloque biscoitos recheados na lista,gemma-3n-E4B-it-GGUF
+pt,ovos-skill-alerts.openvoiceos,AddListSubitems,ovos-skill-alerts.openvoiceos:AddListSubitems,adicione chocolate em pó,gemma-3n-E4B-it-GGUF
+pt,ovos-skill-alerts.openvoiceos,AddListSubitems,ovos-skill-alerts.openvoiceos:AddListSubitems,lembre-me de comprar detergente,gemma-3n-E4B-it-GGUF
+pt,ovos-skill-alerts.openvoiceos,AddListSubitems,ovos-skill-alerts.openvoiceos:AddListSubitems,inclua papel higiênico na lista,gemma-3n-E4B-it-GGUF
+pt,ovos-skill-alerts.openvoiceos,AddListSubitems,ovos-skill-alerts.openvoiceos:AddListSubitems,adicione shampoo e condicionador,gemma-3n-E4B-it-GGUF
+pt,ovos-skill-alerts.openvoiceos,AddListSubitems,ovos-skill-alerts.openvoiceos:AddListSubitems,coloque sabonete líquido na lista,gemma-3n-E4B-it-GGUF
+pt,ovos-skill-alerts.openvoiceos,AddListSubitems,ovos-skill-alerts.openvoiceos:AddListSubitems,adicione fraldas tamanho p,gemma-3n-E4B-it-GGUF
+pt,ovos-skill-alerts.openvoiceos,AddListSubitems,ovos-skill-alerts.openvoiceos:AddListSubitems,inclua lenços umedecidos na lista,gemma-3n-E4B-it-GGUF
+de,ovos-skill-volume.openvoiceos,less_volume,ovos-skill-volume.openvoiceos:less_volume,kannst du die lautstärke etwas verringern?,gemma-3n-E4B-it-GGUF
+de,ovos-skill-volume.openvoiceos,less_volume,ovos-skill-volume.openvoiceos:less_volume,mach die musik bitte nicht so laut.,gemma-3n-E4B-it-GGUF
+de,ovos-skill-volume.openvoiceos,less_volume,ovos-skill-volume.openvoiceos:less_volume,"wär es möglich, die lautstärke zu drosseln?",gemma-3n-E4B-it-GGUF
+de,ovos-skill-volume.openvoiceos,less_volume,ovos-skill-volume.openvoiceos:less_volume,kannst du den ton ein bisschen leiser stellen?,gemma-3n-E4B-it-GGUF
+de,ovos-skill-volume.openvoiceos,less_volume,ovos-skill-volume.openvoiceos:less_volume,"die lautstärke ist mir zu hoch, bitte reduziere sie.",gemma-3n-E4B-it-GGUF
+de,ovos-skill-volume.openvoiceos,less_volume,ovos-skill-volume.openvoiceos:less_volume,kannst du die lautstärke runterregeln?,gemma-3n-E4B-it-GGUF
+de,ovos-skill-volume.openvoiceos,less_volume,ovos-skill-volume.openvoiceos:less_volume,ich brauche eine leisere wiedergabe.,gemma-3n-E4B-it-GGUF
+de,ovos-skill-volume.openvoiceos,less_volume,ovos-skill-volume.openvoiceos:less_volume,bitte schalt die lautstärke etwas ab.,gemma-3n-E4B-it-GGUF
+de,ovos-skill-volume.openvoiceos,less_volume,ovos-skill-volume.openvoiceos:less_volume,"kannst du die lautstärke etwas reduzieren, bitte?",gemma-3n-E4B-it-GGUF
+de,ovos-skill-volume.openvoiceos,less_volume,ovos-skill-volume.openvoiceos:less_volume,"die musik ist zu laut, mach sie leiser.",gemma-3n-E4B-it-GGUF
+de,ovos-skill-volume.openvoiceos,less_volume,ovos-skill-volume.openvoiceos:less_volume,kannst du die lautstärke etwas herunterdrehen?,gemma-3n-E4B-it-GGUF
+de,ovos-skill-volume.openvoiceos,less_volume,ovos-skill-volume.openvoiceos:less_volume,"mach die lautstärke etwas leiser, danke.",gemma-3n-E4B-it-GGUF
+de,ovos-skill-volume.openvoiceos,less_volume,ovos-skill-volume.openvoiceos:less_volume,ich finde die lautstärke etwas zu hoch.,gemma-3n-E4B-it-GGUF
+de,ovos-skill-volume.openvoiceos,less_volume,ovos-skill-volume.openvoiceos:less_volume,kannst du die lautstärke runterfahren?,gemma-3n-E4B-it-GGUF
+de,ovos-skill-volume.openvoiceos,less_volume,ovos-skill-volume.openvoiceos:less_volume,bitte mach die musik etwas leiser.,gemma-3n-E4B-it-GGUF
+de,ovos-skill-volume.openvoiceos,less_volume,ovos-skill-volume.openvoiceos:less_volume,kannst du die lautstärke ein wenig reduzieren?,gemma-3n-E4B-it-GGUF
+de,ovos-skill-volume.openvoiceos,less_volume,ovos-skill-volume.openvoiceos:less_volume,die lautstärke ist etwas zu stark.,gemma-3n-E4B-it-GGUF
+de,ovos-skill-volume.openvoiceos,less_volume,ovos-skill-volume.openvoiceos:less_volume,"wärst du so freundlich, die lautstärke zu verringern?",gemma-3n-E4B-it-GGUF
+de,ovos-skill-volume.openvoiceos,less_volume,ovos-skill-volume.openvoiceos:less_volume,kannst du die lautstärke etwas abschalten?,gemma-3n-E4B-it-GGUF
+de,ovos-skill-volume.openvoiceos,less_volume,ovos-skill-volume.openvoiceos:less_volume,kannst du die lautstärke etwas leiser machen?,gemma-3n-E4B-it-GGUF
+fr,ovos-skill-volume.openvoiceos,increase_volume,ovos-skill-volume.openvoiceos:increase_volume,"pourrais-tu augmenter le volume, s'il te plaît?",gemma-3n-E4B-it-GGUF
+fr,ovos-skill-volume.openvoiceos,increase_volume,ovos-skill-volume.openvoiceos:increase_volume,"le volume est un peu bas, peux-tu l'augmenter ?",gemma-3n-E4B-it-GGUF
+fr,ovos-skill-volume.openvoiceos,increase_volume,ovos-skill-volume.openvoiceos:increase_volume,"j'aimerais que ça soit plus fort, merci.",gemma-3n-E4B-it-GGUF
+fr,ovos-skill-volume.openvoiceos,increase_volume,ovos-skill-volume.openvoiceos:increase_volume,pourrais-tu faire monter le son un peu ?,gemma-3n-E4B-it-GGUF
+fr,ovos-skill-volume.openvoiceos,increase_volume,ovos-skill-volume.openvoiceos:increase_volume,"le volume pourrait être plus élevé, s'il te plaît.",gemma-3n-E4B-it-GGUF
+fr,ovos-skill-volume.openvoiceos,increase_volume,ovos-skill-volume.openvoiceos:increase_volume,"augmente le volume, je n'entends pas bien.",gemma-3n-E4B-it-GGUF
+fr,ovos-skill-volume.openvoiceos,increase_volume,ovos-skill-volume.openvoiceos:increase_volume,est-ce que tu peux augmenter le niveau sonore ?,gemma-3n-E4B-it-GGUF
+fr,ovos-skill-volume.openvoiceos,increase_volume,ovos-skill-volume.openvoiceos:increase_volume,je voudrais un volume plus important.,gemma-3n-E4B-it-GGUF
+fr,ovos-skill-volume.openvoiceos,increase_volume,ovos-skill-volume.openvoiceos:increase_volume,peux-tu régler le volume à un niveau plus élevé ?,gemma-3n-E4B-it-GGUF
+fr,ovos-skill-volume.openvoiceos,increase_volume,ovos-skill-volume.openvoiceos:increase_volume,"le son est faible, peux-tu l'amplifier ?",gemma-3n-E4B-it-GGUF
+fr,ovos-skill-volume.openvoiceos,increase_volume,ovos-skill-volume.openvoiceos:increase_volume,pourrais-tu augmenter le volume de 50% ?,gemma-3n-E4B-it-GGUF
+fr,ovos-skill-volume.openvoiceos,increase_volume,ovos-skill-volume.openvoiceos:increase_volume,je te demande d'augmenter un peu le volume.,gemma-3n-E4B-it-GGUF
+fr,ovos-skill-volume.openvoiceos,increase_volume,ovos-skill-volume.openvoiceos:increase_volume,"le volume est trop bas, pourrais-tu l'augmenter?",gemma-3n-E4B-it-GGUF
+fr,ovos-skill-volume.openvoiceos,increase_volume,ovos-skill-volume.openvoiceos:increase_volume,"pourrais-tu monter le volume, s'il te plaît?",gemma-3n-E4B-it-GGUF
+fr,ovos-skill-volume.openvoiceos,increase_volume,ovos-skill-volume.openvoiceos:increase_volume,j'aimerais que le son soit plus audible.,gemma-3n-E4B-it-GGUF
+fr,ovos-skill-volume.openvoiceos,increase_volume,ovos-skill-volume.openvoiceos:increase_volume,pourrais-tu augmenter le volume de la musique?,gemma-3n-E4B-it-GGUF
+fr,ovos-skill-volume.openvoiceos,increase_volume,ovos-skill-volume.openvoiceos:increase_volume,peux-tu augmenter le volume pour s'il te plaît?,gemma-3n-E4B-it-GGUF
+fr,ovos-skill-volume.openvoiceos,increase_volume,ovos-skill-volume.openvoiceos:increase_volume,"fais monter le volume, je n'arrive pas à t'entendre.",gemma-3n-E4B-it-GGUF
+fr,ovos-skill-volume.openvoiceos,increase_volume,ovos-skill-volume.openvoiceos:increase_volume,pourrais-tu augmenter le volume un peu plus ?,gemma-3n-E4B-it-GGUF
+fr,ovos-skill-volume.openvoiceos,increase_volume,ovos-skill-volume.openvoiceos:increase_volume,pourrais-tu augmenter le volume de l'appareil?,gemma-3n-E4B-it-GGUF
+ca,ovos-skill-icanhazdadjokes.openvoiceos,search_joke.intent,ovos-skill-icanhazdadjokes.openvoiceos:search_joke.intent,"què tal, tens alguna broma sobre gatets?",gemma-3n-E4B-it-GGUF
+ca,ovos-skill-icanhazdadjokes.openvoiceos,search_joke.intent,ovos-skill-icanhazdadjokes.openvoiceos:search_joke.intent,explica'm un acudit divertit sobre programadors.,gemma-3n-E4B-it-GGUF
+ca,ovos-skill-icanhazdadjokes.openvoiceos,search_joke.intent,ovos-skill-icanhazdadjokes.openvoiceos:search_joke.intent,em pots fer riure amb algun acudit de ciències?,gemma-3n-E4B-it-GGUF
+ca,ovos-skill-icanhazdadjokes.openvoiceos,search_joke.intent,ovos-skill-icanhazdadjokes.openvoiceos:search_joke.intent,pots compartir algun acudit sobre viatges?,gemma-3n-E4B-it-GGUF
+ca,ovos-skill-icanhazdadjokes.openvoiceos,search_joke.intent,ovos-skill-icanhazdadjokes.openvoiceos:search_joke.intent,alguna broma que faci referència a l'espai?,gemma-3n-E4B-it-GGUF
+ca,ovos-skill-icanhazdadjokes.openvoiceos,search_joke.intent,ovos-skill-icanhazdadjokes.openvoiceos:search_joke.intent,em pots explicar bromes sobre animals exòtics?,gemma-3n-E4B-it-GGUF
+ca,ovos-skill-icanhazdadjokes.openvoiceos,search_joke.intent,ovos-skill-icanhazdadjokes.openvoiceos:search_joke.intent,explica'm alguna broma sobre cuina italiana.,gemma-3n-E4B-it-GGUF
+ca,ovos-skill-icanhazdadjokes.openvoiceos,search_joke.intent,ovos-skill-icanhazdadjokes.openvoiceos:search_joke.intent,saps algun acudit sobre esports d'hiver?,gemma-3n-E4B-it-GGUF
+ca,ovos-skill-icanhazdadjokes.openvoiceos,search_joke.intent,ovos-skill-icanhazdadjokes.openvoiceos:search_joke.intent,què tal una broma sobre música rock?,gemma-3n-E4B-it-GGUF
+ca,ovos-skill-icanhazdadjokes.openvoiceos,search_joke.intent,ovos-skill-icanhazdadjokes.openvoiceos:search_joke.intent,tens algun acudit sobre la vida a nova york?,gemma-3n-E4B-it-GGUF
+ca,ovos-skill-icanhazdadjokes.openvoiceos,search_joke.intent,ovos-skill-icanhazdadjokes.openvoiceos:search_joke.intent,explica'm un acudit sobre la història de catalunya.,gemma-3n-E4B-it-GGUF
+ca,ovos-skill-icanhazdadjokes.openvoiceos,search_joke.intent,ovos-skill-icanhazdadjokes.openvoiceos:search_joke.intent,em pots fer gràcia amb algun acudit sobre pel·lícules?,gemma-3n-E4B-it-GGUF
+ca,ovos-skill-icanhazdadjokes.openvoiceos,search_joke.intent,ovos-skill-icanhazdadjokes.openvoiceos:search_joke.intent,alguna broma sobre el temps?,gemma-3n-E4B-it-GGUF
+ca,ovos-skill-icanhazdadjokes.openvoiceos,search_joke.intent,ovos-skill-icanhazdadjokes.openvoiceos:search_joke.intent,pots explicar-me un acudit sobre física quàntica?,gemma-3n-E4B-it-GGUF
+ca,ovos-skill-icanhazdadjokes.openvoiceos,search_joke.intent,ovos-skill-icanhazdadjokes.openvoiceos:search_joke.intent,em pots fer riure amb un acudit sobre llibres?,gemma-3n-E4B-it-GGUF
+ca,ovos-skill-icanhazdadjokes.openvoiceos,search_joke.intent,ovos-skill-icanhazdadjokes.openvoiceos:search_joke.intent,saps algun acudit sobre el món de la moda?,gemma-3n-E4B-it-GGUF
+ca,ovos-skill-icanhazdadjokes.openvoiceos,search_joke.intent,ovos-skill-icanhazdadjokes.openvoiceos:search_joke.intent,què tal una broma sobre la gent que treballa des de casa?,gemma-3n-E4B-it-GGUF
+ca,ovos-skill-icanhazdadjokes.openvoiceos,search_joke.intent,ovos-skill-icanhazdadjokes.openvoiceos:search_joke.intent,explica'm un acudit sobre l'art modern.,gemma-3n-E4B-it-GGUF
+ca,ovos-skill-icanhazdadjokes.openvoiceos,search_joke.intent,ovos-skill-icanhazdadjokes.openvoiceos:search_joke.intent,em pots fer una broma sobre la política actual?,gemma-3n-E4B-it-GGUF
+ca,ovos-skill-icanhazdadjokes.openvoiceos,search_joke.intent,ovos-skill-icanhazdadjokes.openvoiceos:search_joke.intent,alguna broma sobre el món de la tecnologia?,gemma-3n-E4B-it-GGUF
+da,ovos-skill-weather.openvoiceos,next_rain.intent,ovos-skill-weather.openvoiceos:next_rain.intent,hvornår kommer det til at regne?,gemma-3n-E4B-it-GGUF
+da,ovos-skill-weather.openvoiceos,next_rain.intent,ovos-skill-weather.openvoiceos:next_rain.intent,kan du fortælle mig om den næste regnbyge?,gemma-3n-E4B-it-GGUF
+da,ovos-skill-weather.openvoiceos,next_rain.intent,ovos-skill-weather.openvoiceos:next_rain.intent,"jeg vil gerne vide, hvornår der er regn i morgen.",gemma-3n-E4B-it-GGUF
+da,ovos-skill-weather.openvoiceos,next_rain.intent,ovos-skill-weather.openvoiceos:next_rain.intent,hvornår forventes næste regn i københavn?,gemma-3n-E4B-it-GGUF
+da,ovos-skill-weather.openvoiceos,next_rain.intent,ovos-skill-weather.openvoiceos:next_rain.intent,er der nogen nedbør på vej?,gemma-3n-E4B-it-GGUF
+da,ovos-skill-weather.openvoiceos,next_rain.intent,ovos-skill-weather.openvoiceos:next_rain.intent,hvad er vejrudsigten for regn lige nu?,gemma-3n-E4B-it-GGUF
+da,ovos-skill-weather.openvoiceos,next_rain.intent,ovos-skill-weather.openvoiceos:next_rain.intent,hvornår kan jeg regne med at det regner?,gemma-3n-E4B-it-GGUF
+da,ovos-skill-weather.openvoiceos,next_rain.intent,ovos-skill-weather.openvoiceos:next_rain.intent,fortæl mig om regn i aarhus.,gemma-3n-E4B-it-GGUF
+da,ovos-skill-weather.openvoiceos,next_rain.intent,ovos-skill-weather.openvoiceos:next_rain.intent,vil det regne inden for de næste par timer?,gemma-3n-E4B-it-GGUF
+da,ovos-skill-weather.openvoiceos,next_rain.intent,ovos-skill-weather.openvoiceos:next_rain.intent,hvornår er der mest sandsynligt regn i odense?,gemma-3n-E4B-it-GGUF
+da,ovos-skill-weather.openvoiceos,next_rain.intent,ovos-skill-weather.openvoiceos:next_rain.intent,kan du give mig en prognose for regn i dag?,gemma-3n-E4B-it-GGUF
+da,ovos-skill-weather.openvoiceos,next_rain.intent,ovos-skill-weather.openvoiceos:next_rain.intent,"jeg er interesseret i at vide, hvornår det regner i bruxelles.",gemma-3n-E4B-it-GGUF
+da,ovos-skill-weather.openvoiceos,next_rain.intent,ovos-skill-weather.openvoiceos:next_rain.intent,hvornår skal jeg forvente regn i london?,gemma-3n-E4B-it-GGUF
+da,ovos-skill-weather.openvoiceos,next_rain.intent,ovos-skill-weather.openvoiceos:next_rain.intent,er der en risiko for regn i napoli i aften?,gemma-3n-E4B-it-GGUF
+da,ovos-skill-weather.openvoiceos,next_rain.intent,ovos-skill-weather.openvoiceos:next_rain.intent,"hvor lang tid tager det, før det begynder at regne?",gemma-3n-E4B-it-GGUF
+da,ovos-skill-weather.openvoiceos,next_rain.intent,ovos-skill-weather.openvoiceos:next_rain.intent,hvornår stopper regnen i paris?,gemma-3n-E4B-it-GGUF
+da,ovos-skill-weather.openvoiceos,next_rain.intent,ovos-skill-weather.openvoiceos:next_rain.intent,hvornår vil vejret blive mere tørt?,gemma-3n-E4B-it-GGUF
+da,ovos-skill-weather.openvoiceos,next_rain.intent,ovos-skill-weather.openvoiceos:next_rain.intent,hvornår er der en chance for regn i berlin?,gemma-3n-E4B-it-GGUF
+da,ovos-skill-weather.openvoiceos,next_rain.intent,ovos-skill-weather.openvoiceos:next_rain.intent,kan du tjekke regnudsigt for roma?,gemma-3n-E4B-it-GGUF
+da,ovos-skill-weather.openvoiceos,next_rain.intent,ovos-skill-weather.openvoiceos:next_rain.intent,"fortæl mig, hvornår det regner i new york.",gemma-3n-E4B-it-GGUF
+gl,ovos-skill-naptime.openvoiceos,naptime.intent,ovos-skill-naptime.openvoiceos:naptime.intent,hora de descansar um pouco,gemma-3n-E4B-it-GGUF
+gl,ovos-skill-naptime.openvoiceos,naptime.intent,ovos-skill-naptime.openvoiceos:naptime.intent,vamos dar uma soneca,gemma-3n-E4B-it-GGUF
+gl,ovos-skill-naptime.openvoiceos,naptime.intent,ovos-skill-naptime.openvoiceos:naptime.intent,quero um tempo para relaxar,gemma-3n-E4B-it-GGUF
+gl,ovos-skill-naptime.openvoiceos,naptime.intent,ovos-skill-naptime.openvoiceos:naptime.intent,preciso de um descanso rápido,gemma-3n-E4B-it-GGUF
+gl,ovos-skill-naptime.openvoiceos,naptime.intent,ovos-skill-naptime.openvoiceos:naptime.intent,iniciar o modo de descanso,gemma-3n-E4B-it-GGUF
+gl,ovos-skill-naptime.openvoiceos,naptime.intent,ovos-skill-naptime.openvoiceos:naptime.intent,ligar o modo de inatividade,gemma-3n-E4B-it-GGUF
+gl,ovos-skill-naptime.openvoiceos,naptime.intent,ovos-skill-naptime.openvoiceos:naptime.intent,começar a pausa para dormir,gemma-3n-E4B-it-GGUF
+gl,ovos-skill-naptime.openvoiceos,naptime.intent,ovos-skill-naptime.openvoiceos:naptime.intent,tempo de cochilo agora,gemma-3n-E4B-it-GGUF
+gl,ovos-skill-naptime.openvoiceos,naptime.intent,ovos-skill-naptime.openvoiceos:naptime.intent,ativar o modo de repouso,gemma-3n-E4B-it-GGUF
+gl,ovos-skill-naptime.openvoiceos,naptime.intent,ovos-skill-naptime.openvoiceos:naptime.intent,quero um breve intervalo,gemma-3n-E4B-it-GGUF
+gl,ovos-skill-naptime.openvoiceos,naptime.intent,ovos-skill-naptime.openvoiceos:naptime.intent,iniciar a sessão de relaxamento,gemma-3n-E4B-it-GGUF
+gl,ovos-skill-naptime.openvoiceos,naptime.intent,ovos-skill-naptime.openvoiceos:naptime.intent,preciso de alguns minutos de descanso,gemma-3n-E4B-it-GGUF
+gl,ovos-skill-naptime.openvoiceos,naptime.intent,ovos-skill-naptime.openvoiceos:naptime.intent,começar o modo de quietude,gemma-3n-E4B-it-GGUF
+gl,ovos-skill-naptime.openvoiceos,naptime.intent,ovos-skill-naptime.openvoiceos:naptime.intent,ligar a hora do sono,gemma-3n-E4B-it-GGUF
+gl,ovos-skill-naptime.openvoiceos,naptime.intent,ovos-skill-naptime.openvoiceos:naptime.intent,tempo de recarregar as energias,gemma-3n-E4B-it-GGUF
+gl,ovos-skill-naptime.openvoiceos,naptime.intent,ovos-skill-naptime.openvoiceos:naptime.intent,quero um tempo para desconectar,gemma-3n-E4B-it-GGUF
+gl,ovos-skill-naptime.openvoiceos,naptime.intent,ovos-skill-naptime.openvoiceos:naptime.intent,ativar o descanso programado,gemma-3n-E4B-it-GGUF
+gl,ovos-skill-naptime.openvoiceos,naptime.intent,ovos-skill-naptime.openvoiceos:naptime.intent,iniciar a pausa de sono,gemma-3n-E4B-it-GGUF
+gl,ovos-skill-naptime.openvoiceos,naptime.intent,ovos-skill-naptime.openvoiceos:naptime.intent,preciso de um momento para mim,gemma-3n-E4B-it-GGUF
+gl,ovos-skill-naptime.openvoiceos,naptime.intent,ovos-skill-naptime.openvoiceos:naptime.intent,começar a hora do cochilo,gemma-3n-E4B-it-GGUF
+eu,ovos-skill-wordnet.openvoiceos,search_wordnet.intent,ovos-skill-wordnet.openvoiceos:search_wordnet.intent,zer ikusten dut {query} buruz?,gemma-3n-E4B-it-GGUF
+eu,ovos-skill-wordnet.openvoiceos,search_wordnet.intent,ovos-skill-wordnet.openvoiceos:search_wordnet.intent,zer informazio duzu {query} buruz?,gemma-3n-E4B-it-GGUF
+eu,ovos-skill-wordnet.openvoiceos,search_wordnet.intent,ovos-skill-wordnet.openvoiceos:search_wordnet.intent,bilatu informazioa {query} buruz,gemma-3n-E4B-it-GGUF
+eu,ovos-skill-wordnet.openvoiceos,search_wordnet.intent,ovos-skill-wordnet.openvoiceos:search_wordnet.intent,{query} buruzko azalpen bat behar dut,gemma-3n-E4B-it-GGUF
+eu,ovos-skill-wordnet.openvoiceos,search_wordnet.intent,ovos-skill-wordnet.openvoiceos:search_wordnet.intent,zer jakien duzu {query} buruz?,gemma-3n-E4B-it-GGUF
+eu,ovos-skill-wordnet.openvoiceos,search_wordnet.intent,ovos-skill-wordnet.openvoiceos:search_wordnet.intent,bilatu {query} buruzko artikuluak,gemma-3n-E4B-it-GGUF
+eu,ovos-skill-wordnet.openvoiceos,search_wordnet.intent,ovos-skill-wordnet.openvoiceos:search_wordnet.intent,{query} buruzko datuak bilatu,gemma-3n-E4B-it-GGUF
+eu,ovos-skill-wordnet.openvoiceos,search_wordnet.intent,ovos-skill-wordnet.openvoiceos:search_wordnet.intent,zer ikusten duzu {query} edozein dokumentuetan?,gemma-3n-E4B-it-GGUF
+eu,ovos-skill-wordnet.openvoiceos,search_wordnet.intent,ovos-skill-wordnet.openvoiceos:search_wordnet.intent,bilatu {query} eta erakutsi emaitzak,gemma-3n-E4B-it-GGUF
+eu,ovos-skill-wordnet.openvoiceos,search_wordnet.intent,ovos-skill-wordnet.openvoiceos:search_wordnet.intent,"zer informazio duzu {query} buruz, mesedez?",gemma-3n-E4B-it-GGUF
+eu,ovos-skill-wordnet.openvoiceos,search_wordnet.intent,ovos-skill-wordnet.openvoiceos:search_wordnet.intent,zer erakusten du {query} buruzko bilaketa?,gemma-3n-E4B-it-GGUF
+eu,ovos-skill-wordnet.openvoiceos,search_wordnet.intent,ovos-skill-wordnet.openvoiceos:search_wordnet.intent,bilatu {query} buruzko web orriak,gemma-3n-E4B-it-GGUF
+eu,ovos-skill-wordnet.openvoiceos,search_wordnet.intent,ovos-skill-wordnet.openvoiceos:search_wordnet.intent,{query} buruzko sailkapenak bilatu,gemma-3n-E4B-it-GGUF
+eu,ovos-skill-wordnet.openvoiceos,search_wordnet.intent,ovos-skill-wordnet.openvoiceos:search_wordnet.intent,zer informazio duzu {query} buruzko bideoetan?,gemma-3n-E4B-it-GGUF
+eu,ovos-skill-wordnet.openvoiceos,search_wordnet.intent,ovos-skill-wordnet.openvoiceos:search_wordnet.intent,bilatu {query} buruzko podcastak,gemma-3n-E4B-it-GGUF
+eu,ovos-skill-wordnet.openvoiceos,search_wordnet.intent,ovos-skill-wordnet.openvoiceos:search_wordnet.intent,zer ikusten duzu {query} buruzko argitalpenetan?,gemma-3n-E4B-it-GGUF
+eu,ovos-skill-wordnet.openvoiceos,search_wordnet.intent,ovos-skill-wordnet.openvoiceos:search_wordnet.intent,bilatu {query} buruzko iritziak,gemma-3n-E4B-it-GGUF
+eu,ovos-skill-wordnet.openvoiceos,search_wordnet.intent,ovos-skill-wordnet.openvoiceos:search_wordnet.intent,zer esaten dute {query} buruz?,gemma-3n-E4B-it-GGUF
+eu,ovos-skill-wordnet.openvoiceos,search_wordnet.intent,ovos-skill-wordnet.openvoiceos:search_wordnet.intent,bilatu {query} buruzko datu estatistikoak,gemma-3n-E4B-it-GGUF
+eu,ovos-skill-wordnet.openvoiceos,search_wordnet.intent,ovos-skill-wordnet.openvoiceos:search_wordnet.intent,zer informazio duzu {query} eta {number} datuetan?,gemma-3n-E4B-it-GGUF
+eu,ovos-skill-wordnet.openvoiceos,search_wordnet.intent,ovos-skill-wordnet.openvoiceos:search_wordnet.intent,bilatu {query} eta erakutsi {city}ko informazioa,gemma-3n-E4B-it-GGUF
+nl,ovos-skill-weather.openvoiceos,current_weather.intent,ovos-skill-weather.openvoiceos:current_weather.intent,hoe is het weer op dit moment?,gemma-3n-E4B-it-GGUF
+nl,ovos-skill-weather.openvoiceos,current_weather.intent,ovos-skill-weather.openvoiceos:current_weather.intent,vertel me het actuele weer.,gemma-3n-E4B-it-GGUF
+nl,ovos-skill-weather.openvoiceos,current_weather.intent,ovos-skill-weather.openvoiceos:current_weather.intent,wat is de temperatuur nu?,gemma-3n-E4B-it-GGUF
+nl,ovos-skill-weather.openvoiceos,current_weather.intent,ovos-skill-weather.openvoiceos:current_weather.intent,zal het vandaag gaan regenen?,gemma-3n-E4B-it-GGUF
+nl,ovos-skill-weather.openvoiceos,current_weather.intent,ovos-skill-weather.openvoiceos:current_weather.intent,hoe ziet het weer eruit in amsterdam?,gemma-3n-E4B-it-GGUF
+nl,ovos-skill-weather.openvoiceos,current_weather.intent,ovos-skill-weather.openvoiceos:current_weather.intent,wat is de windkracht?,gemma-3n-E4B-it-GGUF
+nl,ovos-skill-weather.openvoiceos,current_weather.intent,ovos-skill-weather.openvoiceos:current_weather.intent,is er zon vandaag?,gemma-3n-E4B-it-GGUF
+nl,ovos-skill-weather.openvoiceos,current_weather.intent,ovos-skill-weather.openvoiceos:current_weather.intent,heb je het weer voor rotterdam?,gemma-3n-E4B-it-GGUF
+nl,ovos-skill-weather.openvoiceos,current_weather.intent,ovos-skill-weather.openvoiceos:current_weather.intent,wat wordt de kans op neerslag?,gemma-3n-E4B-it-GGUF
+nl,ovos-skill-weather.openvoiceos,current_weather.intent,ovos-skill-weather.openvoiceos:current_weather.intent,hoe is het weer in barcelona?,gemma-3n-E4B-it-GGUF
+nl,ovos-skill-weather.openvoiceos,current_weather.intent,ovos-skill-weather.openvoiceos:current_weather.intent,wat is de luchtvochtigheid?,gemma-3n-E4B-it-GGUF
+nl,ovos-skill-weather.openvoiceos,current_weather.intent,ovos-skill-weather.openvoiceos:current_weather.intent,kun je me het weerbericht geven?,gemma-3n-E4B-it-GGUF
+nl,ovos-skill-weather.openvoiceos,current_weather.intent,ovos-skill-weather.openvoiceos:current_weather.intent,is het warm of koud buiten?,gemma-3n-E4B-it-GGUF
+nl,ovos-skill-weather.openvoiceos,current_weather.intent,ovos-skill-weather.openvoiceos:current_weather.intent,wat is de temperatuur over een uur?,gemma-3n-E4B-it-GGUF
+nl,ovos-skill-weather.openvoiceos,current_weather.intent,ovos-skill-weather.openvoiceos:current_weather.intent,wat is de weersverwachting voor morgen?,gemma-3n-E4B-it-GGUF
+nl,ovos-skill-weather.openvoiceos,current_weather.intent,ovos-skill-weather.openvoiceos:current_weather.intent,hoe is het weer in parijs?,gemma-3n-E4B-it-GGUF
+nl,ovos-skill-weather.openvoiceos,current_weather.intent,ovos-skill-weather.openvoiceos:current_weather.intent,is het bewolkt?,gemma-3n-E4B-it-GGUF
+nl,ovos-skill-weather.openvoiceos,current_weather.intent,ovos-skill-weather.openvoiceos:current_weather.intent,wat is de huidige buitentemperatuur?,gemma-3n-E4B-it-GGUF
+nl,ovos-skill-weather.openvoiceos,current_weather.intent,ovos-skill-weather.openvoiceos:current_weather.intent,geef me een update over het weer.,gemma-3n-E4B-it-GGUF
+nl,ovos-skill-weather.openvoiceos,current_weather.intent,ovos-skill-weather.openvoiceos:current_weather.intent,hoe is het weer in new york?,gemma-3n-E4B-it-GGUF
+nl,ovos-skill-volume.openvoiceos,less_volume,ovos-skill-volume.openvoiceos:less_volume,"het geluid is te luid, kan je dat wat lager zetten?",gemma-3n-E4B-it-GGUF
+nl,ovos-skill-volume.openvoiceos,less_volume,ovos-skill-volume.openvoiceos:less_volume,zou je het volume iets kunnen verlagen?,gemma-3n-E4B-it-GGUF
+nl,ovos-skill-volume.openvoiceos,less_volume,ovos-skill-volume.openvoiceos:less_volume,kun je het geluid een beetje zachter doen?,gemma-3n-E4B-it-GGUF
+nl,ovos-skill-volume.openvoiceos,less_volume,ovos-skill-volume.openvoiceos:less_volume,kan ik het volume omlaag krijgen?,gemma-3n-E4B-it-GGUF
+nl,ovos-skill-volume.openvoiceos,less_volume,ovos-skill-volume.openvoiceos:less_volume,"het is wat hard, kan ik het volume verlagen?",gemma-3n-E4B-it-GGUF
+nl,ovos-skill-volume.openvoiceos,less_volume,ovos-skill-volume.openvoiceos:less_volume,"zet het geluid wat lager, alstublieft.",gemma-3n-E4B-it-GGUF
+nl,ovos-skill-volume.openvoiceos,less_volume,ovos-skill-volume.openvoiceos:less_volume,ik wil het volume een stukje omlaag hebben.,gemma-3n-E4B-it-GGUF
+nl,ovos-skill-volume.openvoiceos,less_volume,ovos-skill-volume.openvoiceos:less_volume,kan de muziek zachter?,gemma-3n-E4B-it-GGUF
+nl,ovos-skill-volume.openvoiceos,less_volume,ovos-skill-volume.openvoiceos:less_volume,"het is te luidruchtig, kan je het volume verlagen?",gemma-3n-E4B-it-GGUF
+nl,ovos-skill-volume.openvoiceos,less_volume,ovos-skill-volume.openvoiceos:less_volume,ik zou het volume wat lager willen instellen.,gemma-3n-E4B-it-GGUF
+ca,ovos-skill-hello-world.openvoiceos,ThankYouIntent,ovos-skill-hello-world.openvoiceos:ThankYouIntent,"merci beaucoup, c'était parfait",gemma-3n-E4B-it-GGUF
+ca,ovos-skill-hello-world.openvoiceos,ThankYouIntent,ovos-skill-hello-world.openvoiceos:ThankYouIntent,je vous remercie sincèrement,gemma-3n-E4B-it-GGUF
+ca,ovos-skill-hello-world.openvoiceos,ThankYouIntent,ovos-skill-hello-world.openvoiceos:ThankYouIntent,"c'est très gentil, merci",gemma-3n-E4B-it-GGUF
+ca,ovos-skill-hello-world.openvoiceos,ThankYouIntent,ovos-skill-hello-world.openvoiceos:ThankYouIntent,"un grand merci, ça m'a aidé",gemma-3n-E4B-it-GGUF
+ca,ovos-skill-hello-world.openvoiceos,ThankYouIntent,ovos-skill-hello-world.openvoiceos:ThankYouIntent,merci pour votre aide précieuse,gemma-3n-E4B-it-GGUF
+ca,ovos-skill-hello-world.openvoiceos,ThankYouIntent,ovos-skill-hello-world.openvoiceos:ThankYouIntent,je vous suis reconnaissant,gemma-3n-E4B-it-GGUF
+ca,ovos-skill-hello-world.openvoiceos,ThankYouIntent,ovos-skill-hello-world.openvoiceos:ThankYouIntent,"merci, c'était exactement ce que je cherchais",gemma-3n-E4B-it-GGUF
+ca,ovos-skill-hello-world.openvoiceos,ThankYouIntent,ovos-skill-hello-world.openvoiceos:ThankYouIntent,"merci infiniment, vous êtes formidable",gemma-3n-E4B-it-GGUF
+ca,ovos-skill-hello-world.openvoiceos,ThankYouIntent,ovos-skill-hello-world.openvoiceos:ThankYouIntent,je vous remercie de votre assistance,gemma-3n-E4B-it-GGUF
+ca,ovos-skill-hello-world.openvoiceos,ThankYouIntent,ovos-skill-hello-world.openvoiceos:ThankYouIntent,"merci, j'apprécie vraiment",gemma-3n-E4B-it-GGUF
+eu,ovos-skill-alerts.openvoiceos,CreateOcpAlarm,ovos-skill-alerts.openvoiceos:CreateOcpAlarm,"esnatu nazazu 7:30etan, rock musika",gemma-3n-E4B-it-GGUF
+eu,ovos-skill-alerts.openvoiceos,CreateOcpAlarm,ovos-skill-alerts.openvoiceos:CreateOcpAlarm,"jarri alarma 6:00, despertadorarekin",gemma-3n-E4B-it-GGUF
+eu,ovos-skill-alerts.openvoiceos,CreateOcpAlarm,ovos-skill-alerts.openvoiceos:CreateOcpAlarm,"jarri alarma 9:15, jazz musika",gemma-3n-E4B-it-GGUF
+eu,ovos-skill-alerts.openvoiceos,CreateOcpAlarm,ovos-skill-alerts.openvoiceos:CreateOcpAlarm,"esnatu nazazu 8:45etan, klasiko musika",gemma-3n-E4B-it-GGUF
+eu,ovos-skill-alerts.openvoiceos,CreateOcpAlarm,ovos-skill-alerts.openvoiceos:CreateOcpAlarm,"jarri alarma 7etan, pop musika",gemma-3n-E4B-it-GGUF
+eu,ovos-skill-alerts.openvoiceos,CreateOcpAlarm,ovos-skill-alerts.openvoiceos:CreateOcpAlarm,"despertatu nazazu 5:30etan, ambient musika",gemma-3n-E4B-it-GGUF
+eu,ovos-skill-alerts.openvoiceos,CreateOcpAlarm,ovos-skill-alerts.openvoiceos:CreateOcpAlarm,"jarri alarma 10:00, rock and roll",gemma-3n-E4B-it-GGUF
+eu,ovos-skill-alerts.openvoiceos,CreateOcpAlarm,ovos-skill-alerts.openvoiceos:CreateOcpAlarm,"esnatu nazazu 6:45etan, blues musika",gemma-3n-E4B-it-GGUF
+eu,ovos-skill-alerts.openvoiceos,CreateOcpAlarm,ovos-skill-alerts.openvoiceos:CreateOcpAlarm,"jarri alarma 8:00, reggae musika",gemma-3n-E4B-it-GGUF
+eu,ovos-skill-alerts.openvoiceos,CreateOcpAlarm,ovos-skill-alerts.openvoiceos:CreateOcpAlarm,"jarri alarma 7:15, electronic musika",gemma-3n-E4B-it-GGUF
+gl,ovos-skill-moviemaster.openvoiceos,movie.recommendations.intent,ovos-skill-moviemaster.openvoiceos:movie.recommendations.intent,quais filmes você sugere que sejam emocionantes?,gemma-3n-E4B-it-GGUF
+gl,ovos-skill-moviemaster.openvoiceos,movie.recommendations.intent,ovos-skill-moviemaster.openvoiceos:movie.recommendations.intent,preciso de sugestões de filmes de aventura.,gemma-3n-E4B-it-GGUF
+gl,ovos-skill-moviemaster.openvoiceos,movie.recommendations.intent,ovos-skill-moviemaster.openvoiceos:movie.recommendations.intent,"recomende filmes de comédia romântica, por favor.",gemma-3n-E4B-it-GGUF
+gl,ovos-skill-moviemaster.openvoiceos,movie.recommendations.intent,ovos-skill-moviemaster.openvoiceos:movie.recommendations.intent,existe algum filme de terror novo que você possa recomendar?,gemma-3n-E4B-it-GGUF
+gl,ovos-skill-moviemaster.openvoiceos,movie.recommendations.intent,ovos-skill-moviemaster.openvoiceos:movie.recommendations.intent,"quero ver um filme de ficção científica, o que você acha?",gemma-3n-E4B-it-GGUF
+gl,ovos-skill-moviemaster.openvoiceos,movie.recommendations.intent,ovos-skill-moviemaster.openvoiceos:movie.recommendations.intent,pode me dar algumas indicações de filmes históricos?,gemma-3n-E4B-it-GGUF
+gl,ovos-skill-moviemaster.openvoiceos,movie.recommendations.intent,ovos-skill-moviemaster.openvoiceos:movie.recommendations.intent,que filmes dramáticos estão bombando ultimamente?,gemma-3n-E4B-it-GGUF
+gl,ovos-skill-moviemaster.openvoiceos,movie.recommendations.intent,ovos-skill-moviemaster.openvoiceos:movie.recommendations.intent,sugira filmes para assistir com a família.,gemma-3n-E4B-it-GGUF
+gl,ovos-skill-moviemaster.openvoiceos,movie.recommendations.intent,ovos-skill-moviemaster.openvoiceos:movie.recommendations.intent,quais são os filmes mais bem avaliados de 2023?,gemma-3n-E4B-it-GGUF
+gl,ovos-skill-moviemaster.openvoiceos,movie.recommendations.intent,ovos-skill-moviemaster.openvoiceos:movie.recommendations.intent,me indique filmes de suspense que prendam a atenção.,gemma-3n-E4B-it-GGUF
+da,ovos-skill-weather.openvoiceos,next_rain.intent,ovos-skill-weather.openvoiceos:next_rain.intent,hvornår kommer regnen i københavn?,gemma-3n-E4B-it-GGUF
+da,ovos-skill-weather.openvoiceos,next_rain.intent,ovos-skill-weather.openvoiceos:next_rain.intent,"kan du fortælle mig, hvornår det regner i aarhus?",gemma-3n-E4B-it-GGUF
+da,ovos-skill-weather.openvoiceos,next_rain.intent,ovos-skill-weather.openvoiceos:next_rain.intent,hvad er vejrudsigten for regn i odense?,gemma-3n-E4B-it-GGUF
+da,ovos-skill-weather.openvoiceos,next_rain.intent,ovos-skill-weather.openvoiceos:next_rain.intent,er der risiko for regn i morgen i aalborg?,gemma-3n-E4B-it-GGUF
+da,ovos-skill-weather.openvoiceos,next_rain.intent,ovos-skill-weather.openvoiceos:next_rain.intent,"fortæl mig, hvornår jeg skal medbring regnslag.",gemma-3n-E4B-it-GGUF
+da,ovos-skill-weather.openvoiceos,next_rain.intent,ovos-skill-weather.openvoiceos:next_rain.intent,"jeg vil gerne vide, hvornår det regner næste uge i roskilde.",gemma-3n-E4B-it-GGUF
+da,ovos-skill-weather.openvoiceos,next_rain.intent,ovos-skill-weather.openvoiceos:next_rain.intent,hvornår er der forventet regn i fredericia?,gemma-3n-E4B-it-GGUF
+da,ovos-skill-weather.openvoiceos,next_rain.intent,ovos-skill-weather.openvoiceos:next_rain.intent,hvornår kan jeg regne med mere regn?,gemma-3n-E4B-it-GGUF
+da,ovos-skill-weather.openvoiceos,next_rain.intent,ovos-skill-weather.openvoiceos:next_rain.intent,vis mig vejret for regn i helsingør.,gemma-3n-E4B-it-GGUF
+da,ovos-skill-weather.openvoiceos,next_rain.intent,ovos-skill-weather.openvoiceos:next_rain.intent,hvornår vil det begynde at regne i esbjerg?,gemma-3n-E4B-it-GGUF
+ca,ovos-skill-wolfie.openvoiceos,search_wolfie.intent,ovos-skill-wolfie.openvoiceos:search_wolfie.intent,busca informació sobre el llop ululat,gemma-3n-E4B-it-GGUF
+ca,ovos-skill-wolfie.openvoiceos,search_wolfie.intent,ovos-skill-wolfie.openvoiceos:search_wolfie.intent,què saps sobre el llop gris?,gemma-3n-E4B-it-GGUF
+ca,ovos-skill-wolfie.openvoiceos,search_wolfie.intent,ovos-skill-wolfie.openvoiceos:search_wolfie.intent,explica'm sobre el llop de la tundra,gemma-3n-E4B-it-GGUF
+ca,ovos-skill-wolfie.openvoiceos,search_wolfie.intent,ovos-skill-wolfie.openvoiceos:search_wolfie.intent,cerca articles sobre el llop ibèric,gemma-3n-E4B-it-GGUF
+ca,ovos-skill-wolfie.openvoiceos,search_wolfie.intent,ovos-skill-wolfie.openvoiceos:search_wolfie.intent,què hi ha de nou sobre el llop àrtic?,gemma-3n-E4B-it-GGUF
+ca,ovos-skill-wolfie.openvoiceos,search_wolfie.intent,ovos-skill-wolfie.openvoiceos:search_wolfie.intent,encontra vídeos sobre el llop,gemma-3n-E4B-it-GGUF
+ca,ovos-skill-wolfie.openvoiceos,search_wolfie.intent,ovos-skill-wolfie.openvoiceos:search_wolfie.intent,busca imatges d'un llop en un bosc,gemma-3n-E4B-it-GGUF
+ca,ovos-skill-wolfie.openvoiceos,search_wolfie.intent,ovos-skill-wolfie.openvoiceos:search_wolfie.intent,què diuen els experts sobre el llop?,gemma-3n-E4B-it-GGUF
+ca,ovos-skill-wolfie.openvoiceos,search_wolfie.intent,ovos-skill-wolfie.openvoiceos:search_wolfie.intent,explica'm l'hàbitat del llop,gemma-3n-E4B-it-GGUF
+ca,ovos-skill-wolfie.openvoiceos,search_wolfie.intent,ovos-skill-wolfie.openvoiceos:search_wolfie.intent,quines són les diferències entre un lúpid i un llop?,gemma-3n-E4B-it-GGUF
+gl,ovos-skill-ddg.openvoiceos,birthdate.intent,ovos-skill-ddg.openvoiceos:birthdate.intent,quantos anos tem {name}?,gemma-3n-E4B-it-GGUF
+gl,ovos-skill-ddg.openvoiceos,birthdate.intent,ovos-skill-ddg.openvoiceos:birthdate.intent,qual a data de nascimento de {name}?,gemma-3n-E4B-it-GGUF
+gl,ovos-skill-ddg.openvoiceos,birthdate.intent,ovos-skill-ddg.openvoiceos:birthdate.intent,"me diga a idade de {name}, por favor",gemma-3n-E4B-it-GGUF
+gl,ovos-skill-ddg.openvoiceos,birthdate.intent,ovos-skill-ddg.openvoiceos:birthdate.intent,em que dia {name} nasceu?,gemma-3n-E4B-it-GGUF
+gl,ovos-skill-ddg.openvoiceos,birthdate.intent,ovos-skill-ddg.openvoiceos:birthdate.intent,qual a idade que {name} faz este ano?,gemma-3n-E4B-it-GGUF
+gl,ovos-skill-ddg.openvoiceos,birthdate.intent,ovos-skill-ddg.openvoiceos:birthdate.intent,quando é o aniversário de {name}?,gemma-3n-E4B-it-GGUF
+gl,ovos-skill-ddg.openvoiceos,birthdate.intent,ovos-skill-ddg.openvoiceos:birthdate.intent,eu gostaria de saber a idade de {name},gemma-3n-E4B-it-GGUF
+gl,ovos-skill-ddg.openvoiceos,birthdate.intent,ovos-skill-ddg.openvoiceos:birthdate.intent,qual a data de nascimento de mariana silva?,gemma-3n-E4B-it-GGUF
+gl,ovos-skill-ddg.openvoiceos,birthdate.intent,ovos-skill-ddg.openvoiceos:birthdate.intent,quantos anos completos {name} terá em breve?,gemma-3n-E4B-it-GGUF
+gl,ovos-skill-ddg.openvoiceos,birthdate.intent,ovos-skill-ddg.openvoiceos:birthdate.intent,me informe a data de nascimento de joão pedro,gemma-3n-E4B-it-GGUF
+en,ovos-skill-personal.openvoiceos,WhoAreYou.intent,ovos-skill-personal.openvoiceos:WhoAreYou.intent,"i'm curious, who are you?",gemma-3n-E4B-it-GGUF
+en,ovos-skill-personal.openvoiceos,WhoAreYou.intent,ovos-skill-personal.openvoiceos:WhoAreYou.intent,could you tell me your name?,gemma-3n-E4B-it-GGUF
+en,ovos-skill-personal.openvoiceos,WhoAreYou.intent,ovos-skill-personal.openvoiceos:WhoAreYou.intent,what's your name?,gemma-3n-E4B-it-GGUF
+en,ovos-skill-personal.openvoiceos,WhoAreYou.intent,ovos-skill-personal.openvoiceos:WhoAreYou.intent,please introduce yourself.,gemma-3n-E4B-it-GGUF
+en,ovos-skill-personal.openvoiceos,WhoAreYou.intent,ovos-skill-personal.openvoiceos:WhoAreYou.intent,can you share your identity?,gemma-3n-E4B-it-GGUF
+en,ovos-skill-personal.openvoiceos,WhoAreYou.intent,ovos-skill-personal.openvoiceos:WhoAreYou.intent,who am i talking to?,gemma-3n-E4B-it-GGUF
+en,ovos-skill-personal.openvoiceos,WhoAreYou.intent,ovos-skill-personal.openvoiceos:WhoAreYou.intent,what should i call you?,gemma-3n-E4B-it-GGUF
+en,ovos-skill-personal.openvoiceos,WhoAreYou.intent,ovos-skill-personal.openvoiceos:WhoAreYou.intent,tell me a little about yourself.,gemma-3n-E4B-it-GGUF
+en,ovos-skill-personal.openvoiceos,WhoAreYou.intent,ovos-skill-personal.openvoiceos:WhoAreYou.intent,how should i refer to you?,gemma-3n-E4B-it-GGUF
+en,ovos-skill-personal.openvoiceos,WhoAreYou.intent,ovos-skill-personal.openvoiceos:WhoAreYou.intent,do you have a name?,gemma-3n-E4B-it-GGUF
+en,ovos-skill-laugh.openvoiceos,Laugh.intent,ovos-skill-laugh.openvoiceos:Laugh.intent,tell me a funny joke,gemma-3n-E4B-it-GGUF
+en,ovos-skill-laugh.openvoiceos,Laugh.intent,ovos-skill-laugh.openvoiceos:Laugh.intent,let's have a good laugh,gemma-3n-E4B-it-GGUF
+en,ovos-skill-laugh.openvoiceos,Laugh.intent,ovos-skill-laugh.openvoiceos:Laugh.intent,i need a laugh right now,gemma-3n-E4B-it-GGUF
+en,ovos-skill-laugh.openvoiceos,Laugh.intent,ovos-skill-laugh.openvoiceos:Laugh.intent,give me a hearty laugh,gemma-3n-E4B-it-GGUF
+en,ovos-skill-laugh.openvoiceos,Laugh.intent,ovos-skill-laugh.openvoiceos:Laugh.intent,do a funny laugh for me,gemma-3n-E4B-it-GGUF
+en,ovos-skill-laugh.openvoiceos,Laugh.intent,ovos-skill-laugh.openvoiceos:Laugh.intent,a little chuckle would be nice,gemma-3n-E4B-it-GGUF
+en,ovos-skill-laugh.openvoiceos,Laugh.intent,ovos-skill-laugh.openvoiceos:Laugh.intent,"i'm feeling down, cheer me up with a laugh",gemma-3n-E4B-it-GGUF
+en,ovos-skill-laugh.openvoiceos,Laugh.intent,ovos-skill-laugh.openvoiceos:Laugh.intent,show me your best laugh,gemma-3n-E4B-it-GGUF
+en,ovos-skill-laugh.openvoiceos,Laugh.intent,ovos-skill-laugh.openvoiceos:Laugh.intent,i'd love to hear you laugh,gemma-3n-E4B-it-GGUF
+en,ovos-skill-laugh.openvoiceos,Laugh.intent,ovos-skill-laugh.openvoiceos:Laugh.intent,"please, tell me something to make me laugh",gemma-3n-E4B-it-GGUF
+da,ovos-skill-weather.openvoiceos,sunrise.intent,ovos-skill-weather.openvoiceos:sunrise.intent,vis mig solopgangen i københavn,gemma-3n-E4B-it-GGUF
+da,ovos-skill-weather.openvoiceos,sunrise.intent,ovos-skill-weather.openvoiceos:sunrise.intent,fortæl mig om solopgangen i morgen,gemma-3n-E4B-it-GGUF
+da,ovos-skill-weather.openvoiceos,sunrise.intent,ovos-skill-weather.openvoiceos:sunrise.intent,hvornår kan jeg se solen stå op i århus?,gemma-3n-E4B-it-GGUF
+da,ovos-skill-weather.openvoiceos,sunrise.intent,ovos-skill-weather.openvoiceos:sunrise.intent,hvad er tidspunktet for solopgang i london?,gemma-3n-E4B-it-GGUF
+da,ovos-skill-weather.openvoiceos,sunrise.intent,ovos-skill-weather.openvoiceos:sunrise.intent,"solopgang i berlin, tak",gemma-3n-E4B-it-GGUF
+da,ovos-skill-weather.openvoiceos,sunrise.intent,ovos-skill-weather.openvoiceos:sunrise.intent,"jeg vil gerne vide, hvornår solen står op i paris",gemma-3n-E4B-it-GGUF
+da,ovos-skill-weather.openvoiceos,sunrise.intent,ovos-skill-weather.openvoiceos:sunrise.intent,hvornår er det første lys i dag?,gemma-3n-E4B-it-GGUF
+da,ovos-skill-weather.openvoiceos,sunrise.intent,ovos-skill-weather.openvoiceos:sunrise.intent,kan du fortælle mig solopgangstiden i new york?,gemma-3n-E4B-it-GGUF
+da,ovos-skill-weather.openvoiceos,sunrise.intent,ovos-skill-weather.openvoiceos:sunrise.intent,"solopgang i tokyo, venligst",gemma-3n-E4B-it-GGUF
+da,ovos-skill-weather.openvoiceos,sunrise.intent,ovos-skill-weather.openvoiceos:sunrise.intent,hvad tid er solopgang i rom?,gemma-3n-E4B-it-GGUF
+eu,ovos-skill-personal.openvoiceos,WhereWereYouBorn.intent,ovos-skill-personal.openvoiceos:WhereWereYouBorn.intent,non zego zure jaiotza?,gemma-3n-E4B-it-GGUF
+eu,ovos-skill-personal.openvoiceos,WhereWereYouBorn.intent,ovos-skill-personal.openvoiceos:WhereWereYouBorn.intent,non jaio zenituzu?,gemma-3n-E4B-it-GGUF
+eu,ovos-skill-personal.openvoiceos,WhereWereYouBorn.intent,ovos-skill-personal.openvoiceos:WhereWereYouBorn.intent,non hasi zenituzu zure bizitza?,gemma-3n-E4B-it-GGUF
+eu,ovos-skill-personal.openvoiceos,WhereWereYouBorn.intent,ovos-skill-personal.openvoiceos:WhereWereYouBorn.intent,non egin zinen lehen aldiz?,gemma-3n-E4B-it-GGUF
+eu,ovos-skill-personal.openvoiceos,WhereWereYouBorn.intent,ovos-skill-personal.openvoiceos:WhereWereYouBorn.intent,non erabili zinen lehen aldiz?,gemma-3n-E4B-it-GGUF
+eu,ovos-skill-personal.openvoiceos,WhereWereYouBorn.intent,ovos-skill-personal.openvoiceos:WhereWereYouBorn.intent,zinutsuten non jaio?,gemma-3n-E4B-it-GGUF
+eu,ovos-skill-personal.openvoiceos,WhereWereYouBorn.intent,ovos-skill-personal.openvoiceos:WhereWereYouBorn.intent,non zenituzu lehenengo aldiz?,gemma-3n-E4B-it-GGUF
+eu,ovos-skill-personal.openvoiceos,WhereWereYouBorn.intent,ovos-skill-personal.openvoiceos:WhereWereYouBorn.intent,non hasi zinen ikasten?,gemma-3n-E4B-it-GGUF
+eu,ovos-skill-personal.openvoiceos,WhereWereYouBorn.intent,ovos-skill-personal.openvoiceos:WhereWereYouBorn.intent,non zego zure lehen etxeko eskualdea?,gemma-3n-E4B-it-GGUF
+eu,ovos-skill-personal.openvoiceos,WhereWereYouBorn.intent,ovos-skill-personal.openvoiceos:WhereWereYouBorn.intent,non egin zinen eraginkorra?,gemma-3n-E4B-it-GGUF
+gl,ovos-skill-weather.openvoiceos,N_days_forecast.intent,ovos-skill-weather.openvoiceos:N_days_forecast.intent,que tempo fará nos próximos 5 días?,gemma-3n-E4B-it-GGUF
+gl,ovos-skill-weather.openvoiceos,N_days_forecast.intent,ovos-skill-weather.openvoiceos:N_days_forecast.intent,podes mostrarme a previsión do tempo para os próximos dez días?,gemma-3n-E4B-it-GGUF
+gl,ovos-skill-weather.openvoiceos,N_days_forecast.intent,ovos-skill-weather.openvoiceos:N_days_forecast.intent,quién sabe como estará o tempo en {location} nos próximos 3 días?,gemma-3n-E4B-it-GGUF
+gl,ovos-skill-weather.openvoiceos,N_days_forecast.intent,ovos-skill-weather.openvoiceos:N_days_forecast.intent,dime como será o tempo para a semana que chega,gemma-3n-E4B-it-GGUF
+gl,ovos-skill-weather.openvoiceos,N_days_forecast.intent,ovos-skill-weather.openvoiceos:N_days_forecast.intent,previsión do tempo a longo prazo para {city},gemma-3n-E4B-it-GGUF
+gl,ovos-skill-weather.openvoiceos,N_days_forecast.intent,ovos-skill-weather.openvoiceos:N_days_forecast.intent,quais son as condicións meteorolóxicas previstas para os próximos 4 días?,gemma-3n-E4B-it-GGUF
+gl,ovos-skill-weather.openvoiceos,N_days_forecast.intent,ovos-skill-weather.openvoiceos:N_days_forecast.intent,"necesito a previsión do tempo para os próximos sete días, por favor",gemma-3n-E4B-it-GGUF
+gl,ovos-skill-weather.openvoiceos,N_days_forecast.intent,ovos-skill-weather.openvoiceos:N_days_forecast.intent,cal é a previsión para a próxima fin de semana?,gemma-3n-E4B-it-GGUF
+gl,ovos-skill-weather.openvoiceos,N_days_forecast.intent,ovos-skill-weather.openvoiceos:N_days_forecast.intent,mostra a previsión do tempo para os próximos 14 días,gemma-3n-E4B-it-GGUF
+gl,ovos-skill-weather.openvoiceos,N_days_forecast.intent,ovos-skill-weather.openvoiceos:N_days_forecast.intent,quién me pode indicar a previsión meteorolóxica para {location} nos próximos días?,gemma-3n-E4B-it-GGUF
+en,ovos-skill-date-time.openvoiceos,what.year.is.it.intent,ovos-skill-date-time.openvoiceos:what.year.is.it.intent,what year is it right now?,gemma-3n-E4B-it-GGUF
+en,ovos-skill-date-time.openvoiceos,what.year.is.it.intent,ovos-skill-date-time.openvoiceos:what.year.is.it.intent,can you tell me the year?,gemma-3n-E4B-it-GGUF
+en,ovos-skill-date-time.openvoiceos,what.year.is.it.intent,ovos-skill-date-time.openvoiceos:what.year.is.it.intent,what's the year?,gemma-3n-E4B-it-GGUF
+en,ovos-skill-date-time.openvoiceos,what.year.is.it.intent,ovos-skill-date-time.openvoiceos:what.year.is.it.intent,what year is this again?,gemma-3n-E4B-it-GGUF
+en,ovos-skill-date-time.openvoiceos,what.year.is.it.intent,ovos-skill-date-time.openvoiceos:what.year.is.it.intent,do you know what year it is?,gemma-3n-E4B-it-GGUF
+en,ovos-skill-date-time.openvoiceos,what.year.is.it.intent,ovos-skill-date-time.openvoiceos:what.year.is.it.intent,what year are we currently in?,gemma-3n-E4B-it-GGUF
+en,ovos-skill-date-time.openvoiceos,what.year.is.it.intent,ovos-skill-date-time.openvoiceos:what.year.is.it.intent,"i need to know the year, please.",gemma-3n-E4B-it-GGUF
+en,ovos-skill-date-time.openvoiceos,what.year.is.it.intent,ovos-skill-date-time.openvoiceos:what.year.is.it.intent,what is the current year?,gemma-3n-E4B-it-GGUF
+en,ovos-skill-date-time.openvoiceos,what.year.is.it.intent,ovos-skill-date-time.openvoiceos:what.year.is.it.intent,could you tell me what year it is?,gemma-3n-E4B-it-GGUF
+en,ovos-skill-date-time.openvoiceos,what.year.is.it.intent,ovos-skill-date-time.openvoiceos:what.year.is.it.intent,"what year is it today, exactly?",gemma-3n-E4B-it-GGUF
+nl,ovos-skill-hello-world.openvoiceos,Greetings.intent,ovos-skill-hello-world.openvoiceos:Greetings.intent,"hallo, alles goed?",gemma-3n-E4B-it-GGUF
+nl,ovos-skill-hello-world.openvoiceos,Greetings.intent,ovos-skill-hello-world.openvoiceos:Greetings.intent,"goedemorgen, hoe gaat het?",gemma-3n-E4B-it-GGUF
+nl,ovos-skill-hello-world.openvoiceos,Greetings.intent,ovos-skill-hello-world.openvoiceos:Greetings.intent,"hie, wat leuk je te zien",gemma-3n-E4B-it-GGUF
+nl,ovos-skill-hello-world.openvoiceos,Greetings.intent,ovos-skill-hello-world.openvoiceos:Greetings.intent,"welkom, hoe kan ik je helpen?",gemma-3n-E4B-it-GGUF
+nl,ovos-skill-hello-world.openvoiceos,Greetings.intent,ovos-skill-hello-world.openvoiceos:Greetings.intent,"hey, alles chill?",gemma-3n-E4B-it-GGUF
+nl,ovos-skill-hello-world.openvoiceos,Greetings.intent,ovos-skill-hello-world.openvoiceos:Greetings.intent,"goedendag, ik hoop dat je een fijne dag hebt",gemma-3n-E4B-it-GGUF
+nl,ovos-skill-hello-world.openvoiceos,Greetings.intent,ovos-skill-hello-world.openvoiceos:Greetings.intent,"hallo, ben je er?",gemma-3n-E4B-it-GGUF
+nl,ovos-skill-hello-world.openvoiceos,Greetings.intent,ovos-skill-hello-world.openvoiceos:Greetings.intent,hoe gaat het met je vandaag?,gemma-3n-E4B-it-GGUF
+nl,ovos-skill-hello-world.openvoiceos,Greetings.intent,ovos-skill-hello-world.openvoiceos:Greetings.intent,"hoi, wat doe je zo?",gemma-3n-E4B-it-GGUF
+nl,ovos-skill-hello-world.openvoiceos,Greetings.intent,ovos-skill-hello-world.openvoiceos:Greetings.intent,"ahoi, alles in orde?",gemma-3n-E4B-it-GGUF
+de,ovos-skill-icanhazdadjokes.openvoiceos,joke.intent,ovos-skill-icanhazdadjokes.openvoiceos:joke.intent,erzähl mir einen albernen witz,gemma-3n-E4B-it-GGUF
+de,ovos-skill-icanhazdadjokes.openvoiceos,joke.intent,ovos-skill-icanhazdadjokes.openvoiceos:joke.intent,"gib mir einen witz, der mich zum lachen bringt",gemma-3n-E4B-it-GGUF
+de,ovos-skill-icanhazdadjokes.openvoiceos,joke.intent,ovos-skill-icanhazdadjokes.openvoiceos:joke.intent,"ich brauche einen guten chuckle, erzähl mir einen witz",gemma-3n-E4B-it-GGUF
+de,ovos-skill-icanhazdadjokes.openvoiceos,joke.intent,ovos-skill-icanhazdadjokes.openvoiceos:joke.intent,kannst du mir einen lustigen erzählen?,gemma-3n-E4B-it-GGUF
+de,ovos-skill-icanhazdadjokes.openvoiceos,joke.intent,ovos-skill-icanhazdadjokes.openvoiceos:joke.intent,erzähl mir einen witz über tiere,gemma-3n-E4B-it-GGUF
+de,ovos-skill-icanhazdadjokes.openvoiceos,joke.intent,ovos-skill-icanhazdadjokes.openvoiceos:joke.intent,ich möchte einen witz hören,gemma-3n-E4B-it-GGUF
+de,ovos-skill-icanhazdadjokes.openvoiceos,joke.intent,ovos-skill-icanhazdadjokes.openvoiceos:joke.intent,spiel mir einen witz vor,gemma-3n-E4B-it-GGUF
+de,ovos-skill-icanhazdadjokes.openvoiceos,joke.intent,ovos-skill-icanhazdadjokes.openvoiceos:joke.intent,hast du einen neuen witz für mich?,gemma-3n-E4B-it-GGUF
+de,ovos-skill-icanhazdadjokes.openvoiceos,joke.intent,ovos-skill-icanhazdadjokes.openvoiceos:joke.intent,"ich will einen witz hören, der nicht langweilig ist",gemma-3n-E4B-it-GGUF
+de,ovos-skill-icanhazdadjokes.openvoiceos,joke.intent,ovos-skill-icanhazdadjokes.openvoiceos:joke.intent,erzähl mir einen witz über programmierung,gemma-3n-E4B-it-GGUF
+ca,ovos-skill-personal.openvoiceos,WhoMadeYou.intent,ovos-skill-personal.openvoiceos:WhoMadeYou.intent,qui t'ha programat?,gemma-3n-E4B-it-GGUF
+ca,ovos-skill-personal.openvoiceos,WhoMadeYou.intent,ovos-skill-personal.openvoiceos:WhoMadeYou.intent,quin és el nom del teu desenvolupador?,gemma-3n-E4B-it-GGUF
+ca,ovos-skill-personal.openvoiceos,WhoMadeYou.intent,ovos-skill-personal.openvoiceos:WhoMadeYou.intent,qui ha estat responsable de la teva creació?,gemma-3n-E4B-it-GGUF
+ca,ovos-skill-personal.openvoiceos,WhoMadeYou.intent,ovos-skill-personal.openvoiceos:WhoMadeYou.intent,puc saber qui ha creat aquesta assistent?,gemma-3n-E4B-it-GGUF
+ca,ovos-skill-personal.openvoiceos,WhoMadeYou.intent,ovos-skill-personal.openvoiceos:WhoMadeYou.intent,qui s'ha dedicat a fer-te funcionar?,gemma-3n-E4B-it-GGUF
+ca,ovos-skill-personal.openvoiceos,WhoMadeYou.intent,ovos-skill-personal.openvoiceos:WhoMadeYou.intent,qui hi ha darrere de la teva tecnologia?,gemma-3n-E4B-it-GGUF
+ca,ovos-skill-personal.openvoiceos,WhoMadeYou.intent,ovos-skill-personal.openvoiceos:WhoMadeYou.intent,qui ha estat involucrat en el teu disseny?,gemma-3n-E4B-it-GGUF
+ca,ovos-skill-personal.openvoiceos,WhoMadeYou.intent,ovos-skill-personal.openvoiceos:WhoMadeYou.intent,qui ha treballat en la teva implementació?,gemma-3n-E4B-it-GGUF
+ca,ovos-skill-personal.openvoiceos,WhoMadeYou.intent,ovos-skill-personal.openvoiceos:WhoMadeYou.intent,com es diuen els enginyers que t'han creat?,gemma-3n-E4B-it-GGUF
+ca,ovos-skill-personal.openvoiceos,WhoMadeYou.intent,ovos-skill-personal.openvoiceos:WhoMadeYou.intent,qui és la persona o l'equip responsable de tu?,gemma-3n-E4B-it-GGUF
+gl,ovos-skill-diagnostics.openvoiceos,query_ovos_location.intent,ovos-skill-diagnostics.openvoiceos:query_ovos_location.intent,nde che ativas agora?,gemma-3n-E4B-it-GGUF
+gl,ovos-skill-diagnostics.openvoiceos,query_ovos_location.intent,ovos-skill-diagnostics.openvoiceos:query_ovos_location.intent,podes falarme a túa posición actual?,gemma-3n-E4B-it-GGUF
+gl,ovos-skill-diagnostics.openvoiceos,query_ovos_location.intent,ovos-skill-diagnostics.openvoiceos:query_ovos_location.intent,cal é a túa ubicación?,gemma-3n-E4B-it-GGUF
+gl,ovos-skill-diagnostics.openvoiceos,query_ovos_location.intent,ovos-skill-diagnostics.openvoiceos:query_ovos_location.intent,onde estás neste momento?,gemma-3n-E4B-it-GGUF
+gl,ovos-skill-diagnostics.openvoiceos,query_ovos_location.intent,ovos-skill-diagnostics.openvoiceos:query_ovos_location.intent,podes informar a miúdo onde che ativas?,gemma-3n-E4B-it-GGUF
+gl,ovos-skill-diagnostics.openvoiceos,query_ovos_location.intent,ovos-skill-diagnostics.openvoiceos:query_ovos_location.intent,cal é a túa localización exacta?,gemma-3n-E4B-it-GGUF
+gl,ovos-skill-diagnostics.openvoiceos,query_ovos_location.intent,ovos-skill-diagnostics.openvoiceos:query_ovos_location.intent,"dime a túa posición, por favor.",gemma-3n-E4B-it-GGUF
+gl,ovos-skill-diagnostics.openvoiceos,query_ovos_location.intent,ovos-skill-diagnostics.openvoiceos:query_ovos_location.intent,"cal é a túa ubicación actual, por favor?",gemma-3n-E4B-it-GGUF
+gl,ovos-skill-diagnostics.openvoiceos,query_ovos_location.intent,ovos-skill-diagnostics.openvoiceos:query_ovos_location.intent,podes dicirme a túa localización actual?,gemma-3n-E4B-it-GGUF
+gl,ovos-skill-diagnostics.openvoiceos,query_ovos_location.intent,ovos-skill-diagnostics.openvoiceos:query_ovos_location.intent,nde che ativas neste segundo?,gemma-3n-E4B-it-GGUF
+gl,ovos-skill-volume.openvoiceos,change_volume,ovos-skill-volume.openvoiceos:change_volume,aumenta o volume un pouco,gemma-3n-E4B-it-GGUF
+gl,ovos-skill-volume.openvoiceos,change_volume,ovos-skill-volume.openvoiceos:change_volume,"diminúe o volume, por favor",gemma-3n-E4B-it-GGUF
+gl,ovos-skill-volume.openvoiceos,change_volume,ovos-skill-volume.openvoiceos:change_volume,pon o volume no máximo,gemma-3n-E4B-it-GGUF
+gl,ovos-skill-volume.openvoiceos,change_volume,ovos-skill-volume.openvoiceos:change_volume,baja o son a 30%,gemma-3n-E4B-it-GGUF
+gl,ovos-skill-volume.openvoiceos,change_volume,ovos-skill-volume.openvoiceos:change_volume,aumenta o volumen a 60,gemma-3n-E4B-it-GGUF
+gl,ovos-skill-volume.openvoiceos,change_volume,ovos-skill-volume.openvoiceos:change_volume,axusta o nivel sonoro para 75,gemma-3n-E4B-it-GGUF
+gl,ovos-skill-volume.openvoiceos,change_volume,ovos-skill-volume.openvoiceos:change_volume,pon o volume moi baixo,gemma-3n-E4B-it-GGUF
+gl,ovos-skill-volume.openvoiceos,change_volume,ovos-skill-volume.openvoiceos:change_volume,aumenta o volume gradualmente,gemma-3n-E4B-it-GGUF
+gl,ovos-skill-volume.openvoiceos,change_volume,ovos-skill-volume.openvoiceos:change_volume,baja o volume até que se faga cómodo,gemma-3n-E4B-it-GGUF
+gl,ovos-skill-volume.openvoiceos,change_volume,ovos-skill-volume.openvoiceos:change_volume,chega a 55 o nivel de volume,gemma-3n-E4B-it-GGUF
+da,ovos-skill-boot-finished.openvoiceos,enable_ready_notification.intent,ovos-skill-boot-finished.openvoiceos:enable_ready_notification.intent,aktiver indledende beskeder,gemma-3n-E4B-it-GGUF
+da,ovos-skill-boot-finished.openvoiceos,enable_ready_notification.intent,ovos-skill-boot-finished.openvoiceos:enable_ready_notification.intent,start op med lydmeddelelser,gemma-3n-E4B-it-GGUF
+da,ovos-skill-boot-finished.openvoiceos,enable_ready_notification.intent,ovos-skill-boot-finished.openvoiceos:enable_ready_notification.intent,slå opstartstale til,gemma-3n-E4B-it-GGUF
+da,ovos-skill-boot-finished.openvoiceos,enable_ready_notification.intent,ovos-skill-boot-finished.openvoiceos:enable_ready_notification.intent,gør indledende lyde aktive,gemma-3n-E4B-it-GGUF
+da,ovos-skill-boot-finished.openvoiceos,enable_ready_notification.intent,ovos-skill-boot-finished.openvoiceos:enable_ready_notification.intent,aktiver meddelelse ved opstart,gemma-3n-E4B-it-GGUF
+da,ovos-skill-boot-finished.openvoiceos,enable_ready_notification.intent,ovos-skill-boot-finished.openvoiceos:enable_ready_notification.intent,start automatisk lyd ved start,gemma-3n-E4B-it-GGUF
+da,ovos-skill-boot-finished.openvoiceos,enable_ready_notification.intent,ovos-skill-boot-finished.openvoiceos:enable_ready_notification.intent,"tænd for lyde, når systemet er færdigt",gemma-3n-E4B-it-GGUF
+da,ovos-skill-boot-finished.openvoiceos,enable_ready_notification.intent,ovos-skill-boot-finished.openvoiceos:enable_ready_notification.intent,slå indledende lyde til,gemma-3n-E4B-it-GGUF
+da,ovos-skill-boot-finished.openvoiceos,enable_ready_notification.intent,ovos-skill-boot-finished.openvoiceos:enable_ready_notification.intent,giv mig lydmeddelelser ved opstart,gemma-3n-E4B-it-GGUF
+da,ovos-skill-boot-finished.openvoiceos,enable_ready_notification.intent,ovos-skill-boot-finished.openvoiceos:enable_ready_notification.intent,aktiver lyde efter opstart,gemma-3n-E4B-it-GGUF
+ca,ovos-skill-ddg.openvoiceos,born.intent,ovos-skill-ddg.openvoiceos:born.intent,què dia va néixer shakira?,gemma-3n-E4B-it-GGUF
+ca,ovos-skill-ddg.openvoiceos,born.intent,ovos-skill-ddg.openvoiceos:born.intent,explica'm la data de naixement de albert einstein.,gemma-3n-E4B-it-GGUF
+ca,ovos-skill-ddg.openvoiceos,born.intent,ovos-skill-ddg.openvoiceos:born.intent,què dia de naixement té lionel messi?,gemma-3n-E4B-it-GGUF
+ca,ovos-skill-ddg.openvoiceos,born.intent,ovos-skill-ddg.openvoiceos:born.intent,com es diu el dia en què va néixer marie curie?,gemma-3n-E4B-it-GGUF
+ca,ovos-skill-ddg.openvoiceos,born.intent,ovos-skill-ddg.openvoiceos:born.intent,què data té la naixença de joan miró?,gemma-3n-E4B-it-GGUF
+ca,ovos-skill-ddg.openvoiceos,born.intent,ovos-skill-ddg.openvoiceos:born.intent,què dia va néixer barack obama?,gemma-3n-E4B-it-GGUF
+ca,ovos-skill-ddg.openvoiceos,born.intent,ovos-skill-ddg.openvoiceos:born.intent,què dia és el naixement de frida kahlo?,gemma-3n-E4B-it-GGUF
+ca,ovos-skill-ddg.openvoiceos,born.intent,ovos-skill-ddg.openvoiceos:born.intent,què dia de naixement té taylor swift?,gemma-3n-E4B-it-GGUF
+ca,ovos-skill-ddg.openvoiceos,born.intent,ovos-skill-ddg.openvoiceos:born.intent,quan va néixer wolfgang amadeus mozart?,gemma-3n-E4B-it-GGUF
+ca,ovos-skill-ddg.openvoiceos,born.intent,ovos-skill-ddg.openvoiceos:born.intent,què data de naixement té leonardo da vinci?,gemma-3n-E4B-it-GGUF

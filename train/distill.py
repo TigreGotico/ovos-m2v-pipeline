@@ -1,3 +1,4 @@
+import os
 import os.path
 
 from model2vec.distill import distill
@@ -33,7 +34,9 @@ BASE_MODELS = [
     "HiTZ/EriBERTa-base"
 ]
 
-export_path = os.path.join(os.path.dirname(__file__), "distilled")
+OUTPUT_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "output")
+os.makedirs(OUTPUT_DIR, exist_ok=True)
+export_path = os.path.join(OUTPUT_DIR, "distilled")
 os.makedirs(export_path, exist_ok=True)
 
 for m in BASE_MODELS:
