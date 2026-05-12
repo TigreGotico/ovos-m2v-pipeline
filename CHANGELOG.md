@@ -7,6 +7,7 @@
 **Merged pull requests:**
 
 - Gate special labels by session.pipeline and seed intents at startup [\#33](https://github.com/OpenVoiceOS/ovos-m2v-pipeline/pull/33) ([JarbasAl](https://github.com/JarbasAl))
+- feat: embeddings mode [\#30](https://github.com/OpenVoiceOS/ovos-m2v-pipeline/pull/30) ([JarbasAl](https://github.com/JarbasAl))
 
 ## [0.0.10a1](https://github.com/OpenVoiceOS/ovos-m2v-pipeline/tree/0.0.10a1) (2026-03-04)
 
