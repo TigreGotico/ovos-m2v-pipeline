@@ -88,7 +88,7 @@ This project is licensed under the [Apache 2.0 License](LICENSE).
 
 ## 🙏 Credits
 
-Originally an experimental research project by **TigreGoticoLda**, polished
+Originally an experimental research project by [**TigreGoticoLda**](https://tigregotico.pt), polished
 and donated to OpenVoiceOS as part of the NLnet
 [NGI0 Commons Fund](https://nlnet.nl/project/OpenVoiceOS) under grant
 agreement No [101135429](https://cordis.europa.eu/project/id/101135429).
