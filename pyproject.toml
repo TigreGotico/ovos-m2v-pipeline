@@ -12,7 +12,7 @@ authors = [{ name = "TigreGoticoLda", email = "jarbasai@mailfence.com" }]
 maintainers = [{ name = "OpenVoiceOS" }]
 
 [project.urls]
-Homepage = "https://tigregotico.pt"
+Homepage = "https://openvoiceos.org"
 Repository = "https://github.com/TigreGotico/ovos-m2v-pipeline"
 Funding = "https://nlnet.nl/project/OpenVoiceOS"
 requires-python = ">=3.10"
