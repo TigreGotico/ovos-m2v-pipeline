@@ -318,5 +318,90 @@ class TestMatchConfidence(unittest.TestCase):
         self.assertIsNone(result)  # 0.9 < 0.95
 
 
+class TestInitialIntentSync(unittest.TestCase):
+    """Skills that loaded BEFORE the pipeline never emit register_intent.
+    The plugin must seed its intent list by querying the manifests on
+    construction."""
+
+    def test_seeds_intents_from_manifests_on_init(self):
+        adapt_resp = Message("intent.service.adapt.manifest",
+                             data={"intents": [{"name": "skill_a:foo"}]})
+        pad_resp = Message("intent.service.padatious.manifest",
+                           data={"intents": ["skill_b:bar"]})
+
+        def fake_wait_for_response(msg, reply_type, timeout=1):
+            if reply_type == "intent.service.adapt.manifest":
+                return adapt_resp
+            if reply_type == "intent.service.padatious.manifest":
+                return pad_resp
+            return None
+
+        mock_model = MagicMock()
+        mock_model.classes_ = np.array([])
+        mock_model.predict_proba.return_value = np.array([[]])
+
+        with patch("ovos_m2v_pipeline.StaticModelPipeline") as MockSMP, \
+             patch("ovos_m2v_pipeline.Configuration", return_value={}):
+            MockSMP.from_pretrained.return_value = mock_model
+            from ovos_m2v_pipeline import Model2VecIntentPipeline
+            from ovos_utils.fakebus import FakeBus
+            bus = FakeBus()
+            bus.wait_for_response = MagicMock(side_effect=fake_wait_for_response)
+            p = Model2VecIntentPipeline(bus=bus, config={"model": "fake"})
+
+        self.assertIn("skill_a:foo", p.intents)
+        self.assertIn("skill_b:bar", p.intents)
+
+    def test_init_survives_missing_manifests(self):
+        mock_model = MagicMock()
+        mock_model.classes_ = np.array([])
+        mock_model.predict_proba.return_value = np.array([[]])
+        with patch("ovos_m2v_pipeline.StaticModelPipeline") as MockSMP, \
+             patch("ovos_m2v_pipeline.Configuration", return_value={}):
+            MockSMP.from_pretrained.return_value = mock_model
+            from ovos_m2v_pipeline import Model2VecIntentPipeline
+            from ovos_utils.fakebus import FakeBus
+            bus = FakeBus()
+            bus.wait_for_response = MagicMock(return_value=None)
+            p = Model2VecIntentPipeline(bus=bus, config={"model": "fake"})
+        self.assertEqual(p.intents, [])
+
+
+class TestSpecialLabelGating(unittest.TestCase):
+    """`_allowed_special_labels` gates ocp/stop/common_query by session."""
+
+    def _msg(self, pipeline):
+        from ovos_bus_client.session import Session
+        return Message("test", context={
+            "session": Session(session_id="s", pipeline=pipeline).serialize(),
+        })
+
+    def test_allows_only_pipelines_present_in_session(self):
+        p = _make_pipeline()
+        msg = self._msg(["ovos-ocp-pipeline-plugin-high"])
+        self.assertEqual(p._allowed_special_labels(msg), {"ocp:play"})
+
+    def test_none_message_falls_back_to_all(self):
+        p = _make_pipeline()
+        self.assertEqual(
+            p._allowed_special_labels(None),
+            {"ocp:play", "common_query:common_query", "stop:stop"},
+        )
+
+    def test_match_filters_special_when_session_excludes_it(self):
+        p = _make_pipeline(intents=[], renormalize=False)
+        _setup_model(p, ["ocp:play"], [0.95])
+        msg = self._msg(["ovos-m2v-pipeline"])  # no ocp pipeline
+        self.assertEqual(list(p._match("play music", msg)), [])
+
+    def test_match_passes_special_when_session_includes_it(self):
+        p = _make_pipeline(intents=[], renormalize=False)
+        _setup_model(p, ["ocp:play"], [0.95])
+        msg = self._msg(["ovos-ocp-pipeline-plugin-high"])
+        results = list(p._match("play music", msg))
+        self.assertEqual(len(results), 1)
+        self.assertEqual(results[0][1], "ovos.common_play.play_search")
+
+
 if __name__ == "__main__":
     unittest.main()
