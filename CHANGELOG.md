@@ -1,12 +1,20 @@
 # Changelog
 
-## [0.0.10a1](https://github.com/TigreGotico/ovos-m2v-pipeline/tree/0.0.10a1) (2026-03-04)
+## [Unreleased](https://github.com/OpenVoiceOS/ovos-m2v-pipeline/tree/HEAD)
 
-[Full Changelog](https://github.com/TigreGotico/ovos-m2v-pipeline/compare/0.0.9...0.0.10a1)
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-m2v-pipeline/compare/0.0.10a1...HEAD)
 
 **Merged pull requests:**
 
-- chore\(deps\): update actions/setup-python action to v6 [\#27](https://github.com/TigreGotico/ovos-m2v-pipeline/pull/27) ([renovate[bot]](https://github.com/apps/renovate))
+- Gate special labels by session.pipeline and seed intents at startup [\#33](https://github.com/OpenVoiceOS/ovos-m2v-pipeline/pull/33) ([JarbasAl](https://github.com/JarbasAl))
+
+## [0.0.10a1](https://github.com/OpenVoiceOS/ovos-m2v-pipeline/tree/0.0.10a1) (2026-03-04)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-m2v-pipeline/compare/0.0.9...0.0.10a1)
+
+**Merged pull requests:**
+
+- chore\(deps\): update actions/setup-python action to v6 [\#27](https://github.com/OpenVoiceOS/ovos-m2v-pipeline/pull/27) ([renovate[bot]](https://github.com/apps/renovate))
 
 
 
