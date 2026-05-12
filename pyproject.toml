@@ -29,7 +29,7 @@ dependencies = [
 
 [project.urls]
 Homepage = "https://openvoiceos.org"
-Repository = "https://github.com/TigreGotico/ovos-m2v-pipeline"
+Repository = "https://github.com/OpenVoiceOS/ovos-m2v-pipeline"
 Funding = "https://nlnet.nl/project/OpenVoiceOS"
 
 [project.entry-points."opm.pipeline"]
