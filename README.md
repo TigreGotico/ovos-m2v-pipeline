@@ -1,4 +1,4 @@
-[![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/TigreGotico/ovos-m2v-pipeline)
+[![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/OpenVoiceOS/ovos-m2v-pipeline)
 
 # OVOS Model2Vec Intent Pipeline
 
@@ -83,3 +83,15 @@ The `Model2VecIntentPipeline` class integrates with the OVOS intent system. It:
 ## 🛡 License
 
 This project is licensed under the [Apache 2.0 License](LICENSE).
+
+---
+
+## 🙏 Credits
+
+Originally an experimental research project by [**TigreGoticoLda**](https://tigregotico.pt), polished
+and donated to OpenVoiceOS as part of the NLnet
+[NGI0 Commons Fund](https://nlnet.nl/project/OpenVoiceOS) under grant
+agreement No [101135429](https://cordis.europa.eu/project/id/101135429).
+
+![NGI0 / NLnet](./ngi.png)
+
