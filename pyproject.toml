@@ -8,7 +8,7 @@ dynamic = ["version"]
 description = "Model2Vec intent engine for OVOS"
 readme = "README.md"
 license = { text = "Apache License 2.0" }
-authors = [{ name = "TigreGoticoLda", email = "info@tigregotico.pt" }]
+authors = [{ name = "TigreGoticoLda", email = "jarbasai@mailfence.com" }]
 maintainers = [{ name = "OpenVoiceOS" }]
 
 [project.urls]
