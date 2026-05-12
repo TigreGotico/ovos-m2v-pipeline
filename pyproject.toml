@@ -11,10 +11,6 @@ license = { text = "Apache License 2.0" }
 authors = [{ name = "TigreGoticoLda", email = "jarbasai@mailfence.com" }]
 maintainers = [{ name = "OpenVoiceOS" }]
 
-[project.urls]
-Homepage = "https://openvoiceos.org"
-Repository = "https://github.com/TigreGotico/ovos-m2v-pipeline"
-Funding = "https://nlnet.nl/project/OpenVoiceOS"
 requires-python = ">=3.10"
 classifiers = [
     "Development Status :: 5 - Production/Stable",
@@ -30,6 +26,11 @@ dependencies = [
     "ovos-utils>=0.3.4,<1.0.0",
     "model2vec[inference]",
 ]
+
+[project.urls]
+Homepage = "https://openvoiceos.org"
+Repository = "https://github.com/TigreGotico/ovos-m2v-pipeline"
+Funding = "https://nlnet.nl/project/OpenVoiceOS"
 
 [project.entry-points."opm.pipeline"]
 ovos-m2v-pipeline = "ovos_m2v_pipeline:Model2VecIntentPipeline"
