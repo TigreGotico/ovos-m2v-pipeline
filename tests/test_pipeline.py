@@ -830,7 +830,7 @@ class TestInitialIntentSync(unittest.TestCase):
             bus = FakeBus()
             bus.wait_for_response = MagicMock(return_value=None)
             p = Model2VecIntentPipeline(bus=bus, config={"model": "fake"})
-        self.assertEqual(p.intents, [])
+        self.assertEqual(len(p.intents), 0)
 
 
 # ---------------------------------------------------------------------------
