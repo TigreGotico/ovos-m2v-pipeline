@@ -8,7 +8,8 @@ dynamic = ["version"]
 description = "Model2Vec intent engine for OVOS"
 readme = "README.md"
 license = { text = "Apache License 2.0" }
-authors = [{ name = "JarbasAI" }]
+authors = [{ name = "TigreGoticoLda" }]
+maintainers = [{ name = "OpenVoiceOS" }]
 requires-python = ">=3.10"
 classifiers = [
     "Development Status :: 5 - Production/Stable",
