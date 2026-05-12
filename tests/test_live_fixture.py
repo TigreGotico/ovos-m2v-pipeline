@@ -119,14 +119,59 @@ class TestLiveFixture(unittest.TestCase):
                 continue
             if msg.msg_type != expected:
                 misses.append((utt, expected, msg.msg_type))
-        # Allow ≤ 20% drift: the model is not pinned and minor regressions
-        # in template overlap are acceptable, big ones are not.
-        max_misses = max(1, len(self.cases) // 5)
-        self.assertLessEqual(
-            len(misses), max_misses,
-            f"{len(misses)}/{len(self.cases)} fixture cases misclassified:\n"
+
+        total = len(self.cases)
+        passed = total - len(misses)
+        accuracy = passed / total if total else 0.0
+        max_misses = max(1, total // 5)
+        ok = len(misses) <= max_misses
+
+        report = _build_report(
+            pipeline_id=PIPELINE_ID,
+            total=total,
+            passed=passed,
+            accuracy=accuracy,
+            tolerance_pct=20,
+            misses=misses,
+            ok=ok,
+        )
+        out_path = os.environ.get("LIVE_REPORT_PATH", "live_test_report.md")
+        try:
+            Path(out_path).write_text(report)
+        except OSError:
+            pass
+        print("\n" + report)
+
+        self.assertTrue(
+            ok,
+            f"{len(misses)}/{total} fixture cases misclassified (max allowed "
+            f"{max_misses}):\n"
             + "\n".join(f"  {u!r} expected={e} got={g}" for u, e, g in misses),
         )
+
+
+def _build_report(pipeline_id, total, passed, accuracy, tolerance_pct,
+                  misses, ok):
+    status = "✅ PASS" if ok else "❌ FAIL"
+    lines = [
+        f"## Live fixture test — `{pipeline_id}`",
+        "",
+        f"**Status:** {status}",
+        f"**Accuracy:** {passed}/{total} ({accuracy:.1%}) — tolerance ≤ {tolerance_pct}% drift",
+        "",
+    ]
+    if misses:
+        lines.append("### Misclassifications")
+        lines.append("")
+        lines.append("| utterance | expected | got |")
+        lines.append("|---|---|---|")
+        for u, e, g in misses[:30]:
+            lines.append(f"| `{u}` | `{e}` | `{g}` |")
+        if len(misses) > 30:
+            lines.append(f"\n_…and {len(misses) - 30} more_")
+    else:
+        lines.append("No misclassifications.")
+    return "\n".join(lines) + "\n"
 
 
 if __name__ == "__main__":
