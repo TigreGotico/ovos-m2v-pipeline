@@ -12,6 +12,12 @@ from ovos_utils.bracket_expansion import expand_template
 from ovos_utils.fakebus import FakeBus
 from ovos_utils.log import LOG
 
+from ovos_m2v_pipeline.strategies import (
+    PrototypeStrategy,
+    select_anchors,
+    score_labels,
+)
+
 # Labels that bypass the registered-intent check and are always matched
 _SPECIAL_LABELS = {"ocp:play", "common_query:common_query", "stop:stop"}
 
@@ -51,7 +57,14 @@ class PrototypeIntentStore:
         self,
         embeddings: Optional[np.ndarray] = None,
         labels: Optional[np.ndarray] = None,
+        *,
+        strategy: PrototypeStrategy = PrototypeStrategy.MAX_OVER_ALL,
+        top_k: int = 3,
+        tau: float = 0.1,
     ) -> None:
+        self.strategy: PrototypeStrategy = PrototypeStrategy(strategy)
+        self.top_k: int = top_k
+        self.tau: float = tau
         if embeddings is not None and len(embeddings):
             embeddings = np.atleast_2d(embeddings)
             labels_arr = np.asarray(labels, dtype=object)
@@ -107,25 +120,27 @@ class PrototypeIntentStore:
         if not sentences:
             return 0
         self.remove(label)
-        rng = np.random.default_rng(random_state)
-        chosen = (
-            rng.choice(sentences, k, replace=False).tolist()
-            if len(sentences) > k
-            else sentences
-        )
-        embs = np.atleast_2d(model.encode(chosen)).astype(np.float32)
+        # Embed every sample first; the strategy decides which / how many
+        # to keep as anchors at storage time.
+        embs = np.atleast_2d(model.encode(list(sentences))).astype(np.float32)
         norms = np.linalg.norm(embs, axis=1, keepdims=True)
         embs = np.where(norms > 0, embs / norms, embs)
+        anchors = select_anchors(
+            embs, self.strategy, k=k, random_state=random_state,
+        ).astype(np.float32)
+        n_added = len(anchors)
+        if n_added == 0:
+            return 0
 
         if not len(self):
-            self._embeddings = embs
-            self._labels = np.array([label] * len(chosen), dtype=object)
+            self._embeddings = anchors
+            self._labels = np.array([label] * n_added, dtype=object)
         else:
-            self._embeddings = np.vstack([self._embeddings, embs])
+            self._embeddings = np.vstack([self._embeddings, anchors])
             self._labels = np.concatenate(
-                [self._labels, np.array([label] * len(chosen), dtype=object)]
+                [self._labels, np.array([label] * n_added, dtype=object)]
             )
-        return len(chosen)
+        return n_added
 
     def remove(self, label: str) -> None:
         """Remove all prototypes for *label*."""
@@ -162,13 +177,10 @@ class PrototypeIntentStore:
         norm = np.linalg.norm(q)
         if norm > 0:
             q = q / norm
-        sims = self._embeddings @ q  # (n_prototypes,)
-        label_scores: Dict[str, float] = {}
-        for lbl, sim in zip(self._labels, sims):
-            lbl = str(lbl)
-            if lbl not in label_scores or sim > label_scores[lbl]:
-                label_scores[lbl] = float(sim)
-        return label_scores
+        return score_labels(
+            q, self._embeddings, self._labels,
+            self.strategy, top_k=self.top_k, tau=self.tau,
+        )
 
     # ------------------------------------------------------------------
     # Bulk construction helpers (offline / testing)
@@ -182,9 +194,13 @@ class PrototypeIntentStore:
         labels: List[str],
         k: int = 5,
         random_state: int = 42,
+        *,
+        strategy: PrototypeStrategy = PrototypeStrategy.MAX_OVER_ALL,
+        top_k: int = 3,
+        tau: float = 0.1,
     ) -> "PrototypeIntentStore":
         """Build a store from parallel *sentences* / *labels* lists."""
-        store = cls()
+        store = cls(strategy=strategy, top_k=top_k, tau=tau)
         label_to_sentences: Dict[str, List[str]] = {}
         for sent, lbl in zip(sentences, labels):
             label_to_sentences.setdefault(lbl, []).append(sent)
@@ -205,10 +221,20 @@ class PrototypeIntentStore:
         )
 
     @classmethod
-    def load(cls, path: str) -> "PrototypeIntentStore":
+    def load(
+        cls,
+        path: str,
+        *,
+        strategy: PrototypeStrategy = PrototypeStrategy.MAX_OVER_ALL,
+        top_k: int = 3,
+        tau: float = 0.1,
+    ) -> "PrototypeIntentStore":
         """Load from a NumPy ``.npz`` archive."""
         data = np.load(path, allow_pickle=False)
-        return cls(data["embeddings"].astype(np.float32), data["labels"])
+        return cls(
+            data["embeddings"].astype(np.float32), data["labels"],
+            strategy=strategy, top_k=top_k, tau=tau,
+        )
 
 
 def _parse_intent_file(path: str) -> List[str]:
@@ -254,7 +280,16 @@ class Model2VecIntentPipeline(ConfidenceMatcherPipeline):
     Configuration keys (prototype mode)
     ------------------------------------
     ``prototype_k`` : int, default 5
-        Maximum number of prototype embeddings kept per label.
+        Maximum number of prototype embeddings kept per label (used by the
+        strategies that subsample / cluster — see ``prototype_strategy``).
+    ``prototype_strategy`` : str, default ``"max_over_all"``
+        One of the ``PrototypeStrategy`` values
+        (``mean_centroid`` / ``medoid`` / ``max_over_all`` / ``top_k_mean`` /
+        ``farthest_point`` / ``kmeans_centers`` / ``softmax_weighted``).
+    ``prototype_top_k`` : int, default 3
+        K for ``top_k_mean``.
+    ``prototype_tau`` : float, default 0.1
+        Softmax temperature for ``softmax_weighted``.
     """
 
     def __init__(self, bus: Optional[Union[MessageBusClient, FakeBus]] = None,
@@ -275,8 +310,18 @@ class Model2VecIntentPipeline(ConfidenceMatcherPipeline):
             from model2vec import StaticModel
 
             self.model = StaticModel.from_pretrained(model_path)
-            self.prototype_store: Optional[PrototypeIntentStore] = PrototypeIntentStore()
             self._prototype_k: int = self.config.get("prototype_k", 5)
+            self._prototype_strategy: PrototypeStrategy = PrototypeStrategy(
+                self.config.get("prototype_strategy",
+                                PrototypeStrategy.MAX_OVER_ALL.value)
+            )
+            self._prototype_top_k: int = self.config.get("prototype_top_k", 3)
+            self._prototype_tau: float = self.config.get("prototype_tau", 0.1)
+            self.prototype_store: Optional[PrototypeIntentStore] = PrototypeIntentStore(
+                strategy=self._prototype_strategy,
+                top_k=self._prototype_top_k,
+                tau=self._prototype_tau,
+            )
 
             self.bus.on("mycroft.ready", self._handle_ready_prototype)
             self.bus.on("padatious:register_intent", self._handle_register_padatious)
