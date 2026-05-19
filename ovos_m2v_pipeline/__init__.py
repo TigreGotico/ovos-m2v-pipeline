@@ -1097,3 +1097,9 @@ class Model2VecPrototypePipeline(Model2VecIntentPipeline):
             )
         config["mode"] = "prototype"
         super().__init__(bus, config)
+
+
+# Re-export DomainPrototypeIntentStore at the package root for parity with
+# the other OVOS intent plugins (nebulento, ovos-padatious, palavreado,
+# padacioso, linha_fina, ovos-markov-pipeline).
+from ovos_m2v_pipeline.domain_store import DomainPrototypeIntentStore  # noqa: E402, F401
