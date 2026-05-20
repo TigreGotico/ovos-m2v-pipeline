@@ -21,9 +21,11 @@ class _FakeModel:
         self.dim = dim
 
     def encode(self, sentences):
+        import hashlib
         out = []
         for s in sentences:
-            rng = np.random.default_rng(abs(hash(s)) % (2**32))
+            seed = int(hashlib.md5(s.encode()).hexdigest(), 16) % (2**32)
+            rng = np.random.default_rng(seed)
             v = rng.standard_normal(self.dim).astype(np.float32)
             out.append(v)
         return np.asarray(out)

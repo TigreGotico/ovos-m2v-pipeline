@@ -45,8 +45,6 @@ Strategies
 from __future__ import annotations
 
 import enum
-from typing import Iterable
-
 import numpy as np
 
 
@@ -215,17 +213,17 @@ def score_labels(
 
     if strategy is PrototypeStrategy.TOP_K_MEAN:
         return {
-            l: float(np.sort(np.asarray(v))[-min(top_k, len(v)):].mean())
-            for l, v in by_label.items()
+            lbl: float(np.sort(np.asarray(v))[-min(top_k, len(v)):].mean())
+            for lbl, v in by_label.items()
         }
 
     if strategy is PrototypeStrategy.SOFTMAX_WEIGHTED:
         out2: dict[str, float] = {}
-        for l, v in by_label.items():
+        for lbl, v in by_label.items():
             arr = np.asarray(v)
             w = np.exp(arr / tau)
             w /= w.sum() + 1e-12
-            out2[l] = float((w * arr).sum())
+            out2[lbl] = float((w * arr).sum())
         return out2
 
     raise ValueError(f"unknown strategy: {strategy}")
