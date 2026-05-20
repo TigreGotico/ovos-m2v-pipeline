@@ -38,6 +38,9 @@ Any bare `StaticModel` on Hugging Face (or a local path) can be used as the embe
       "model": "Jarbas/ovos-model2vec-intents-LaBSE",
       "mode": "classifier",
       "prototype_k": 5,
+      "prototype_strategy": "max_over_all",
+      "prototype_top_k": 3,
+      "prototype_tau": 0.1,
       "conf_high": 0.7,
       "conf_medium": 0.5,
       "conf_low": 0.15,
@@ -55,11 +58,30 @@ Any bare `StaticModel` on Hugging Face (or a local path) can be used as the embe
 | `model` | `str` | `"Jarbas/ovos-model2vec-intents-distiluse-base-multilingual-cased-v2"` | Hugging Face repo ID or local path. In classifier mode this must be a `StaticModelPipeline`; in prototype mode any bare `StaticModel` works. |
 | `mode` | `str` | `"classifier"` | Operating mode: `"classifier"` or `"prototype"`. |
 | `prototype_k` | `int` | `5` | Maximum number of prototype embeddings stored per intent label (prototype mode only). |
+| `prototype_strategy` | `str` | `"max_over_all"` | Scoring strategy for prototype mode. See [Prototype Strategies](#prototype-strategies-prototype-mode-only) below. |
+| `prototype_top_k` | `int` | `3` | Number of top cosine similarities averaged by the `top_k_mean` strategy. Also the default `k` for `softmax_weighted` when used in scoring. |
+| `prototype_tau` | `float` | `0.1` | Temperature for the `softmax_weighted` strategy. Lower values sharpen the distribution toward the maximum; higher values flatten it toward the mean. |
 | `conf_high` | `float` | `0.7` | Minimum score for a `match_high` result. |
 | `conf_medium` | `float` | `0.5` | Minimum score for a `match_medium` result. |
 | `conf_low` | `float` | `0.15` | Minimum score for a `match_low` result. |
 | `ignore_intents` | `list[str]` | `[]` | Intent labels to always discard, regardless of confidence. |
 | `timeout` | `int` | `1` | Seconds to wait for Adapt / Padatious manifest responses (classifier mode only). |
+
+## Prototype Strategies (prototype mode only)
+
+`prototype_strategy` selects the algorithm used to aggregate a label's sample embeddings into match scores. Defined in `ovos_m2v_pipeline/strategies.py:51` as `PrototypeStrategy`.
+
+| Value | Storage | Scoring | Notes |
+|-------|---------|---------|-------|
+| `max_over_all` | Up to `prototype_k` samples per label (random subsample) | Max cosine over stored anchors | Default. Back-compatible with pre-strategy behaviour. |
+| `mean_centroid` | 1 anchor = mean of all samples | Cosine to centroid | Cheapest storage and inference; classic prototype baseline. |
+| `medoid` | 1 anchor = sample closest to centroid | Cosine to medoid | Robust to outliers; avoids averaging blur. |
+| `top_k_mean` | All samples kept | Mean of top-`prototype_top_k` cosines | Combines sharpness of max with smoothing. |
+| `farthest_point` | Up to `prototype_k` samples via maximin sampling | Max cosine | Anchors span the example space; good for diverse phrasings. |
+| `kmeans_centers` | Up to `prototype_k` spherical k-means centroids | Max cosine | Useful when a label has multi-modal phrasings. |
+| `softmax_weighted` | All samples kept | Softmax-weighted average of cosines | `prototype_tau` controls sharpness. |
+
+The default `max_over_all` produces byte-identical results to the store behaviour before strategies were introduced — existing `.npz` files and tuned thresholds remain valid.
 
 ## Confidence Thresholds
 

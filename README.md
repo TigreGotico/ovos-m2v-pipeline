@@ -53,6 +53,9 @@ In your `mycroft.conf`:
 * `model`: Path to your pretrained Model2Vec model or huggingface repo.
 * `conf_xxx`: Minimum confidence threshold for intent matching.
 * `ignore_intents`: List of intents to ignore during matching.
+* `prototype_strategy`: Scoring strategy for prototype mode (`"max_over_all"` default — back-compatible). See [docs/strategies.md](docs/strategies.md).
+* `prototype_top_k`: Top-k cosines averaged by the `top_k_mean` strategy (default `3`).
+* `prototype_tau`: Softmax temperature for the `softmax_weighted` strategy (default `0.1`).
 
 > ⚠️  The Model2Vec model is pretrained based on GitLocalize exports and **cannot learn new skills** dynamically.
 

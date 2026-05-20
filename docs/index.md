@@ -24,8 +24,8 @@ The pipeline is designed as a **fallback or confidence-based matcher** — it is
 
 1. At boot, each `padatious:register_intent` bus event carries the path to a `.intent` file with example utterances (or an inline `samples` list).
 2. The examples are template-expanded (e.g. `(turn on|switch on) the lights`) and embedded with the bare `StaticModel`.
-3. Up to `prototype_k` embeddings per label are stored in the `PrototypeIntentStore`.
-4. At inference time, the query embedding is compared to every stored prototype via cosine similarity; the highest per-label score is used.
+3. `select_anchors()` reduces the embeddings to the subset or aggregation dictated by `prototype_strategy`; up to `prototype_k` anchors per label are stored in `PrototypeIntentStore`.
+4. At inference time, `score_labels()` turns the query embedding into one score per label according to the active `PrototypeStrategy`.
 
 ## Key Properties
 
@@ -43,5 +43,6 @@ The pipeline is designed as a **fallback or confidence-based matcher** — it is
 | [OVOS Pipeline Plugin](ovos_pipeline.md) | Entry points, bus events, mixing plugins, confidence tiers |
 | [Configuration](configuration.md) | All configuration options |
 | [Pipeline Internals](pipeline.md) | Architecture and runtime behaviour |
+| [Prototype Strategies](strategies.md) | Scoring strategy reference for prototype mode |
 | [Models](models.md) | Available pre-trained models and benchmark results |
 | [Training](training.md) | How to gather data and train/retrain models |

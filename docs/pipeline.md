@@ -80,7 +80,7 @@ Called for every `padatious:register_intent` event. Steps:
 3. Apply `ovos_utils.bracket_expansion.expand_template` to every line so that template syntax is expanded into concrete utterances:
    - `(turn on|switch on) the lights` → `["turn on the lights", "switch on the lights"]`
    - `[please] play music` → `["please play music", "play music"]`
-4. Embed up to `prototype_k` examples and add/replace them in `PrototypeIntentStore`.
+4. Embed all expanded examples; `select_anchors()` (`ovos_m2v_pipeline/strategies.py:131`) reduces them to the subset or aggregation dictated by `prototype_strategy`. Up to `prototype_k` anchors per label are stored in `PrototypeIntentStore`.
 5. Add the label to `self.intents`.
 
 ### `_handle_register_adapt`
@@ -99,25 +99,38 @@ Removes all prototypes whose label starts with `<skill_id>:` and removes matchin
 
 ## `PrototypeIntentStore`
 
-A mutable store of L2-normalised prototype embeddings. The store starts empty and is populated incrementally at runtime.
+Defined in `ovos_m2v_pipeline/__init__.py:34`. A mutable store of L2-normalised prototype embeddings. The store starts empty and is populated incrementally at runtime.
 
 ```python
-store = PrototypeIntentStore()
+from ovos_m2v_pipeline.strategies import PrototypeStrategy
+
+store = PrototypeIntentStore(
+    strategy=PrototypeStrategy.MAX_OVER_ALL,  # default
+    top_k=3,
+    tau=0.1,
+)
 store.add(model, "skill_a:my.intent", ["example 1", "example 2"], k=5)
 store.remove("skill_a:my.intent")
 store.remove_skill("skill_a")
 
-scores = store.scores(query_embedding)  # {label: max_cosine_sim}
+scores = store.scores(query_embedding)  # {label: score}
 ```
 
-Inference: for each label, the maximum cosine similarity across all of its stored prototype embeddings is the match score. Labels are sorted by this score descending.
+The scoring algorithm — and therefore what `scores()` returns — is determined by the `strategy` kwarg. The default `MAX_OVER_ALL` returns the maximum cosine similarity across all stored anchors per label, which is byte-compatible with the store's behaviour before strategies were introduced.
 
-The store can optionally be persisted:
+The store can optionally be persisted and reloaded with any strategy:
 
 ```python
 store.save("prototypes.npz")
-store = PrototypeIntentStore.load("prototypes.npz")
+store = PrototypeIntentStore.load(
+    "prototypes.npz",
+    strategy=PrototypeStrategy.SOFTMAX_WEIGHTED,
+    top_k=3,
+    tau=0.05,
+)
 ```
+
+See [Configuration — Prototype Strategies](configuration.md#prototype-strategies-prototype-mode-only) for a full description of each strategy.
 
 ---
 

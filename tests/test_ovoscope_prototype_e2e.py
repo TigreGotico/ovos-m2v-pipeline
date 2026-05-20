@@ -285,5 +285,144 @@ class TestPrototypeSpecialLabelGating(_PrototypeE2EBase):
         self.assertEqual(msg.msg_type, "common_query.question")
 
 
+class TestPrototypeStrategyE2E(_PrototypeE2EBase):
+    """End-to-end coverage of every ``PrototypeStrategy`` through the bus.
+
+    Each test swaps a freshly-configured ``PrototypeIntentStore`` onto the
+    already-running pipeline so we don't pay MiniCroft startup per strategy.
+    The mock encoder returns the same orthogonal direction for any sentence
+    containing a given keyword, so:
+
+    * MEAN_CENTROID / MEDOID collapse N identical samples → 1 anchor.
+    * MAX_OVER_ALL / FARTHEST_POINT / KMEANS_CENTERS keep up to ``k`` samples.
+    * TOP_K_MEAN / SOFTMAX_WEIGHTED keep every sample.
+    """
+
+    def _reset_with(self, strategy, *, k=5, top_k=3, tau=0.1):
+        from ovos_m2v_pipeline import PrototypeIntentStore
+        self.pipeline.prototype_store = PrototypeIntentStore(
+            strategy=strategy, top_k=top_k, tau=tau,
+        )
+        self.pipeline._prototype_k = k
+        self.pipeline.intents = set()
+        self.pipeline.ignore_labels = []
+
+    def test_every_strategy_dispatches_correct_intent(self):
+        from ovos_m2v_pipeline.strategies import PrototypeStrategy
+        for strat in PrototypeStrategy:
+            with self.subTest(strategy=strat.value):
+                self._reset_with(strat)
+                self._register_padatious(
+                    "skill_a:lights.intent",
+                    ["lights on", "turn on lights", "switch lights on"],
+                )
+                self._register_padatious(
+                    "skill_b:music.intent",
+                    ["play music", "start the music", "music please"],
+                )
+                msg = self._send_and_capture(
+                    "lights on now",
+                    expected_types=["skill_a:lights.intent"],
+                )
+                self.assertIsNotNone(msg, f"{strat.value}: no dispatch")
+                self.assertEqual(msg.msg_type, "skill_a:lights.intent")
+
+    def test_mean_centroid_collapses_samples_to_one_anchor(self):
+        from ovos_m2v_pipeline.strategies import PrototypeStrategy
+        self._reset_with(PrototypeStrategy.MEAN_CENTROID)
+        self._register_padatious(
+            "skill_a:lights.intent",
+            ["lights on", "lights off", "switch the lights"],
+        )
+        labels = list(self.pipeline.prototype_store.labels)
+        self.assertEqual(labels.count("skill_a:lights.intent"), 1)
+
+    def test_medoid_collapses_samples_to_one_anchor(self):
+        from ovos_m2v_pipeline.strategies import PrototypeStrategy
+        self._reset_with(PrototypeStrategy.MEDOID)
+        self._register_padatious(
+            "skill_a:lights.intent",
+            ["lights on", "lights off", "switch the lights"],
+        )
+        labels = list(self.pipeline.prototype_store.labels)
+        self.assertEqual(labels.count("skill_a:lights.intent"), 1)
+
+    def test_max_over_all_keeps_all_samples_up_to_k(self):
+        from ovos_m2v_pipeline.strategies import PrototypeStrategy
+        self._reset_with(PrototypeStrategy.MAX_OVER_ALL, k=5)
+        samples = ["lights on", "lights off", "switch lights"]
+        self._register_padatious("skill_a:lights.intent", samples)
+        labels = list(self.pipeline.prototype_store.labels)
+        self.assertEqual(labels.count("skill_a:lights.intent"), len(samples))
+
+    def test_top_k_mean_keeps_all_samples(self):
+        from ovos_m2v_pipeline.strategies import PrototypeStrategy
+        self._reset_with(PrototypeStrategy.TOP_K_MEAN, top_k=2)
+        samples = ["lights on", "lights off", "switch lights", "lights please"]
+        self._register_padatious("skill_a:lights.intent", samples)
+        labels = list(self.pipeline.prototype_store.labels)
+        # All samples kept; aggregation happens at score-time.
+        self.assertEqual(labels.count("skill_a:lights.intent"), len(samples))
+
+    def test_softmax_weighted_low_tau_picks_max_intent(self):
+        from ovos_m2v_pipeline.strategies import PrototypeStrategy
+        self._reset_with(PrototypeStrategy.SOFTMAX_WEIGHTED, tau=0.01)
+        self._register_padatious("skill_a:lights.intent", ["lights on"])
+        self._register_padatious("skill_b:music.intent", ["play music"])
+        msg = self._send_and_capture(
+            "lights on now",
+            expected_types=["skill_a:lights.intent"],
+        )
+        self.assertIsNotNone(msg)
+        self.assertEqual(msg.msg_type, "skill_a:lights.intent")
+
+
+class TestPrototypeStrategyConfigPlumbing(unittest.TestCase):
+    """The ``prototype_strategy`` / ``prototype_top_k`` / ``prototype_tau``
+    config keys must reach the underlying ``PrototypeIntentStore``."""
+
+    @classmethod
+    def setUpClass(cls):
+        cls._mock_model = MagicMock()
+        cls._mock_model.encode.side_effect = _fake_encode
+        fake_m2v = MagicMock()
+        fake_m2v.StaticModel.from_pretrained.return_value = cls._mock_model
+        cls._patch = patch.dict(sys.modules, {"model2vec": fake_m2v})
+        cls._patch.start()
+
+    @classmethod
+    def tearDownClass(cls):
+        cls._patch.stop()
+
+    def _build(self, **overrides):
+        cfg = {"model": "fake-model", **overrides}
+        return Model2VecPrototypePipeline(bus=None, config=cfg)
+
+    def test_default_strategy_is_max_over_all(self):
+        from ovos_m2v_pipeline.strategies import PrototypeStrategy
+        pipe = self._build()
+        self.assertIs(pipe.prototype_store.strategy, PrototypeStrategy.MAX_OVER_ALL)
+
+    def test_custom_strategy_lands_on_store(self):
+        from ovos_m2v_pipeline.strategies import PrototypeStrategy
+        pipe = self._build(
+            prototype_strategy="softmax_weighted",
+            prototype_top_k=7,
+            prototype_tau=0.25,
+        )
+        self.assertIs(pipe.prototype_store.strategy, PrototypeStrategy.SOFTMAX_WEIGHTED)
+        self.assertEqual(pipe.prototype_store.top_k, 7)
+        self.assertAlmostEqual(pipe.prototype_store.tau, 0.25)
+
+    def test_each_strategy_name_resolves(self):
+        from ovos_m2v_pipeline.strategies import PrototypeStrategy
+        for strat in PrototypeStrategy:
+            pipe = self._build(prototype_strategy=strat.value)
+            self.assertIs(
+                pipe.prototype_store.strategy, strat,
+                f"config '{strat.value}' did not reach the store",
+            )
+
+
 if __name__ == "__main__":
     unittest.main()
