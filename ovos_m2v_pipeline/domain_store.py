@@ -12,14 +12,25 @@ benefits:
 
 1. **Tighter local cosine distributions.** A domain's prototypes share a
    subspace (lights/thermostat/door all live near "smarthome"), so the
-   max-cosine score across just that domain's prototypes is a sharper
-   signal than the global max-cosine over 50 intents.
+   score across just that domain's prototypes is a sharper signal than
+   the global score over all intents.
 2. **Lower far-OOD false-positive rate.** The top-level classifier
    rejects chitchat that doesn't strongly match any domain *before* any
    sub-store sees it.
 
-No training required — the existing static encoder produces both the
-top-level domain embeddings and the per-domain intent embeddings.
+Strategy support
+----------------
+Each level — the top-level domain router and every per-domain intent
+store — uses a :class:`PrototypeIntentStore` configured with a
+:class:`PrototypeStrategy`. The strategy can be set independently for
+the two levels (``domain_strategy`` vs ``intent_strategy``) because the
+two have different shapes: the router compares against many concatenated
+in-domain samples (max-cosine usually wins), while a per-domain store
+sees a small handful of per-intent samples (centroid / top-k_mean / softmax
+often help).
+
+No training required — the static encoder produces both the top-level
+domain embeddings and the per-domain intent embeddings.
 """
 
 from collections import defaultdict
@@ -28,6 +39,7 @@ from typing import Dict, List, Optional
 import numpy as np
 
 from ovos_m2v_pipeline import PrototypeIntentStore
+from ovos_m2v_pipeline.strategies import PrototypeStrategy
 
 
 class DomainPrototypeIntentStore:
@@ -41,30 +53,71 @@ class DomainPrototypeIntentStore:
     Domains can also be selected explicitly, bypassing the top-level
     classifier.
 
+    Strategy / temperature / top_k can be set independently for the two
+    levels: ``domain_*`` controls the router, ``intent_*`` controls every
+    per-domain sub-store. Both default to :class:`PrototypeStrategy.MAX_OVER_ALL`
+    to preserve the pre-strategy hierarchical scoring.
+
     Example::
 
         from model2vec import StaticModel
         from ovos_m2v_pipeline import DomainPrototypeIntentStore
+        from ovos_m2v_pipeline.strategies import PrototypeStrategy
 
         model = StaticModel.from_pretrained("minishlab/potion-multilingual-128M")
-        store = DomainPrototypeIntentStore()
+        store = DomainPrototypeIntentStore(
+            intent_strategy=PrototypeStrategy.SOFTMAX_WEIGHTED,
+            intent_tau=0.1,
+        )
 
-        store.add(model, "media", "play",       ["play {song}", "put on {song}"])
-        store.add(model, "media", "pause",      ["pause", "pause the music"])
-        store.add(model, "home",  "lights_on",  ["turn on the lights", "lights on"])
+        store.add(model, "media", "play",      ["play {song}", "put on {song}"])
+        store.add(model, "media", "pause",     ["pause", "pause the music"])
+        store.add(model, "home",  "lights_on", ["turn on the lights", "lights on"])
 
         scores = store.scores(model.encode(["play africa"])[0])
         # scores == {"play": 0.93, ...}  (best label within resolved domain)
     """
 
-    def __init__(self) -> None:
+    def __init__(
+        self,
+        *,
+        domain_strategy: PrototypeStrategy = PrototypeStrategy.MAX_OVER_ALL,
+        domain_top_k: int = 3,
+        domain_tau: float = 0.1,
+        intent_strategy: PrototypeStrategy = PrototypeStrategy.MAX_OVER_ALL,
+        intent_top_k: int = 3,
+        intent_tau: float = 0.1,
+    ) -> None:
+        self._domain_strategy = PrototypeStrategy(domain_strategy)
+        self._domain_top_k = domain_top_k
+        self._domain_tau = domain_tau
+        self._intent_strategy = PrototypeStrategy(intent_strategy)
+        self._intent_top_k = intent_top_k
+        self._intent_tau = intent_tau
+
         #: Top-level prototype store mapping query → domain.
-        self.domain_store: PrototypeIntentStore = PrototypeIntentStore()
+        self.domain_store: PrototypeIntentStore = PrototypeIntentStore(
+            strategy=self._domain_strategy,
+            top_k=self._domain_top_k,
+            tau=self._domain_tau,
+        )
         #: Per-domain intent stores, keyed by domain name.
         self.domains: Dict[str, PrototypeIntentStore] = {}
         #: Raw training samples per (domain, intent) — for inspection,
         #: persistence-bypass paths, and the auto domain-classifier seed.
         self._samples: Dict[str, Dict[str, List[str]]] = defaultdict(dict)
+
+    # ------------------------------------------------------------------
+    # Read-only views
+    # ------------------------------------------------------------------
+
+    @property
+    def domain_strategy(self) -> PrototypeStrategy:
+        return self._domain_strategy
+
+    @property
+    def intent_strategy(self) -> PrototypeStrategy:
+        return self._intent_strategy
 
     # ------------------------------------------------------------------
     # Public API
@@ -74,10 +127,9 @@ class DomainPrototypeIntentStore:
             k: int = 5, random_state: int = 42) -> int:
         """Register a domain-scoped intent ``label`` with example sentences.
 
-        Adds the prototypes to the domain's sub-store AND adds the same
-        prototypes under the domain name to :attr:`domain_store` so the
-        top-level classifier learns the domain's surface forms
-        incrementally.
+        Adds the prototypes to the domain's sub-store AND mirrors them
+        under the domain name into :attr:`domain_store` so the top-level
+        classifier learns the domain's surface forms incrementally.
 
         Args:
             model: model2vec encoder.
@@ -91,13 +143,13 @@ class DomainPrototypeIntentStore:
             Number of prototypes added.
         """
         if domain not in self.domains:
-            self.domains[domain] = PrototypeIntentStore()
+            self.domains[domain] = PrototypeIntentStore(
+                strategy=self._intent_strategy,
+                top_k=self._intent_top_k,
+                tau=self._intent_tau,
+            )
         n = self.domains[domain].add(model, label, sentences,
                                       k=k, random_state=random_state)
-        # Mirror the same prototypes into the domain_store under the
-        # domain name. Re-uses self.add()-as-is via _accumulate_domain_proto
-        # below, which preserves all samples per domain so subsequent
-        # add() calls extend rather than replace.
         self._samples[domain][label] = list(sentences)
         self._rebuild_domain_proto(model, domain, k=k, random_state=random_state)
         return n
@@ -107,11 +159,6 @@ class DomainPrototypeIntentStore:
         if domain in self.domains:
             self.domains[domain].remove(label)
         self._samples[domain].pop(label, None)
-        # If the domain still has intents, rebuild its top-level prototype.
-        if self._samples[domain]:
-            # We can't easily re-encode without `model`; the next add() call
-            # will refresh. Most callers wipe the entire domain instead.
-            pass
 
     def remove_domain(self, domain: str) -> None:
         """Remove a domain and all its intents."""
@@ -132,7 +179,7 @@ class DomainPrototypeIntentStore:
 
     def scores(self, query_embedding: np.ndarray,
                domain: Optional[str] = None) -> Dict[str, float]:
-        """Return label → cosine inside the resolved (or specified) domain.
+        """Return label → score inside the resolved (or specified) domain.
 
         Args:
             query_embedding: Raw (unnormalised) query embedding vector.
@@ -153,8 +200,8 @@ class DomainPrototypeIntentStore:
         """Rebuild the *domain*'s entry in :attr:`domain_store` from the
         current set of in-domain samples.
 
-        Strategy: concatenate every intent's samples, then let
-        :meth:`PrototypeIntentStore.add` choose ``k`` representatives.
+        Concatenates every intent's samples; the router's own strategy
+        decides which subset to keep as the domain's anchors.
         """
         all_samples: List[str] = []
         for sents in self._samples.get(domain, {}).values():
