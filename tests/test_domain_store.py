@@ -1,4 +1,4 @@
-"""Unit tests for ``DomainPrototypeIntentStore``."""
+"""Unit tests for ``DomainPrototypeIntentStore`` (parallel-argmax)."""
 from __future__ import annotations
 
 import hashlib
@@ -14,21 +14,21 @@ ALL_STRATEGIES = list(PrototypeStrategy)
 
 class _FakeModel:
     """Deterministic encoder. Sentences that share an obvious *anchor word*
-    map to embeddings that cluster together — enough to drive both levels
-    of the hierarchical store."""
+    map to embeddings that cluster together — enough to drive parallel
+    scoring across multiple domains."""
 
     def __init__(self, dim: int = 16):
         self.dim = dim
         self._anchors = {
-            "media":  self._direction("media",  0),
-            "home":   self._direction("home",   1),
-            "play":   self._direction("media",  0),
-            "pause":  self._direction("media",  0),
-            "lights": self._direction("home",   1),
-            "thermostat": self._direction("home", 1),
+            "media":  self._direction(0),
+            "home":   self._direction(1),
+            "play":   self._direction(0),
+            "pause":  self._direction(0),
+            "lights": self._direction(1),
+            "thermostat": self._direction(1),
         }
 
-    def _direction(self, name: str, axis: int) -> np.ndarray:
+    def _direction(self, axis: int) -> np.ndarray:
         v = np.zeros(self.dim, dtype=np.float32)
         v[axis] = 1.0
         return v
@@ -54,23 +54,21 @@ class _FakeModel:
 # Construction & defaults
 # ---------------------------------------------------------------------------
 
-def test_default_strategies_are_max_over_all_backcompat():
+def test_default_is_max_over_all_no_router():
     s = DomainPrototypeIntentStore()
-    assert s.domain_strategy is PrototypeStrategy.MAX_OVER_ALL
     assert s.intent_strategy is PrototypeStrategy.MAX_OVER_ALL
-    assert isinstance(s.domain_store, PrototypeIntentStore)
-    assert s.domain_store.strategy is PrototypeStrategy.MAX_OVER_ALL
+    assert s.top_k_domains is None
     assert s.domains == {}
+    # No top-level router attribute exists.
+    assert not hasattr(s, "domain_store")
 
 
-def test_custom_strategies_per_level():
+def test_custom_intent_strategy():
     s = DomainPrototypeIntentStore(
-        domain_strategy=PrototypeStrategy.MEAN_CENTROID,
         intent_strategy=PrototypeStrategy.SOFTMAX_WEIGHTED,
         intent_tau=0.05,
         intent_top_k=2,
     )
-    assert s.domain_store.strategy is PrototypeStrategy.MEAN_CENTROID
     assert s.intent_strategy is PrototypeStrategy.SOFTMAX_WEIGHTED
 
 
@@ -85,8 +83,6 @@ def test_add_creates_domain_and_intent():
     assert n > 0
     assert "media" in s.domains
     assert "play" in list(s.domains["media"].labels)
-    # Domain router mirrors the same samples under the domain name.
-    assert "media" in list(s.domain_store.labels)
 
 
 def test_add_propagates_intent_strategy_to_new_sub_store():
@@ -125,62 +121,97 @@ def test_remove_domain_drops_everything():
     s.add(m, "home",  "lights", ["lights on"])
     s.remove_domain("media")
     assert "media" not in s.domains
-    assert "media" not in list(s.domain_store.labels)
     assert "home" in s.domains
 
 
 # ---------------------------------------------------------------------------
-# Inference
+# Inference — flat parallel scoring
 # ---------------------------------------------------------------------------
 
-def test_calc_domain_picks_correct_top_level():
-    m = _FakeModel()
-    s = DomainPrototypeIntentStore()
-    s.add(m, "media", "play",  ["play song"])
-    s.add(m, "media", "pause", ["pause"])
-    s.add(m, "home",  "lights", ["lights on", "turn on lights"])
-    q = m.encode(["lights on please"])[0]
-    assert s.calc_domain(q) == "home"
-
-
-def test_scores_returns_only_in_resolved_domain():
+def test_scores_flatten_across_all_domains():
     m = _FakeModel()
     s = DomainPrototypeIntentStore()
     s.add(m, "media", "play",  ["play song"])
     s.add(m, "home",  "lights", ["lights on"])
     q = m.encode(["lights on please"])[0]
     out = s.scores(q)
-    assert "lights" in out
-    assert "play" not in out
+    # Every intent across every domain is represented.
+    assert set(out) == {"play", "lights"}
+    # Argmax picks the right one.
+    assert max(out, key=out.get) == "lights"
 
 
-def test_scores_with_explicit_domain_bypasses_router():
+def test_calc_intent_argmax_across_domains():
+    m = _FakeModel()
+    s = DomainPrototypeIntentStore()
+    s.add(m, "media", "play",  ["play song"])
+    s.add(m, "media", "pause", ["pause"])
+    s.add(m, "home",  "lights", ["lights on"])
+    q = m.encode(["play africa"])[0]
+    assert s.calc_intent(q) == "play"
+
+
+def test_scores_with_explicit_domain_restricts():
     m = _FakeModel()
     s = DomainPrototypeIntentStore()
     s.add(m, "media", "play",  ["play song"])
     s.add(m, "home",  "lights", ["lights on"])
     q = m.encode(["lights on please"])[0]
-    # Force the wrong domain — confirms the override path is honoured.
+    # Force the wrong domain — only that domain's labels are scored.
     out = s.scores(q, domain="media")
     assert set(out) == {"play"}
+
+
+def test_scores_explicit_unknown_domain_returns_empty():
+    m = _FakeModel()
+    s = DomainPrototypeIntentStore()
+    s.add(m, "media", "play", ["play song"])
+    q = m.encode(["play"])[0]
+    assert s.scores(q, domain="nope") == {}
 
 
 def test_scores_empty_store_returns_empty_dict():
     s = DomainPrototypeIntentStore()
     q = np.zeros(16, dtype=np.float32)
     assert s.scores(q) == {}
-    assert s.calc_domain(q) is None
+    assert s.calc_intent(q) is None
 
 
 # ---------------------------------------------------------------------------
-# Strategy round-trip — each PrototypeStrategy survives an add+scores cycle
-# at both levels.
+# Optional top_k_domains pruning
+# ---------------------------------------------------------------------------
+
+def test_top_k_domains_prunes_to_best_domains():
+    m = _FakeModel()
+    s = DomainPrototypeIntentStore(top_k_domains=1)
+    s.add(m, "media", "play",  ["play song"])
+    s.add(m, "home",  "lights", ["lights on", "turn on lights"])
+    q = m.encode(["lights on please"])[0]
+    out = s.scores(q)
+    # Only the winning domain's intents are returned.
+    assert "lights" in out
+    assert "play" not in out
+
+
+def test_top_k_domains_none_evaluates_all():
+    m = _FakeModel()
+    s = DomainPrototypeIntentStore()  # default: None
+    s.add(m, "media", "play", ["play song"])
+    s.add(m, "home",  "lights", ["lights on"])
+    q = m.encode(["lights on please"])[0]
+    out = s.scores(q)
+    assert set(out) == {"play", "lights"}
+
+
+# ---------------------------------------------------------------------------
+# Strategy round-trip — every PrototypeStrategy survives add+scores
 # ---------------------------------------------------------------------------
 
 @pytest.mark.parametrize("strat", ALL_STRATEGIES)
 def test_intent_strategy_round_trip(strat):
     m = _FakeModel()
-    s = DomainPrototypeIntentStore(intent_strategy=strat, intent_top_k=2, intent_tau=0.1)
+    s = DomainPrototypeIntentStore(intent_strategy=strat,
+                                    intent_top_k=2, intent_tau=0.1)
     s.add(m, "media", "play",  ["play one", "play two", "play three"])
     s.add(m, "media", "pause", ["pause one", "pause two", "pause three"])
     s.add(m, "home",  "lights", ["lights on", "turn on lights"])
@@ -188,13 +219,3 @@ def test_intent_strategy_round_trip(strat):
     out = s.scores(q)
     assert out, f"{strat.value} produced no scores"
     assert max(out, key=out.get) == "play", f"{strat.value} mispredicted"
-
-
-@pytest.mark.parametrize("strat", ALL_STRATEGIES)
-def test_domain_strategy_round_trip(strat):
-    m = _FakeModel()
-    s = DomainPrototypeIntentStore(domain_strategy=strat, domain_top_k=2, domain_tau=0.1)
-    s.add(m, "media", "play",  ["play song"])
-    s.add(m, "home",  "lights", ["lights on", "turn on lights"])
-    q = m.encode(["lights on now"])[0]
-    assert s.calc_domain(q) == "home", f"{strat.value} routed wrong domain"

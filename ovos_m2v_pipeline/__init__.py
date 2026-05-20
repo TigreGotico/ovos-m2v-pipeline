@@ -1126,14 +1126,16 @@ from ovos_m2v_pipeline.domain_store import DomainPrototypeIntentStore  # noqa: E
 
 
 class Model2VecDomainPrototypePipeline(Model2VecPrototypePipeline):
-    """Hierarchical, two-level prototype pipeline.
+    """Parallel-argmax, domain-grouped prototype pipeline.
 
     Same behaviour as :class:`Model2VecPrototypePipeline` except the
     underlying store is a :class:`DomainPrototypeIntentStore`. Each
-    Padatious intent is routed to a domain == skill_id (taken from the
-    intent label's ``<skill_id>:<intent>`` prefix); inference first
-    picks the most likely domain via the router store and then scores
-    intents only within that domain.
+    Padatious intent is grouped into a domain == skill_id (taken from
+    the intent label's ``<skill_id>:<intent>`` prefix). At inference
+    time every domain's sub-store scores the query in parallel and the
+    global argmax over the flat union of per-intent scores wins — there
+    is no separate routing stage (mirrors adapt's
+    ``DomainIntentDeterminationEngine``).
 
     Configuration is read from ``intents.ovos_m2v_domain_prototype_pipeline``
     so this pipeline can coexist with the flat prototype plugin in the
@@ -1141,20 +1143,22 @@ class Model2VecDomainPrototypePipeline(Model2VecPrototypePipeline):
 
     ``intent_strategy`` : str
         ``PrototypeStrategy`` for the per-domain sub-stores. Defaults to
-        ``prototype_strategy`` so the two levels match unless you
-        explicitly diverge them.
+        ``prototype_strategy``.
     ``intent_top_k`` : int
         ``top_k`` for per-domain sub-stores. Defaults to ``prototype_top_k``.
     ``intent_tau`` : float
         ``tau`` for per-domain sub-stores. Defaults to ``prototype_tau``.
+    ``top_k_domains`` : int, optional
+        Optional pruning: score only the top-K domains by per-domain
+        fingerprint similarity before flattening intents. Defaults to
+        ``None`` (every domain scores in parallel).
 
     Example ``mycroft.conf``::
 
         "intents": {
             "ovos-m2v-domain-prototype-pipeline": {
                 "model": "minishlab/potion-multilingual-128M",
-                "prototype_strategy": "mean_centroid",     // domain router
-                "intent_strategy":   "softmax_weighted",   // intra-domain
+                "intent_strategy":   "softmax_weighted",
                 "intent_tau":         0.1
             }
         }
@@ -1178,15 +1182,15 @@ class Model2VecDomainPrototypePipeline(Model2VecPrototypePipeline):
 
     def _build_prototype_store(self):
         return DomainPrototypeIntentStore(
-            domain_strategy=self._prototype_strategy,
-            domain_top_k=self._prototype_top_k,
-            domain_tau=self._prototype_tau,
             intent_strategy=PrototypeStrategy(
                 self.config.get("intent_strategy",
                                 self._prototype_strategy.value)
             ),
             intent_top_k=self.config.get("intent_top_k", self._prototype_top_k),
             intent_tau=self.config.get("intent_tau", self._prototype_tau),
+            top_k_domains=self.config.get("top_k_domains"),
+            domain_strategy=self._prototype_strategy,
+            domain_tau=self._prototype_tau,
         )
 
     @staticmethod

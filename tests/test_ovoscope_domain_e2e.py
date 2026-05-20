@@ -251,24 +251,20 @@ class TestDomainStrategyConfigPlumbing(unittest.TestCase):
             bus=None, config={"model": "fake-model", **overrides},
         )
 
-    def test_default_strategies_at_both_levels(self):
+    def test_default_strategy(self):
         pipe = self._build()
         store = pipe.prototype_store
-        self.assertIs(store.domain_store.strategy,
-                      PrototypeStrategy.MAX_OVER_ALL)
         self.assertIs(store.intent_strategy,
                       PrototypeStrategy.MAX_OVER_ALL)
+        self.assertIsNone(store.top_k_domains)
 
     def test_intent_strategy_lands_on_sub_stores(self):
         pipe = self._build(
-            prototype_strategy="mean_centroid",
             intent_strategy="softmax_weighted",
             intent_tau=0.05,
             intent_top_k=4,
         )
         store = pipe.prototype_store
-        self.assertIs(store.domain_store.strategy,
-                      PrototypeStrategy.MEAN_CENTROID)
         self.assertIs(store.intent_strategy,
                       PrototypeStrategy.SOFTMAX_WEIGHTED)
         # New sub-stores inherit the intent_* settings.
