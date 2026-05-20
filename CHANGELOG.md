@@ -6,6 +6,7 @@
 
 **Merged pull requests:**
 
+- feat: configurable PrototypeStrategy for prototype-mode scoring [\#37](https://github.com/OpenVoiceOS/ovos-m2v-pipeline/pull/37) ([JarbasAl](https://github.com/JarbasAl))
 - Gate special labels by session.pipeline and seed intents at startup [\#33](https://github.com/OpenVoiceOS/ovos-m2v-pipeline/pull/33) ([JarbasAl](https://github.com/JarbasAl))
 - feat: embeddings mode [\#30](https://github.com/OpenVoiceOS/ovos-m2v-pipeline/pull/30) ([JarbasAl](https://github.com/JarbasAl))
 
