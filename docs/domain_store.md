@@ -1,6 +1,34 @@
-# DomainPrototypeIntentStore
+# Domain Prototype Pipeline & Store
 
-Hierarchical, two-level variant of [`PrototypeIntentStore`](pipeline.md#prototypeintentstore). Intents are grouped into *domains*, and at inference time the engine first picks the most likely domain, then scores intents only within that domain. This mirrors the API shipped by sibling OVOS intent plugins (`nebulento.DomainIntentContainer`, `ovos_padatious.DomainIntentContainer`, `palavreado.DomainIntentContainer`, `padacioso.DomainIntentContainer`, `linha_fina.DomainIntentEngine`, `ovos_markov_pipeline.DomainMarkovIntentEngine`).
+This page documents two layers that ship together:
+
+* **`Model2VecDomainPrototypePipeline`** — the OPM-discoverable pipeline class. Entry point: `ovos-m2v-domain-prototype-pipeline`. Subclasses the flat prototype pipeline; the only differences are the store shape (below) and that intents are routed to a domain == skill_id at registration time.
+* **`DomainPrototypeIntentStore`** — the hierarchical, two-level variant of [`PrototypeIntentStore`](pipeline.md#prototypeintentstore) used internally by that pipeline.
+
+A separate entry point (rather than a `domain_engine: true` config flag on the flat pipeline) keeps the two pipelines independently selectable in `default_pipeline` ordering and lets each have its own `intents.<key>` config block.
+
+## Enabling
+
+Add it to your OVOS config and place it in your pipeline order alongside (or in place of) the flat prototype pipeline:
+
+```json
+{
+  "intents": {
+    "ovos-m2v-domain-prototype-pipeline": {
+      "model": "minishlab/potion-multilingual-128M",
+      "prototype_strategy": "mean_centroid",
+      "intent_strategy":    "softmax_weighted",
+      "intent_tau":          0.1
+    }
+  }
+}
+```
+
+Configuration keys are read from `intents.ovos_m2v_domain_prototype_pipeline`. The pipeline accepts every key the flat plugin does, plus `intent_strategy` / `intent_top_k` / `intent_tau` for the per-domain sub-stores (defaults inherit from `prototype_*`).
+
+## Hierarchical store
+
+`DomainPrototypeIntentStore` is the hierarchical variant of [`PrototypeIntentStore`](pipeline.md#prototypeintentstore). Intents are grouped into *domains*, and at inference time the engine first picks the most likely domain, then scores intents only within that domain. This mirrors the API shipped by sibling OVOS intent plugins (`nebulento.DomainIntentContainer`, `ovos_padatious.DomainIntentContainer`, `palavreado.DomainIntentContainer`, `padacioso.DomainIntentContainer`, `linha_fina.DomainIntentEngine`, `ovos_markov_pipeline.DomainMarkovIntentEngine`).
 
 ## Why hierarchical
 

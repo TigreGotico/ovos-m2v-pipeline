@@ -108,7 +108,7 @@ class DomainPrototypeIntentStore:
         self._samples: Dict[str, Dict[str, List[str]]] = defaultdict(dict)
 
     # ------------------------------------------------------------------
-    # Read-only views
+    # Read-only views (parity with PrototypeIntentStore where it makes sense)
     # ------------------------------------------------------------------
 
     @property
@@ -118,6 +118,18 @@ class DomainPrototypeIntentStore:
     @property
     def intent_strategy(self) -> PrototypeStrategy:
         return self._intent_strategy
+
+    def __len__(self) -> int:
+        """Total number of prototypes across every domain's sub-store."""
+        return sum(len(s) for s in self.domains.values())
+
+    @property
+    def unique_labels(self) -> np.ndarray:
+        """All intent labels across every domain (sorted, deduplicated)."""
+        labels: set = set()
+        for store in self.domains.values():
+            labels.update(str(l) for l in store.unique_labels)
+        return np.asarray(sorted(labels), dtype=object)
 
     # ------------------------------------------------------------------
     # Public API

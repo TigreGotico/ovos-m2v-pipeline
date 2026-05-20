@@ -368,11 +368,7 @@ class Model2VecIntentPipeline(ConfidenceMatcherPipeline):
             )
             self._prototype_top_k: int = self.config.get("prototype_top_k", 3)
             self._prototype_tau: float = self.config.get("prototype_tau", 0.1)
-            self.prototype_store: Optional[PrototypeIntentStore] = PrototypeIntentStore(
-                strategy=self._prototype_strategy,
-                top_k=self._prototype_top_k,
-                tau=self._prototype_tau,
-            )
+            self.prototype_store: Optional[PrototypeIntentStore] = self._build_prototype_store()
 
             self.bus.on("mycroft.ready", self._handle_ready_prototype)
             # Legacy registration topics (kept alongside OVOS-INTENT-4).
@@ -583,17 +579,41 @@ class Model2VecIntentPipeline(ConfidenceMatcherPipeline):
 
     def _handle_detach_intent(self, message: Message) -> None:
         name: str = message.data.get("intent_name", "")
-        if name:
-            self.prototype_store.remove(name)
-            self.intents.discard(name)
-            LOG.debug(f"Prototype store: removed prototypes for '{name}'")
+        if not name:
+            return
+        self._remove_intent(name)
+        self.intents.discard(name)
+        LOG.debug(f"Prototype store: removed prototypes for '{name}'")
 
     def _handle_detach_skill(self, message: Message) -> None:
         skill_id: str = message.data.get("skill_id") or message.context.get("skill_id", "")
-        if skill_id:
-            self.prototype_store.remove_skill(skill_id)
-            self.intents = {i for i in self.intents if not i.startswith(skill_id + ":")}
-            LOG.debug(f"Prototype store: removed prototypes for skill '{skill_id}'")
+        if not skill_id:
+            return
+        self._remove_skill(skill_id)
+        self.intents = {i for i in self.intents if not i.startswith(skill_id + ":")}
+        LOG.debug(f"Prototype store: removed prototypes for skill '{skill_id}'")
+
+    # ------------------------------------------------------------------
+    # Store-shape hooks — overridden by Model2VecDomainPrototypePipeline
+    # ------------------------------------------------------------------
+
+    def _build_prototype_store(self):
+        return PrototypeIntentStore(
+            strategy=self._prototype_strategy,
+            top_k=self._prototype_top_k,
+            tau=self._prototype_tau,
+        )
+
+    def _add_intent(self, name: str, sentences: List[str]) -> int:
+        return self.prototype_store.add(
+            self.model, name, sentences, k=self._prototype_k
+        )
+
+    def _remove_intent(self, name: str) -> None:
+        self.prototype_store.remove(name)
+
+    def _remove_skill(self, skill_id: str) -> None:
+        self.prototype_store.remove_skill(skill_id)
 
     # ------------------------------------------------------------------
     # OVOS-INTENT-4 registration (template method) — consumed in addition
@@ -1102,4 +1122,87 @@ class Model2VecPrototypePipeline(Model2VecIntentPipeline):
 # Re-export DomainPrototypeIntentStore at the package root for parity with
 # the other OVOS intent plugins (nebulento, ovos-padatious, palavreado,
 # padacioso, linha_fina, ovos-markov-pipeline).
-from ovos_m2v_pipeline.domain_store import DomainPrototypeIntentStore  # noqa: E402, F401
+from ovos_m2v_pipeline.domain_store import DomainPrototypeIntentStore  # noqa: E402
+
+
+class Model2VecDomainPrototypePipeline(Model2VecPrototypePipeline):
+    """Hierarchical, two-level prototype pipeline.
+
+    Same behaviour as :class:`Model2VecPrototypePipeline` except the
+    underlying store is a :class:`DomainPrototypeIntentStore`. Each
+    Padatious intent is routed to a domain == skill_id (taken from the
+    intent label's ``<skill_id>:<intent>`` prefix); inference first
+    picks the most likely domain via the router store and then scores
+    intents only within that domain.
+
+    Configuration is read from ``intents.ovos_m2v_domain_prototype_pipeline``
+    so this pipeline can coexist with the flat prototype plugin in the
+    same OVOS instance. Accepts every key the flat plugin does, plus:
+
+    ``intent_strategy`` : str
+        ``PrototypeStrategy`` for the per-domain sub-stores. Defaults to
+        ``prototype_strategy`` so the two levels match unless you
+        explicitly diverge them.
+    ``intent_top_k`` : int
+        ``top_k`` for per-domain sub-stores. Defaults to ``prototype_top_k``.
+    ``intent_tau`` : float
+        ``tau`` for per-domain sub-stores. Defaults to ``prototype_tau``.
+
+    Example ``mycroft.conf``::
+
+        "intents": {
+            "ovos-m2v-domain-prototype-pipeline": {
+                "model": "minishlab/potion-multilingual-128M",
+                "prototype_strategy": "mean_centroid",     // domain router
+                "intent_strategy":   "softmax_weighted",   // intra-domain
+                "intent_tau":         0.1
+            }
+        }
+    """
+
+    def __init__(
+        self,
+        bus: Optional[Union[MessageBusClient, FakeBus]] = None,
+        config: Optional[Dict] = None,
+    ) -> None:
+        if config is None:
+            config = (
+                Configuration().get("intents", {})
+                .get("ovos_m2v_domain_prototype_pipeline") or {}
+            )
+        super().__init__(bus, config)
+
+    # ------------------------------------------------------------------
+    # Overrides — swap the store and route adds/removes through (domain, label)
+    # ------------------------------------------------------------------
+
+    def _build_prototype_store(self):
+        return DomainPrototypeIntentStore(
+            domain_strategy=self._prototype_strategy,
+            domain_top_k=self._prototype_top_k,
+            domain_tau=self._prototype_tau,
+            intent_strategy=PrototypeStrategy(
+                self.config.get("intent_strategy",
+                                self._prototype_strategy.value)
+            ),
+            intent_top_k=self.config.get("intent_top_k", self._prototype_top_k),
+            intent_tau=self.config.get("intent_tau", self._prototype_tau),
+        )
+
+    @staticmethod
+    def _domain_of(name: str) -> str:
+        """Extract the domain (skill_id) from a ``skill_id:intent`` label."""
+        return name.split(":", 1)[0] if ":" in name else name
+
+    def _add_intent(self, name: str, sentences: List[str]) -> int:
+        return self.prototype_store.add(
+            self.model, self._domain_of(name), name, sentences,
+            k=self._prototype_k,
+        )
+
+    def _remove_intent(self, name: str) -> None:
+        self.prototype_store.remove(self._domain_of(name), name)
+
+    def _remove_skill(self, skill_id: str) -> None:
+        # In domain mode the skill_id IS the domain.
+        self.prototype_store.remove_domain(skill_id)
