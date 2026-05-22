@@ -39,6 +39,13 @@ test = [
     "ovos-bus-client>=2.5.1a1,<3.0.0",
     "ovos-spec-tools>=1.4.0a1",
 ]
+benchmark = [
+    "padaos",
+    "padatious",
+    "fann2==1.0.7",
+    "nebulento",
+    "datasets",
+]
 
 [project.urls]
 Homepage = "https://openvoiceos.org"
