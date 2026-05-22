@@ -2,10 +2,10 @@
 
 This page documents two layers that ship together:
 
-* **`Model2VecHierarchicalPrototypePipeline`** — the OPM-discoverable pipeline class. Entry point: `ovos-m2v-hierarchical-prototype-pipeline`. Subclasses the domain prototype pipeline; the only difference is the store shape (below) — intents are grouped into a domain == skill_id at registration time and matched in two stages.
-* **`HierarchicalPrototypeIntentStore`** — the two-stage variant of [`DomainPrototypeIntentStore`](domain_store.md) used internally by that pipeline.
+* **`Model2VecHierarchicalPrototypePipeline`** — the OPM-discoverable pipeline class. Entry point: `ovos-m2v-hierarchical-prototype-pipeline`. Subclasses the flat prototype pipeline; the only difference is the store shape (below) — intents are grouped into a domain == skill_id at registration time and matched in two stages.
+* **`HierarchicalPrototypeIntentStore`** — the two-stage, domain-routed prototype store used internally by that pipeline.
 
-A separate entry point keeps the three prototype pipelines (flat, parallel-argmax domain, hierarchical) independently selectable in `default_pipeline` ordering, each with its own `intents.<key>` config block.
+A separate entry point keeps the two prototype pipelines (flat, hierarchical) independently selectable in `default_pipeline` ordering, each with its own `intents.<key>` config block.
 
 ## Enabling
 
@@ -24,11 +24,11 @@ Add it to your OVOS config and place it in your pipeline order alongside (or in 
 }
 ```
 
-Configuration keys are read from `intents.ovos_m2v_hierarchical_prototype_pipeline`. The pipeline accepts every key the domain plugin does, plus `domain_threshold` — the minimum router score required to route a query.
+Configuration keys are read from `intents.ovos_m2v_hierarchical_prototype_pipeline`. The pipeline accepts every key the flat plugin does, plus `intent_strategy` / `intent_top_k` / `intent_tau` for the per-domain sub-stores (defaults inherit from `prototype_*`) and `domain_threshold` — the minimum router score required to route a query.
 
 ## Architecture
 
-`HierarchicalPrototypeIntentStore` groups intents into *domains* and routes queries in **two stages**. Stage one is a top-level router: a per-domain *fingerprint* embedding (the centroid of the domain's concatenated samples) is scored and the single best-scoring domain is selected. Stage two resolves the intent only inside that domain's sub-store. Unlike [`DomainPrototypeIntentStore`](domain_store.md), there is no parallel scoring — exactly one sub-store runs per query.
+`HierarchicalPrototypeIntentStore` groups intents into *domains* and routes queries in **two stages**. Stage one is a top-level router: a per-domain *fingerprint* embedding (the centroid of the domain's concatenated samples) is scored and the single best-scoring domain is selected. Stage two resolves the intent only inside that domain's sub-store — exactly one sub-store runs per query.
 
 ```
               query embedding
@@ -56,9 +56,7 @@ Configuration keys are read from `intents.ovos_m2v_hierarchical_prototype_pipeli
 The router decides the domain before any per-intent scoring happens. Two consequences:
 
 1. **Off-topic rejection.** When the best domain's fingerprint score is below `domain_threshold`, the query is rejected outright and no intent is returned. `0.0` (default) disables the gate.
-2. **Cheaper inference with many domains.** Only one sub-store is scored per query rather than every domain in parallel.
-
-The fingerprint router is **mandatory** here — it is always built. (On `DomainPrototypeIntentStore` the same fingerprint store is optional and only used for the `top_k_domains` prune.)
+2. **Cheaper inference with many domains.** Only one sub-store is scored per query rather than every intent across every domain.
 
 No training step required — the static encoder produces both the per-domain intent embeddings and the domain fingerprints.
 
@@ -120,7 +118,6 @@ Every `PrototypeStrategy` works inside every per-domain sub-store: they're all `
 
 ## See also
 
-- [Domain Prototype Store](domain_store.md) — the parallel-argmax variant (every domain scored, no router).
 - [Prototype Strategies](strategies.md) — the seven scoring strategies the underlying stores expose.
 - [Pipeline Internals](pipeline.md) — how `PrototypeIntentStore` is wired into the bus.
 - [Configuration](configuration.md) — top-level OVOS config keys.

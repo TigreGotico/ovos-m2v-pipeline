@@ -7,7 +7,7 @@ padaos      – regex-based matcher
 padatious   – neural-network matcher (requires training pass)
 nebulento   – fuzzy string matching engine (flat, damerau-levenshtein)
 m2v         – this repo's model2vec embedding-based prototype engine
-              (flat / domain parallel-argmax / hierarchical two-stage)
+              (flat / hierarchical two-stage)
 
 Every engine here is a template / sample matcher: it trains on example
 sentences, not keyword vocabularies. They are evaluated on two OpenVoiceOS
@@ -293,39 +293,6 @@ def run_m2v(bundle, cases, model=None, threshold=0.5):
     return m, statistics.median(latencies), statistics.mean(latencies), train_ms
 
 
-def run_m2v_domain(bundle, cases, model=None, threshold=0.5):
-    """``DomainPrototypeIntentStore`` — parallel-argmax, intents grouped by domain."""
-    if model is None:
-        print("  [SKIP] m2v (domain prototype) — model unavailable")
-        return None
-    from ovos_m2v_pipeline import DomainPrototypeIntentStore
-
-    store = DomainPrototypeIntentStore()
-    t0 = time.perf_counter()
-    for name, data in bundle.intents.items():
-        store.add(model, _domain_of(name), name, data["train"])
-    train_ms = (time.perf_counter() - t0) * 1000
-
-    results, latencies = [], []
-    for utt, _ in cases:
-        t0 = time.perf_counter()
-        emb = model.encode([utt])[0]
-        scored = store.scores(emb)
-        latencies.append((time.perf_counter() - t0) * 1000)
-        if scored:
-            label = max(scored, key=scored.get)
-            conf = scored[label]
-        else:
-            label, conf = None, 0.0
-        predicted = label if conf >= threshold else None
-        results.append((predicted, conf))
-
-    m = compute_metrics(results, cases)
-    print_report(f"m2v  domain-prototype  threshold={threshold}", m, latencies,
-                 bundle.intents, train_ms)
-    return m, statistics.median(latencies), statistics.mean(latencies), train_ms
-
-
 def run_m2v_hierarchical(bundle, cases, model=None, threshold=0.5,
                          domain_threshold=0.0):
     """``HierarchicalPrototypeIntentStore`` — two-stage domain-routed matching."""
@@ -419,11 +386,6 @@ def run_dataset(name):
     if res is not None:
         m, lat, mean_lat, tr = res
         rows.append(("m2v  flat-prototype", m, lat, mean_lat, tr))
-
-    res = run_m2v_domain(bundle, cases, model=model, threshold=0.5)
-    if res is not None:
-        m, lat, mean_lat, tr = res
-        rows.append(("m2v  domain-prototype", m, lat, mean_lat, tr))
 
     res = run_m2v_hierarchical(bundle, cases, model=model, threshold=0.5,
                                domain_threshold=0.0)

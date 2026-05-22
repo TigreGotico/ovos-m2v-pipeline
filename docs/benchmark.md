@@ -55,7 +55,6 @@ intent prototypes.
 | `padatious` | Neural network matcher (requires a training pass) — fixed baseline |
 | `nebulento damerau-levenshtein` | Flat fuzzy `IntentContainer`, default strategy — fixed baseline |
 | `m2v flat-prototype` | `PrototypeIntentStore` — cosine nearest-neighbour over all intent prototypes |
-| `m2v domain-prototype` | `DomainPrototypeIntentStore` — parallel-argmax, intents grouped by domain |
 | `m2v hierarchical-prototype` | `HierarchicalPrototypeIntentStore` — two-stage, route to a domain then resolve the intent within it |
 
 The first three rows are the **fixed baselines** shared by every OVOS intent
@@ -136,15 +135,11 @@ when the engine returns `None` or a confidence below threshold.
 
 ## The m2v variants
 
-All three `m2v` rows train on the dataset's templates and score test
+Both `m2v` rows train on the dataset's templates and score test
 utterances by cosine similarity against intent prototype embeddings.
 
 - **`m2v flat-prototype`** — every intent's prototypes live in one
   `PrototypeIntentStore`; the global argmax cosine wins.
-- **`m2v domain-prototype`** — intents are grouped into domains (domain ==
-  skill_id). Every domain's sub-store scores in parallel and the global argmax
-  over the flat union of per-intent scores wins. There is no separate routing
-  stage.
 - **`m2v hierarchical-prototype`** — a two-stage store: a top-level router
   picks the single best domain by per-domain fingerprint similarity, then only
   that domain's sub-store resolves the intent. The `domain_threshold` gate

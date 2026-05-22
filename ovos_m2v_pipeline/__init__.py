@@ -594,7 +594,7 @@ class Model2VecIntentPipeline(ConfidenceMatcherPipeline):
         LOG.debug(f"Prototype store: removed prototypes for skill '{skill_id}'")
 
     # ------------------------------------------------------------------
-    # Store-shape hooks — overridden by Model2VecDomainPrototypePipeline
+    # Store-shape hooks — overridden by Model2VecHierarchicalPrototypePipeline
     # ------------------------------------------------------------------
 
     def _build_prototype_store(self):
@@ -1119,30 +1119,31 @@ class Model2VecPrototypePipeline(Model2VecIntentPipeline):
         super().__init__(bus, config)
 
 
-# Re-export DomainPrototypeIntentStore at the package root for parity with
-# the other OVOS intent plugins (nebulento, ovos-padatious, palavreado,
+# Re-export HierarchicalPrototypeIntentStore at the package root for parity
+# with the other OVOS intent plugins (nebulento, ovos-padatious, palavreado,
 # padacioso, linha_fina, ovos-markov-pipeline).
-from ovos_m2v_pipeline.domain_store import (  # noqa: E402
-    DomainPrototypeIntentStore,
+from ovos_m2v_pipeline.hierarchical_store import (  # noqa: E402
     HierarchicalPrototypeIntentStore,
 )
 
 
-class Model2VecDomainPrototypePipeline(Model2VecPrototypePipeline):
-    """Parallel-argmax, domain-grouped prototype pipeline.
+class Model2VecHierarchicalPrototypePipeline(Model2VecPrototypePipeline):
+    """Two-stage (hierarchical) domain-routed prototype pipeline.
 
-    Same behaviour as :class:`Model2VecPrototypePipeline` except the
-    underlying store is a :class:`DomainPrototypeIntentStore`. Each
-    Padatious intent is grouped into a domain == skill_id (taken from
-    the intent label's ``<skill_id>:<intent>`` prefix). At inference
-    time every domain's sub-store scores the query in parallel and the
-    global argmax over the flat union of per-intent scores wins — there
-    is no separate routing stage (mirrors adapt's
-    ``DomainIntentDeterminationEngine``).
+    Same behaviour and bus surface as :class:`Model2VecPrototypePipeline`
+    except the underlying store is a
+    :class:`HierarchicalPrototypeIntentStore`. Each Padatious intent is
+    grouped into a domain == skill_id (taken from the intent label's
+    ``<skill_id>:<intent>`` prefix). At inference time a top-level
+    router picks the single best domain by per-domain fingerprint
+    similarity, then only that domain's sub-store resolves the intent.
+    Queries that match no domain above ``domain_threshold`` are rejected
+    before any sub-store runs.
 
-    Configuration is read from ``intents.ovos_m2v_domain_prototype_pipeline``
-    so this pipeline can coexist with the flat prototype plugin in the
-    same OVOS instance. Accepts every key the flat plugin does, plus:
+    Configuration is read from
+    ``intents.ovos_m2v_hierarchical_prototype_pipeline`` so this
+    pipeline can coexist with the flat prototype plugin in the same
+    OVOS instance. Accepts every key the flat plugin does, plus:
 
     ``intent_strategy`` : str
         ``PrototypeStrategy`` for the per-domain sub-stores. Defaults to
@@ -1151,89 +1152,6 @@ class Model2VecDomainPrototypePipeline(Model2VecPrototypePipeline):
         ``top_k`` for per-domain sub-stores. Defaults to ``prototype_top_k``.
     ``intent_tau`` : float
         ``tau`` for per-domain sub-stores. Defaults to ``prototype_tau``.
-    ``top_k_domains`` : int, optional
-        Optional pruning: score only the top-K domains by per-domain
-        fingerprint similarity before flattening intents. Defaults to
-        ``None`` (every domain scores in parallel).
-
-    Example ``mycroft.conf``::
-
-        "intents": {
-            "ovos-m2v-domain-prototype-pipeline": {
-                "model": "minishlab/potion-multilingual-128M",
-                "intent_strategy":   "softmax_weighted",
-                "intent_tau":         0.1
-            }
-        }
-    """
-
-    def __init__(
-        self,
-        bus: Optional[Union[MessageBusClient, FakeBus]] = None,
-        config: Optional[Dict] = None,
-    ) -> None:
-        if config is None:
-            config = (
-                Configuration().get("intents", {})
-                .get("ovos_m2v_domain_prototype_pipeline") or {}
-            )
-        super().__init__(bus, config)
-
-    # ------------------------------------------------------------------
-    # Overrides — swap the store and route adds/removes through (domain, label)
-    # ------------------------------------------------------------------
-
-    def _build_prototype_store(self):
-        return DomainPrototypeIntentStore(
-            intent_strategy=PrototypeStrategy(
-                self.config.get("intent_strategy",
-                                self._prototype_strategy.value)
-            ),
-            intent_top_k=self.config.get("intent_top_k", self._prototype_top_k),
-            intent_tau=self.config.get("intent_tau", self._prototype_tau),
-            top_k_domains=self.config.get("top_k_domains"),
-            domain_strategy=self._prototype_strategy,
-            domain_tau=self._prototype_tau,
-        )
-
-    @staticmethod
-    def _domain_of(name: str) -> str:
-        """Extract the domain (skill_id) from a ``skill_id:intent`` label."""
-        return name.split(":", 1)[0] if ":" in name else name
-
-    def _add_intent(self, name: str, sentences: List[str]) -> int:
-        return self.prototype_store.add(
-            self.model, self._domain_of(name), name, sentences,
-            k=self._prototype_k,
-        )
-
-    def _remove_intent(self, name: str) -> None:
-        self.prototype_store.remove(self._domain_of(name), name)
-
-    def _remove_skill(self, skill_id: str) -> None:
-        # In domain mode the skill_id IS the domain.
-        self.prototype_store.remove_domain(skill_id)
-
-
-class Model2VecHierarchicalPrototypePipeline(Model2VecDomainPrototypePipeline):
-    """Two-stage (hierarchical) domain-routed prototype pipeline.
-
-    Same behaviour and bus surface as
-    :class:`Model2VecDomainPrototypePipeline` except the underlying
-    store is a :class:`HierarchicalPrototypeIntentStore`. Each Padatious
-    intent is grouped into a domain == skill_id (taken from the intent
-    label's ``<skill_id>:<intent>`` prefix). At inference time a
-    top-level router picks the single best domain by per-domain
-    fingerprint similarity, then only that domain's sub-store resolves
-    the intent. Queries that match no domain above ``domain_threshold``
-    are rejected before any sub-store runs.
-
-    Configuration is read from
-    ``intents.ovos_m2v_hierarchical_prototype_pipeline`` so this
-    pipeline can coexist with the flat and parallel-argmax prototype
-    plugins in the same OVOS instance. Accepts every key the
-    domain plugin does, plus:
-
     ``domain_threshold`` : float, optional
         Minimum router fingerprint score required to route a query.
         Below it the query is rejected. Defaults to ``0.0`` (no gate).
@@ -1262,6 +1180,10 @@ class Model2VecHierarchicalPrototypePipeline(Model2VecDomainPrototypePipeline):
             )
         super().__init__(bus, config)
 
+    # ------------------------------------------------------------------
+    # Overrides — swap the store and route adds/removes through (domain, label)
+    # ------------------------------------------------------------------
+
     def _build_prototype_store(self):
         return HierarchicalPrototypeIntentStore(
             intent_strategy=PrototypeStrategy(
@@ -1274,3 +1196,21 @@ class Model2VecHierarchicalPrototypePipeline(Model2VecDomainPrototypePipeline):
             domain_tau=self._prototype_tau,
             domain_threshold=self.config.get("domain_threshold", 0.0),
         )
+
+    @staticmethod
+    def _domain_of(name: str) -> str:
+        """Extract the domain (skill_id) from a ``skill_id:intent`` label."""
+        return name.split(":", 1)[0] if ":" in name else name
+
+    def _add_intent(self, name: str, sentences: List[str]) -> int:
+        return self.prototype_store.add(
+            self.model, self._domain_of(name), name, sentences,
+            k=self._prototype_k,
+        )
+
+    def _remove_intent(self, name: str) -> None:
+        self.prototype_store.remove(self._domain_of(name), name)
+
+    def _remove_skill(self, skill_id: str) -> None:
+        # In hierarchical mode the skill_id IS the domain.
+        self.prototype_store.remove_domain(skill_id)
