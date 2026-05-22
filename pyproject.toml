@@ -49,6 +49,7 @@ Funding = "https://nlnet.nl/project/OpenVoiceOS"
 ovos-m2v-pipeline = "ovos_m2v_pipeline:Model2VecIntentPipeline"
 ovos-m2v-prototype-pipeline = "ovos_m2v_pipeline:Model2VecPrototypePipeline"
 ovos-m2v-domain-prototype-pipeline = "ovos_m2v_pipeline:Model2VecDomainPrototypePipeline"
+ovos-m2v-hierarchical-prototype-pipeline = "ovos_m2v_pipeline:Model2VecHierarchicalPrototypePipeline"
 
 [tool.setuptools]
 packages = ["ovos_m2v_pipeline"]

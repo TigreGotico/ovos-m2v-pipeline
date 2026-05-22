@@ -1122,7 +1122,10 @@ class Model2VecPrototypePipeline(Model2VecIntentPipeline):
 # Re-export DomainPrototypeIntentStore at the package root for parity with
 # the other OVOS intent plugins (nebulento, ovos-padatious, palavreado,
 # padacioso, linha_fina, ovos-markov-pipeline).
-from ovos_m2v_pipeline.domain_store import DomainPrototypeIntentStore  # noqa: E402
+from ovos_m2v_pipeline.domain_store import (  # noqa: E402
+    DomainPrototypeIntentStore,
+    HierarchicalPrototypeIntentStore,
+)
 
 
 class Model2VecDomainPrototypePipeline(Model2VecPrototypePipeline):
@@ -1210,3 +1213,64 @@ class Model2VecDomainPrototypePipeline(Model2VecPrototypePipeline):
     def _remove_skill(self, skill_id: str) -> None:
         # In domain mode the skill_id IS the domain.
         self.prototype_store.remove_domain(skill_id)
+
+
+class Model2VecHierarchicalPrototypePipeline(Model2VecDomainPrototypePipeline):
+    """Two-stage (hierarchical) domain-routed prototype pipeline.
+
+    Same behaviour and bus surface as
+    :class:`Model2VecDomainPrototypePipeline` except the underlying
+    store is a :class:`HierarchicalPrototypeIntentStore`. Each Padatious
+    intent is grouped into a domain == skill_id (taken from the intent
+    label's ``<skill_id>:<intent>`` prefix). At inference time a
+    top-level router picks the single best domain by per-domain
+    fingerprint similarity, then only that domain's sub-store resolves
+    the intent. Queries that match no domain above ``domain_threshold``
+    are rejected before any sub-store runs.
+
+    Configuration is read from
+    ``intents.ovos_m2v_hierarchical_prototype_pipeline`` so this
+    pipeline can coexist with the flat and parallel-argmax prototype
+    plugins in the same OVOS instance. Accepts every key the
+    domain plugin does, plus:
+
+    ``domain_threshold`` : float, optional
+        Minimum router fingerprint score required to route a query.
+        Below it the query is rejected. Defaults to ``0.0`` (no gate).
+
+    Example ``mycroft.conf``::
+
+        "intents": {
+            "ovos-m2v-hierarchical-prototype-pipeline": {
+                "model": "minishlab/potion-multilingual-128M",
+                "intent_strategy":   "softmax_weighted",
+                "intent_tau":         0.1,
+                "domain_threshold":   0.2
+            }
+        }
+    """
+
+    def __init__(
+        self,
+        bus: Optional[Union[MessageBusClient, FakeBus]] = None,
+        config: Optional[Dict] = None,
+    ) -> None:
+        if config is None:
+            config = (
+                Configuration().get("intents", {})
+                .get("ovos_m2v_hierarchical_prototype_pipeline") or {}
+            )
+        super().__init__(bus, config)
+
+    def _build_prototype_store(self):
+        return HierarchicalPrototypeIntentStore(
+            intent_strategy=PrototypeStrategy(
+                self.config.get("intent_strategy",
+                                self._prototype_strategy.value)
+            ),
+            intent_top_k=self.config.get("intent_top_k", self._prototype_top_k),
+            intent_tau=self.config.get("intent_tau", self._prototype_tau),
+            domain_strategy=self._prototype_strategy,
+            domain_tau=self._prototype_tau,
+            domain_threshold=self.config.get("domain_threshold", 0.0),
+        )

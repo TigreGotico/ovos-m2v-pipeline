@@ -262,3 +262,125 @@ class DomainPrototypeIntentStore:
         self._domain_fingerprints.remove(domain)
         self._domain_fingerprints.add(model, domain, all_samples,
                                        k=k, random_state=random_state)
+
+
+class HierarchicalPrototypeIntentStore(DomainPrototypeIntentStore):
+    """Two-stage (hierarchical) prototype store grouped by domain.
+
+    Intents are grouped into *domains*, but — unlike
+    :class:`DomainPrototypeIntentStore` — there **is** a top-level
+    router. At query time a single best domain is selected first, then
+    intent resolution happens only inside that domain's sub-store.
+
+    The router is the per-domain *fingerprint* store
+    (:attr:`_domain_fingerprints`): a concatenated-sample embedding per
+    domain. :meth:`calc_domain` picks the single highest-scoring domain
+    by fingerprint cosine similarity. Unlike the optional
+    ``top_k_domains`` prune on :class:`DomainPrototypeIntentStore`, the
+    fingerprint store here is **mandatory** — it is always built.
+
+    A ``domain_threshold`` gate rejects off-topic queries: when the best
+    domain's fingerprint score is below the threshold, scoring returns
+    no match. ``0.0`` (default) disables the gate.
+
+    Example::
+
+        from model2vec import StaticModel
+        from ovos_m2v_pipeline import HierarchicalPrototypeIntentStore
+        from ovos_m2v_pipeline.strategies import PrototypeStrategy
+
+        model = StaticModel.from_pretrained("minishlab/potion-multilingual-128M")
+        store = HierarchicalPrototypeIntentStore(
+            intent_strategy=PrototypeStrategy.SOFTMAX_WEIGHTED,
+            intent_tau=0.1,
+            domain_threshold=0.2,
+        )
+
+        store.add(model, "media", "play",      ["play {song}", "put on {song}"])
+        store.add(model, "media", "pause",     ["pause", "pause the music"])
+        store.add(model, "home",  "lights_on", ["turn on the lights", "lights on"])
+
+        scores = store.scores(model.encode(["play africa"])[0])
+        # only the winning domain's intents are scored
+    """
+
+    def __init__(
+        self,
+        *,
+        intent_strategy: PrototypeStrategy = PrototypeStrategy.MAX_OVER_ALL,
+        intent_top_k: int = 3,
+        intent_tau: float = 0.1,
+        domain_strategy: PrototypeStrategy = PrototypeStrategy.MAX_OVER_ALL,
+        domain_tau: float = 0.1,
+        domain_threshold: float = 0.0,
+    ) -> None:
+        # The fingerprint store is mandatory in the hierarchical variant —
+        # force top_k_domains=1 so the parent always builds it.
+        super().__init__(
+            intent_strategy=intent_strategy,
+            intent_top_k=intent_top_k,
+            intent_tau=intent_tau,
+            top_k_domains=1,
+            domain_strategy=domain_strategy,
+            domain_tau=domain_tau,
+        )
+        #: Minimum fingerprint score the winning domain must reach for a
+        #: query to be routed at all. Below it, scoring returns no match.
+        self._domain_threshold = domain_threshold
+
+    # ------------------------------------------------------------------
+    # Read-only views
+    # ------------------------------------------------------------------
+
+    @property
+    def domain_threshold(self) -> float:
+        return self._domain_threshold
+
+    # ------------------------------------------------------------------
+    # Inference
+    # ------------------------------------------------------------------
+
+    def calc_domain(self, query_embedding: np.ndarray) -> Optional[str]:
+        """Return the single best-matching domain name for a query.
+
+        The per-domain fingerprint store is scored and the highest
+        scoring domain is returned. When the best score is below
+        :attr:`domain_threshold`, or no domains are registered,
+        ``None`` is returned.
+        """
+        if self._domain_fingerprints is None:
+            return None
+        fp_scores = self._domain_fingerprints.scores(query_embedding)
+        if not fp_scores:
+            return None
+        domain, score = max(fp_scores.items(), key=lambda kv: kv[1])
+        if score < self._domain_threshold:
+            return None
+        return domain
+
+    def scores(self, query_embedding: np.ndarray,
+               domain: Optional[str] = None) -> Dict[str, float]:
+        """Return ``{intent_label: score}`` for the routed domain only.
+
+        Args:
+            query_embedding: Raw (unnormalised) query embedding vector.
+            domain: If given, skip the top-level router and score only
+                this domain (bypasses the ``domain_threshold`` gate).
+                Otherwise :meth:`calc_domain` picks one domain and only
+                that domain's sub-store is scored.
+        """
+        if domain is not None:
+            if domain not in self.domains:
+                return {}
+            return self.domains[domain].scores(query_embedding)
+
+        if not self.domains:
+            return {}
+
+        routed = self.calc_domain(query_embedding)
+        if routed is None:
+            return {}
+        sub = self.domains.get(routed)
+        if sub is None:
+            return {}
+        return sub.scores(query_embedding)
