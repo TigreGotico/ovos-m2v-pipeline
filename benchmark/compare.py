@@ -256,12 +256,14 @@ def _domain_of(label):
     return label.split(":", 1)[0] if ":" in label else label
 
 
-def run_m2v(bundle, cases, model=None, threshold=0.5):
-    """Flat ``PrototypeIntentStore`` — cosine nearest-neighbour over all intents."""
+def run_m2v(bundle, cases, model=None, threshold=0.5, strategy=None):
+    """Flat ``PrototypeIntentStore`` — one row per :class:`PrototypeStrategy`."""
     if model is None:
         print("  [SKIP] m2v (flat prototype) — model unavailable")
         return None
     from ovos_m2v_pipeline import PrototypeIntentStore
+    from ovos_m2v_pipeline.strategies import PrototypeStrategy
+    strategy = PrototypeStrategy(strategy) if strategy else PrototypeStrategy.MAX_OVER_ALL
 
     sentences, labels = [], []
     for name, data in bundle.intents.items():
@@ -270,7 +272,7 @@ def run_m2v(bundle, cases, model=None, threshold=0.5):
             labels.append(name)
 
     t0 = time.perf_counter()
-    store = PrototypeIntentStore.build(model, sentences, labels)
+    store = PrototypeIntentStore.build(model, sentences, labels, strategy=strategy)
     train_ms = (time.perf_counter() - t0) * 1000
 
     results, latencies = [], []
@@ -288,20 +290,27 @@ def run_m2v(bundle, cases, model=None, threshold=0.5):
         results.append((predicted, conf))
 
     m = compute_metrics(results, cases)
-    print_report(f"m2v  flat-prototype  threshold={threshold}", m, latencies,
+    print_report(f"m2v  flat-prototype  {strategy.value}", m, latencies,
                  bundle.intents, train_ms)
     return m, statistics.median(latencies), statistics.mean(latencies), train_ms
 
 
 def run_m2v_hierarchical(bundle, cases, model=None, threshold=0.5,
-                         domain_threshold=0.0):
-    """``HierarchicalPrototypeIntentStore`` — two-stage domain-routed matching."""
+                         domain_threshold=0.0, intent_strategy=None):
+    """``HierarchicalPrototypeIntentStore`` — one row per :class:`PrototypeStrategy`."""
     if model is None:
         print("  [SKIP] m2v (hierarchical prototype) — model unavailable")
         return None
     from ovos_m2v_pipeline import HierarchicalPrototypeIntentStore
+    from ovos_m2v_pipeline.strategies import PrototypeStrategy
+    intent_strategy = (PrototypeStrategy(intent_strategy)
+                       if intent_strategy
+                       else PrototypeStrategy.MAX_OVER_ALL)
 
-    store = HierarchicalPrototypeIntentStore(domain_threshold=domain_threshold)
+    store = HierarchicalPrototypeIntentStore(
+        intent_strategy=intent_strategy,
+        domain_threshold=domain_threshold,
+    )
     t0 = time.perf_counter()
     for name, data in bundle.intents.items():
         store.add(model, _domain_of(name), name, data["train"])
@@ -323,8 +332,7 @@ def run_m2v_hierarchical(bundle, cases, model=None, threshold=0.5,
 
     m = compute_metrics(results, cases)
     print_report(
-        f"m2v  hierarchical-prototype  threshold={threshold}  "
-        f"domain_threshold={domain_threshold}",
+        f"m2v  hierarchical-prototype  {intent_strategy.value}",
         m, latencies, bundle.intents, train_ms)
     return m, statistics.median(latencies), statistics.mean(latencies), train_ms
 
@@ -380,18 +388,23 @@ def run_dataset(name):
     rows.append(("nebulento  damerau-levenshtein", m, lat, mean_lat, tr))
 
     # ── subject — this repo's model2vec embedding engine, every variant ──
+    # one row per PrototypeStrategy, for both flat and hierarchical
     model = _load_m2v_model()
+    from ovos_m2v_pipeline.strategies import PrototypeStrategy
 
-    res = run_m2v(bundle, cases, model=model, threshold=0.5)
-    if res is not None:
-        m, lat, mean_lat, tr = res
-        rows.append(("m2v  flat-prototype", m, lat, mean_lat, tr))
+    for strat in PrototypeStrategy:
+        res = run_m2v(bundle, cases, model=model, threshold=0.5, strategy=strat)
+        if res is not None:
+            m, lat, mean_lat, tr = res
+            rows.append((f"m2v  flat  {strat.value}", m, lat, mean_lat, tr))
 
-    res = run_m2v_hierarchical(bundle, cases, model=model, threshold=0.5,
-                               domain_threshold=0.0)
-    if res is not None:
-        m, lat, mean_lat, tr = res
-        rows.append(("m2v  hierarchical-prototype", m, lat, mean_lat, tr))
+    for strat in PrototypeStrategy:
+        res = run_m2v_hierarchical(bundle, cases, model=model, threshold=0.5,
+                                   domain_threshold=0.0, intent_strategy=strat)
+        if res is not None:
+            m, lat, mean_lat, tr = res
+            rows.append((f"m2v  hierarchical  {strat.value}",
+                         m, lat, mean_lat, tr))
 
     summary(f"{name}  —  {bundle.repo}", rows)
 
