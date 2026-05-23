@@ -453,6 +453,93 @@ def run_m2v_trained_flat(bundle, cases, model=None, threshold=0.0):
     return m, statistics.median(latencies), statistics.mean(latencies), train_ms
 
 
+def run_m2v_trained_domain(bundle, cases, model=None, threshold=0.0):
+    """Domain (parallel-argmax) trained classifier — one classifier per domain,
+    each fine-tuned end-to-end with ``StaticModelForClassification``. No
+    top-level router: every head scores every query and a global argmax over
+    their softmax outputs picks the winner.
+
+    Same recipe as ``run_m2v_trained_flat`` (fills slot placeholders, top-1
+    argmax), but trains one intent classifier per domain on its own subset.
+    """
+    if not _have_sklearn():
+        print("  [SKIP] m2v (trained domain) — scikit-learn unavailable")
+        return None
+    try:
+        from model2vec.train import StaticModelForClassification  # noqa: F401
+    except ImportError:
+        print("  [SKIP] m2v (trained domain) — model2vec[train] unavailable")
+        return None
+
+    sentences, labels, domains = [], [], []
+    for s, lbl in _build_training_set(bundle):
+        sentences.append(s)
+        labels.append(lbl)
+        domains.append(_domain_of(lbl))
+    if len(set(labels)) < 2:
+        print("  [SKIP] m2v (trained domain) — need >=2 intents to train")
+        return None
+
+    t0 = time.perf_counter()
+    by_domain = defaultdict(list)
+    for s, lbl, dom in zip(sentences, labels, domains):
+        by_domain[dom].append((s, lbl))
+    intent_clfs = {}
+    for dom, pairs in by_domain.items():
+        intent_labels = sorted({lbl for _, lbl in pairs})
+        if len(intent_labels) < 2:
+            intent_clfs[dom] = ("single", intent_labels[0])
+            continue
+        intent_clfs[dom] = ("clf", _train_static_classifier(
+            [s for s, _ in pairs], [lbl for _, lbl in pairs]))
+    train_ms = (time.perf_counter() - t0) * 1000
+
+    test_utts = [utt for utt, _ in cases]
+    t0 = time.perf_counter()
+    # Score every utterance with every per-domain head; global argmax wins.
+    # Stack predictions across heads into a (n_utts, n_labels_total) matrix
+    # is overkill — keep per-head dicts and reduce.
+    best_label = [None] * len(test_utts)
+    best_conf = [0.0] * len(test_utts)
+    for dom, (kind, payload) in intent_clfs.items():
+        if kind == "single":
+            # Constant head: every query scores 1.0 for this single label, so
+            # it would always win the argmax. Treat single-label domains as a
+            # weak baseline: only claim victory when no other head beats it.
+            for i in range(len(test_utts)):
+                if best_conf[i] < 1.0:
+                    pass  # noop — leave best_conf, only fill below if untouched
+            continue
+        iprobs = payload.predict_proba(test_utts)
+        iclasses = list(payload.classes)
+        for i, row in enumerate(iprobs):
+            idx = int(row.argmax())
+            conf = float(row[idx])
+            if conf > best_conf[i]:
+                best_conf[i] = conf
+                best_label[i] = str(iclasses[idx])
+    # Fill in single-label domains where nothing else fired (best_conf == 0).
+    for dom, (kind, payload) in intent_clfs.items():
+        if kind != "single":
+            continue
+        for i in range(len(test_utts)):
+            if best_label[i] is None:
+                best_label[i] = payload
+                best_conf[i] = 1.0
+    total_ms = (time.perf_counter() - t0) * 1000
+
+    results, latencies = [], []
+    for label, conf in zip(best_label, best_conf):
+        latencies.append(total_ms / len(test_utts))
+        predicted = label if (label is not None and conf >= threshold) else None
+        results.append((predicted, conf))
+
+    m = compute_metrics(results, cases)
+    print_report("m2v  trained  domain", m, latencies,
+                 bundle.intents, train_ms)
+    return m, statistics.median(latencies), statistics.mean(latencies), train_ms
+
+
 def run_m2v_trained_hierarchical(bundle, cases, model=None, threshold=0.0,
                                  domain_threshold=0.0):
     """Two-stage trained classifier — domain + per-domain intent classifiers,
@@ -619,6 +706,11 @@ def run_dataset(name):
     if res is not None:
         m, lat, mean_lat, tr = res
         rows.append(("m2v  trained  flat", m, lat, mean_lat, tr))
+
+    res = run_m2v_trained_domain(bundle, cases, model=model, threshold=0.5)
+    if res is not None:
+        m, lat, mean_lat, tr = res
+        rows.append(("m2v  trained  domain", m, lat, mean_lat, tr))
 
     res = run_m2v_trained_hierarchical(bundle, cases, model=model,
                                        threshold=0.5, domain_threshold=0.0)

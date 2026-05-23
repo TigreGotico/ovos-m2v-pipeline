@@ -136,6 +136,29 @@ Point a pipeline at the bundle via `intents.ovos-m2v-hierarchical-intent-pipelin
 
 ---
 
+### Domain (parallel-argmax) trained classifier
+
+`train_domain.py` trains the parallel-argmax counterpart of `train_hierarchical.py` — one intent classifier per domain, with no top-level domain router. Each per-domain classifier is fit on the subset of samples belonging to that domain. At inference time every head scores the query and a single global argmax picks the winner.
+
+```bash
+python train_domain.py \
+    --csv merged_intents_dataset_en.csv \
+    --output m2v_domain_intents_potion-base-8M \
+    --base-model minishlab/potion-base-8M
+```
+
+Output bundle layout:
+
+```
+<output>/
+    manifest.json
+    intent/<domain>/classifier.joblib
+```
+
+Point a pipeline at the bundle via `intents.ovos-m2v-domain-intent-pipeline.model_path` — see [Domain Trained Classifier](domain_classifier.md).
+
+---
+
 ## Step 3 — (Optional) Distill a New Base Model
 
 If you want to start from a Sentence Transformer that is not yet available as a Model2Vec distillate:

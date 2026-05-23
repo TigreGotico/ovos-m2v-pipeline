@@ -1307,3 +1307,87 @@ class Model2VecHierarchicalIntentPipeline(Model2VecIntentPipeline):
                 continue
             skill_id, label = self._apply_special_label_map(label)
             yield skill_id, label, float(score)
+
+
+from ovos_m2v_pipeline.domain_classifier import (  # noqa: E402
+    DomainIntentClassifier,
+)
+
+
+class Model2VecDomainIntentPipeline(Model2VecIntentPipeline):
+    """Domain (parallel-argmax) **trained** classifier pipeline.
+
+    One trained classifier per domain (skill_id), with no top-level router.
+    At inference time every per-domain classifier scores the query and a
+    single global argmax over their softmax outputs picks the winner.
+
+    Configuration is read from
+    ``intents.ovos_m2v_domain_intent_pipeline``. Required keys:
+
+    ``model_path`` : str
+        Path or HF repo containing the saved
+        :class:`DomainIntentClassifier` bundle (a directory with
+        ``manifest.json`` and an ``intent/<domain>/`` subfolder per domain).
+    ``model`` : str
+        Embedding model loaded as a bare ``StaticModel`` — the same encoder
+        used at training time.
+
+    Example ``mycroft.conf``::
+
+        "intents": {
+            "ovos-m2v-domain-intent-pipeline": {
+                "model": "minishlab/potion-multilingual-128M",
+                "model_path": "/path/to/bundle"
+            }
+        }
+    """
+
+    def __init__(
+        self,
+        bus: Optional[Union[MessageBusClient, FakeBus]] = None,
+        config: Optional[Dict] = None,
+    ) -> None:
+        if config is None:
+            config = (
+                Configuration().get("intents", {})
+                .get("ovos_m2v_domain_intent_pipeline") or {}
+            )
+        # Force prototype-style init so we get the bare StaticModel encoder
+        # plus the bus wiring used to discover registered intents — then we
+        # swap the prototype store out for the trained domain classifier.
+        config = dict(config)
+        config["mode"] = "prototype"
+        super().__init__(bus, config)
+
+        bundle_path = self.config.get("model_path") or self.config.get("classifier_path")
+        if not bundle_path:
+            raise FileNotFoundError(
+                "'model_path' (DomainIntentClassifier bundle) not set "
+                "in configuration for ovos_m2v_domain_intent_pipeline"
+            )
+        self.classifier: DomainIntentClassifier = DomainIntentClassifier.load(bundle_path)
+        self.prototype_store = None
+
+        LOG.info(
+            f"Loaded Model2VecDomainIntent pipeline with "
+            f"{len(self.classifier.intent_classifiers)} domains, "
+            f"{len(self.classifier)} intents, bundle='{bundle_path}'"
+        )
+
+    # ------------------------------------------------------------------
+    # Matching — override to use the trained parallel-argmax classifier
+    # ------------------------------------------------------------------
+
+    def _match(self, utterance: str,
+               message: Optional[Message] = None) -> Iterable[Tuple[str, str, float]]:
+        emb = self.model.encode([utterance])[0]
+        label_scores = self.classifier.predict_proba(emb)
+        special = self._allowed_special_labels(message)
+        for label, score in sorted(label_scores.items(), key=lambda x: x[1], reverse=True):
+            LOG.debug(f"Match candidate: {label} - score: {score:.4f}")
+            if label in self.ignore_labels:
+                continue
+            if label in _SPECIAL_LABELS and label not in special:
+                continue
+            skill_id, label = self._apply_special_label_map(label)
+            yield skill_id, label, float(score)
