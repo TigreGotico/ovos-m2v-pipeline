@@ -390,22 +390,35 @@ def _have_sklearn():
         return False
 
 
+def _train_static_classifier(sentences, labels, base_model=M2V_MODEL):
+    """Fine-tune a ``StaticModelForClassification`` on (sentence, label) pairs.
+
+    This is the same recipe ``train/train_en.py`` uses for the shipped models —
+    model2vec's purpose-built end-to-end trainer (fine-tunes the static embedding
+    AND the linear head), not a sklearn LogisticRegression on frozen embeddings.
+    """
+    from model2vec.train import StaticModelForClassification
+    clf = StaticModelForClassification.from_pretrained(model_name=base_model)
+    clf.fit(sentences, labels, max_epochs=25)
+    return clf
+
+
 def run_m2v_trained_flat(bundle, cases, model=None, threshold=0.0):
-    """Flat trained classifier — one LogisticRegression over every intent.
+    """Flat trained classifier — fine-tune model2vec end-to-end on every intent.
 
     Training sentences have ``{slot}`` placeholders filled from ``bundle.entities``
     so the classifier learns embeddings of real phrases, not literal braces.
-    ``threshold=0.0`` means top-1 argmax (no rejection) — LR softmax over 50
-    classes rarely tops 0.5 even when correct, so a conf threshold designed for
-    binary or cosine engines would silently reject most right answers.
+    ``threshold=0.0`` returns top-1 argmax (no rejection); over many classes the
+    softmax max is small even when correct.
     """
-    if model is None:
-        print("  [SKIP] m2v (trained flat) — model unavailable")
-        return None
     if not _have_sklearn():
         print("  [SKIP] m2v (trained flat) — scikit-learn unavailable")
         return None
-    from sklearn.linear_model import LogisticRegression
+    try:
+        from model2vec.train import StaticModelForClassification  # noqa: F401
+    except ImportError:
+        print("  [SKIP] m2v (trained flat) — model2vec[train] unavailable")
+        return None
     import numpy as np
 
     sentences, labels = [], []
@@ -417,20 +430,21 @@ def run_m2v_trained_flat(bundle, cases, model=None, threshold=0.0):
         return None
 
     t0 = time.perf_counter()
-    X = np.asarray(model.encode(sentences))
-    clf = LogisticRegression(max_iter=1000, random_state=42)
-    clf.fit(X, labels)
+    clf = _train_static_classifier(sentences, labels)
     train_ms = (time.perf_counter() - t0) * 1000
 
+    test_utts = [utt for utt, _ in cases]
+    t0 = time.perf_counter()
+    probs = clf.predict_proba(test_utts)
+    total_ms = (time.perf_counter() - t0) * 1000
+    classes = list(clf.classes)
+
     results, latencies = [], []
-    for utt, _ in cases:
-        t0 = time.perf_counter()
-        emb = model.encode([utt])[0]
-        probs = clf.predict_proba(emb.reshape(1, -1))[0]
-        idx = int(probs.argmax())
-        conf = float(probs[idx])
-        label = str(clf.classes_[idx])
-        latencies.append((time.perf_counter() - t0) * 1000)
+    for row in probs:
+        idx = int(row.argmax())
+        conf = float(row[idx])
+        label = str(classes[idx])
+        latencies.append(total_ms / len(test_utts))
         predicted = label if conf >= threshold else None
         results.append((predicted, conf))
 
@@ -441,42 +455,87 @@ def run_m2v_trained_flat(bundle, cases, model=None, threshold=0.0):
 
 def run_m2v_trained_hierarchical(bundle, cases, model=None, threshold=0.0,
                                  domain_threshold=0.0):
-    """Two-stage trained classifier — domain LR + per-domain intent LRs.
+    """Two-stage trained classifier — domain + per-domain intent classifiers,
+    each fine-tuned end-to-end with ``StaticModelForClassification``.
 
-    Training sentences have ``{slot}`` placeholders filled from
-    ``bundle.entities`` (same reasoning as the flat row). ``threshold=0.0``
-    keeps the top-1 argmax — LR softmax over many classes rarely tops 0.5.
+    Same recipe as ``run_m2v_trained_flat`` (fills slot placeholders and uses
+    top-1 argmax), but trains one domain classifier and one intent classifier
+    per domain. At inference: classify domain, then resolve intent only inside
+    that domain.
     """
-    if model is None:
-        print("  [SKIP] m2v (trained hierarchical) — model unavailable")
-        return None
     if not _have_sklearn():
         print("  [SKIP] m2v (trained hierarchical) — scikit-learn unavailable")
         return None
-    from ovos_m2v_pipeline.hierarchical_classifier import HierarchicalIntentClassifier
-    import numpy as np
+    try:
+        from model2vec.train import StaticModelForClassification  # noqa: F401
+    except ImportError:
+        print("  [SKIP] m2v (trained hierarchical) — model2vec[train] unavailable")
+        return None
 
-    sentences, labels = [], []
+    sentences, labels, domains = [], [], []
     for s, lbl in _build_training_set(bundle):
         sentences.append(s)
         labels.append(lbl)
+        domains.append(_domain_of(lbl))
     if len(set(labels)) < 2:
         print("  [SKIP] m2v (trained hierarchical) — need >=2 intents to train")
         return None
 
     t0 = time.perf_counter()
-    X = np.asarray(model.encode(sentences))
-    clf = HierarchicalIntentClassifier.train(
-        X, labels, domain_threshold=domain_threshold,
-    )
+    # top-level domain classifier
+    domain_clf = _train_static_classifier(sentences, domains)
+    # one intent classifier per domain (skip domains with a single intent —
+    # nothing to learn there, the domain prediction alone resolves it).
+    by_domain = defaultdict(list)
+    for s, lbl, dom in zip(sentences, labels, domains):
+        by_domain[dom].append((s, lbl))
+    intent_clfs = {}
+    for dom, pairs in by_domain.items():
+        intent_labels = sorted({lbl for _, lbl in pairs})
+        if len(intent_labels) < 2:
+            intent_clfs[dom] = ("single", intent_labels[0])
+            continue
+        intent_clfs[dom] = ("clf", _train_static_classifier(
+            [s for s, _ in pairs], [lbl for _, lbl in pairs]))
     train_ms = (time.perf_counter() - t0) * 1000
 
+    test_utts = [utt for utt, _ in cases]
+    t0 = time.perf_counter()
+    domain_probs = domain_clf.predict_proba(test_utts)
+    domain_classes = list(domain_clf.classes)
+    # for each predicted domain, batch the queries that route there
+    per_domain_idxs = defaultdict(list)
+    chosen_domain, domain_conf = [], []
+    for i, row in enumerate(domain_probs):
+        idx = int(row.argmax())
+        dconf = float(row[idx])
+        dname = str(domain_classes[idx])
+        if dconf < domain_threshold:
+            chosen_domain.append(None)
+        else:
+            chosen_domain.append(dname)
+            per_domain_idxs[dname].append(i)
+        domain_conf.append(dconf)
+    predicted_label = [None] * len(test_utts)
+    predicted_conf = [0.0] * len(test_utts)
+    for dom, idxs in per_domain_idxs.items():
+        kind, payload = intent_clfs.get(dom, ("missing", None))
+        if kind == "single":
+            for i in idxs:
+                predicted_label[i] = payload
+                predicted_conf[i] = domain_conf[i]
+        elif kind == "clf":
+            iprobs = payload.predict_proba([test_utts[i] for i in idxs])
+            iclasses = list(payload.classes)
+            for k, i in enumerate(idxs):
+                idx = int(iprobs[k].argmax())
+                predicted_label[i] = str(iclasses[idx])
+                predicted_conf[i] = float(iprobs[k][idx])
+    total_ms = (time.perf_counter() - t0) * 1000
+
     results, latencies = [], []
-    for utt, _ in cases:
-        t0 = time.perf_counter()
-        emb = model.encode([utt])[0]
-        label, conf = clf.predict(emb)
-        latencies.append((time.perf_counter() - t0) * 1000)
+    for label, conf in zip(predicted_label, predicted_conf):
+        latencies.append(total_ms / len(test_utts))
         predicted = label if (label is not None and conf >= threshold) else None
         results.append((predicted, conf))
 
