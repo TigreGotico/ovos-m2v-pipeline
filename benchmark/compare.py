@@ -295,8 +295,17 @@ def _build_training_set(bundle):
 
 
 def _domain_of(label):
-    """Domain == skill_id, taken from the ``<skill_id>:<intent>`` label."""
-    return label.split(":", 1)[0] if ":" in label else label
+    """Domain prefix from a ``<domain>.<intent>`` or ``<skill_id>:<intent>`` label.
+
+    The benchmark datasets use different separators: ``intents-for-eval`` ships
+    ``media.play_song``-style labels (``.`` separator) and ``massive`` ships
+    ``alarm:alarm_set``-style (``:`` separator). The benchmark needs to extract
+    the leading domain in both cases.
+    """
+    for sep in (".", ":"):
+        if sep in label:
+            return label.split(sep, 1)[0]
+    return label
 
 
 def run_m2v(bundle, cases, model=None, threshold=0.5, strategy=None):
