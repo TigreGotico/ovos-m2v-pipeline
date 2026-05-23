@@ -32,7 +32,12 @@ import statistics
 import logging
 from collections import defaultdict
 
-from benchmark.dataset import DATASETS, load
+# Ensure this repo's ``benchmark/`` resolves before any sibling repo's editable
+# install — without this, ``from benchmark.dataset`` can shadow into another
+# pipeline plugin's package when several are installed in the same venv.
+sys.path.insert(0, str(__import__("pathlib").Path(__file__).resolve().parent.parent))
+
+from benchmark.dataset import DATASETS, load  # noqa: E402
 
 logging.disable(logging.CRITICAL)
 
@@ -214,14 +219,22 @@ def run_padatious(bundle, cases, threshold=0.5):
 
 def run_nebulento(bundle, cases, strategy_name="DAMERAU_LEVENSHTEIN_SIMILARITY",
                   threshold=0.5):
-    from nebulento import IntentContainer
-    from nebulento.fuzz import MatchStrategy
+    try:
+        from nebulento import IntentContainer
+        from nebulento.fuzz import MatchStrategy
+    except ImportError:
+        print("  [SKIP] nebulento — package unavailable")
+        return None
     strategy = getattr(MatchStrategy, strategy_name)
     c = IntentContainer(fuzzy_strategy=strategy)
-    for entity_name, samples in bundle.entities.items():
-        c.add_entity(entity_name, samples)
-    for name, data in bundle.intents.items():
-        c.add_intent(name, data["train"])
+    try:
+        for entity_name, samples in bundle.entities.items():
+            c.add_entity(entity_name, samples)
+        for name, data in bundle.intents.items():
+            c.add_intent(name, data["train"])
+    except Exception as exc:
+        print(f"  [SKIP] nebulento — registration failed: {exc}")
+        return None
 
     results, latencies = [], []
     for utt, _ in cases:
@@ -506,28 +519,32 @@ def run_m2v_trained_domain(bundle, cases, model=None, threshold=0.0):
     test_utts = [utt for utt, _ in cases]
     t0 = time.perf_counter()
     # Score every utterance with every per-domain head; global argmax wins.
-    # Stack predictions across heads into a (n_utts, n_labels_total) matrix
-    # is overkill — keep per-head dicts and reduce.
+    # Per-classifier softmax outputs are NOT directly comparable — a 2-class
+    # head's max sits near 0.5 even on random inputs, while a 10-class head's
+    # max sits near 0.1. We rank by margin above the random baseline
+    # (max_prob - 1/num_classes), so off-topic uniform predictions across
+    # heads of any size score ~0 and don't fight for the argmax.
     best_label = [None] * len(test_utts)
     best_conf = [0.0] * len(test_utts)
+    best_score = [-1.0] * len(test_utts)
     for dom, (kind, payload) in intent_clfs.items():
         if kind == "single":
-            # Constant head: every query scores 1.0 for this single label, so
-            # it would always win the argmax. Treat single-label domains as a
-            # weak baseline: only claim victory when no other head beats it.
-            for i in range(len(test_utts)):
-                if best_conf[i] < 1.0:
-                    pass  # noop — leave best_conf, only fill below if untouched
+            # A single-label head has random baseline 1.0, so its margin is
+            # always 0 — it only wins where no multi-label head has scored,
+            # which is handled in the fill-in pass below.
             continue
         iprobs = payload.predict_proba(test_utts)
         iclasses = list(payload.classes)
+        baseline = 1.0 / len(iclasses)
         for i, row in enumerate(iprobs):
             idx = int(row.argmax())
             conf = float(row[idx])
-            if conf > best_conf[i]:
+            score = conf - baseline
+            if score > best_score[i]:
+                best_score[i] = score
                 best_conf[i] = conf
                 best_label[i] = str(iclasses[idx])
-    # Fill in single-label domains where nothing else fired (best_conf == 0).
+    # Single-label-domain fill-in: only when nothing multi-class scored.
     for dom, (kind, payload) in intent_clfs.items():
         if kind != "single":
             continue
@@ -688,8 +705,10 @@ def run_dataset(name):
     m, lat, mean_lat, tr = run_padatious(bundle, cases, threshold=0.5)
     rows.append(("padatious  neural  threshold=0.5", m, lat, mean_lat, tr))
 
-    m, lat, mean_lat, tr = run_nebulento(bundle, cases, threshold=0.5)
-    rows.append(("nebulento  damerau-levenshtein", m, lat, mean_lat, tr))
+    res = run_nebulento(bundle, cases, threshold=0.5)
+    if res is not None:
+        m, lat, mean_lat, tr = res
+        rows.append(("nebulento  damerau-levenshtein", m, lat, mean_lat, tr))
 
     # ── subject — this repo's model2vec embedding engine, every variant ──
     # one row per PrototypeStrategy, for both flat and hierarchical
