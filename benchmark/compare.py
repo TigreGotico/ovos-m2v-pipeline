@@ -40,7 +40,10 @@ _CI_MODE = "--ci" in sys.argv
 
 #: model2vec encoder used for the m2v rows. A bare ``StaticModel`` — no
 #: trained classifier head — embeddings only, exactly the prototype mode.
-M2V_MODEL = "minishlab/potion-multilingual-128M"
+#: ``potion-retrieval-32M`` is the English-tuned retrieval/similarity model,
+#: which is the regime intent matching lives in (cosine over prototypes /
+#: linear classifier over the same embedding space).
+M2V_MODEL = "minishlab/potion-base-32M"
 
 
 def normalize_utterance(utt):
@@ -251,6 +254,46 @@ def _load_m2v_model():
         return None
 
 
+_SLOT_RE = __import__("re").compile(r"\{([a-zA-Z_][a-zA-Z0-9_]*)\}")
+
+
+def _fill_slots(template, entities, max_fills=4, rng=None):
+    """Expand a template's ``{slot}`` placeholders with concrete values.
+
+    Trained classifiers learn precise decision boundaries on token embeddings,
+    so a literal ``{song}`` token in training never matches a real song name at
+    eval time. Substituting concrete values from ``entities`` (the dataset's
+    own slot examples) gives the classifier realistic embeddings to fit on.
+    A small per-template cap keeps the training set bounded.
+    """
+    import random
+    rng = rng or random.Random(0)
+    slots = _SLOT_RE.findall(template)
+    if not slots:
+        return [template]
+    # one fill per chosen sample value combination, capped
+    out, seen = [], set()
+    for _ in range(max_fills):
+        s = template
+        for slot in slots:
+            values = entities.get(slot) or [slot]
+            s = s.replace("{" + slot + "}", rng.choice(values), 1)
+        if s not in seen:
+            seen.add(s)
+            out.append(s)
+    return out
+
+
+def _build_training_set(bundle):
+    """Yield ``(sentence, label)`` pairs with slots filled from bundle entities."""
+    import random
+    rng = random.Random(0)
+    for name, data in bundle.intents.items():
+        for template in data["train"]:
+            for s in _fill_slots(template, bundle.entities, max_fills=4, rng=rng):
+                yield s, name
+
+
 def _domain_of(label):
     """Domain == skill_id, taken from the ``<skill_id>:<intent>`` label."""
     return label.split(":", 1)[0] if ":" in label else label
@@ -347,8 +390,15 @@ def _have_sklearn():
         return False
 
 
-def run_m2v_trained_flat(bundle, cases, model=None, threshold=0.5):
-    """Flat trained classifier — one LogisticRegression over every intent."""
+def run_m2v_trained_flat(bundle, cases, model=None, threshold=0.0):
+    """Flat trained classifier — one LogisticRegression over every intent.
+
+    Training sentences have ``{slot}`` placeholders filled from ``bundle.entities``
+    so the classifier learns embeddings of real phrases, not literal braces.
+    ``threshold=0.0`` means top-1 argmax (no rejection) — LR softmax over 50
+    classes rarely tops 0.5 even when correct, so a conf threshold designed for
+    binary or cosine engines would silently reject most right answers.
+    """
     if model is None:
         print("  [SKIP] m2v (trained flat) — model unavailable")
         return None
@@ -359,10 +409,9 @@ def run_m2v_trained_flat(bundle, cases, model=None, threshold=0.5):
     import numpy as np
 
     sentences, labels = [], []
-    for name, data in bundle.intents.items():
-        for utt in data["train"]:
-            sentences.append(utt)
-            labels.append(name)
+    for s, lbl in _build_training_set(bundle):
+        sentences.append(s)
+        labels.append(lbl)
     if len(set(labels)) < 2:
         print("  [SKIP] m2v (trained flat) — need >=2 intents to train")
         return None
@@ -390,9 +439,14 @@ def run_m2v_trained_flat(bundle, cases, model=None, threshold=0.5):
     return m, statistics.median(latencies), statistics.mean(latencies), train_ms
 
 
-def run_m2v_trained_hierarchical(bundle, cases, model=None, threshold=0.5,
+def run_m2v_trained_hierarchical(bundle, cases, model=None, threshold=0.0,
                                  domain_threshold=0.0):
-    """Two-stage trained classifier — domain LR + per-domain intent LRs."""
+    """Two-stage trained classifier — domain LR + per-domain intent LRs.
+
+    Training sentences have ``{slot}`` placeholders filled from
+    ``bundle.entities`` (same reasoning as the flat row). ``threshold=0.0``
+    keeps the top-1 argmax — LR softmax over many classes rarely tops 0.5.
+    """
     if model is None:
         print("  [SKIP] m2v (trained hierarchical) — model unavailable")
         return None
@@ -403,12 +457,9 @@ def run_m2v_trained_hierarchical(bundle, cases, model=None, threshold=0.5,
     import numpy as np
 
     sentences, labels = [], []
-    for name, data in bundle.intents.items():
-        for utt in data["train"]:
-            sentences.append(utt)
-            # HierarchicalIntentClassifier splits on '.' or ':' — labels here
-            # already follow '<domain>:<intent>'.
-            labels.append(name)
+    for s, lbl in _build_training_set(bundle):
+        sentences.append(s)
+        labels.append(lbl)
     if len(set(labels)) < 2:
         print("  [SKIP] m2v (trained hierarchical) — need >=2 intents to train")
         return None
