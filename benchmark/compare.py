@@ -337,6 +337,104 @@ def run_m2v_hierarchical(bundle, cases, model=None, threshold=0.5,
     return m, statistics.median(latencies), statistics.mean(latencies), train_ms
 
 
+# ── m2v trained-classifier runners (scikit-learn) ──────────────────────────
+
+def _have_sklearn():
+    try:
+        import sklearn  # noqa: F401
+        return True
+    except Exception:
+        return False
+
+
+def run_m2v_trained_flat(bundle, cases, model=None, threshold=0.5):
+    """Flat trained classifier — one LogisticRegression over every intent."""
+    if model is None:
+        print("  [SKIP] m2v (trained flat) — model unavailable")
+        return None
+    if not _have_sklearn():
+        print("  [SKIP] m2v (trained flat) — scikit-learn unavailable")
+        return None
+    from sklearn.linear_model import LogisticRegression
+    import numpy as np
+
+    sentences, labels = [], []
+    for name, data in bundle.intents.items():
+        for utt in data["train"]:
+            sentences.append(utt)
+            labels.append(name)
+    if len(set(labels)) < 2:
+        print("  [SKIP] m2v (trained flat) — need >=2 intents to train")
+        return None
+
+    t0 = time.perf_counter()
+    X = np.asarray(model.encode(sentences))
+    clf = LogisticRegression(max_iter=1000, random_state=42)
+    clf.fit(X, labels)
+    train_ms = (time.perf_counter() - t0) * 1000
+
+    results, latencies = [], []
+    for utt, _ in cases:
+        t0 = time.perf_counter()
+        emb = model.encode([utt])[0]
+        probs = clf.predict_proba(emb.reshape(1, -1))[0]
+        idx = int(probs.argmax())
+        conf = float(probs[idx])
+        label = str(clf.classes_[idx])
+        latencies.append((time.perf_counter() - t0) * 1000)
+        predicted = label if conf >= threshold else None
+        results.append((predicted, conf))
+
+    m = compute_metrics(results, cases)
+    print_report("m2v  trained  flat", m, latencies, bundle.intents, train_ms)
+    return m, statistics.median(latencies), statistics.mean(latencies), train_ms
+
+
+def run_m2v_trained_hierarchical(bundle, cases, model=None, threshold=0.5,
+                                 domain_threshold=0.0):
+    """Two-stage trained classifier — domain LR + per-domain intent LRs."""
+    if model is None:
+        print("  [SKIP] m2v (trained hierarchical) — model unavailable")
+        return None
+    if not _have_sklearn():
+        print("  [SKIP] m2v (trained hierarchical) — scikit-learn unavailable")
+        return None
+    from ovos_m2v_pipeline.hierarchical_classifier import HierarchicalIntentClassifier
+    import numpy as np
+
+    sentences, labels = [], []
+    for name, data in bundle.intents.items():
+        for utt in data["train"]:
+            sentences.append(utt)
+            # HierarchicalIntentClassifier splits on '.' or ':' — labels here
+            # already follow '<domain>:<intent>'.
+            labels.append(name)
+    if len(set(labels)) < 2:
+        print("  [SKIP] m2v (trained hierarchical) — need >=2 intents to train")
+        return None
+
+    t0 = time.perf_counter()
+    X = np.asarray(model.encode(sentences))
+    clf = HierarchicalIntentClassifier.train(
+        X, labels, domain_threshold=domain_threshold,
+    )
+    train_ms = (time.perf_counter() - t0) * 1000
+
+    results, latencies = [], []
+    for utt, _ in cases:
+        t0 = time.perf_counter()
+        emb = model.encode([utt])[0]
+        label, conf = clf.predict(emb)
+        latencies.append((time.perf_counter() - t0) * 1000)
+        predicted = label if (label is not None and conf >= threshold) else None
+        results.append((predicted, conf))
+
+    m = compute_metrics(results, cases)
+    print_report("m2v  trained  hierarchical", m, latencies,
+                 bundle.intents, train_ms)
+    return m, statistics.median(latencies), statistics.mean(latencies), train_ms
+
+
 # ── summary table ──────────────────────────────────────────────────────────
 
 def summary(title, rows):
@@ -405,6 +503,18 @@ def run_dataset(name):
             m, lat, mean_lat, tr = res
             rows.append((f"m2v  hierarchical  {strat.value}",
                          m, lat, mean_lat, tr))
+
+    # ── trained classifier rows (flat + hierarchical) ──
+    res = run_m2v_trained_flat(bundle, cases, model=model, threshold=0.5)
+    if res is not None:
+        m, lat, mean_lat, tr = res
+        rows.append(("m2v  trained  flat", m, lat, mean_lat, tr))
+
+    res = run_m2v_trained_hierarchical(bundle, cases, model=model,
+                                       threshold=0.5, domain_threshold=0.0)
+    if res is not None:
+        m, lat, mean_lat, tr = res
+        rows.append(("m2v  trained  hierarchical", m, lat, mean_lat, tr))
 
     summary(f"{name}  —  {bundle.repo}", rows)
 

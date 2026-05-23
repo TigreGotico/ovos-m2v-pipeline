@@ -45,5 +45,6 @@ The pipeline is designed as a **fallback or confidence-based matcher** — it is
 | [Pipeline Internals](pipeline.md) | Architecture and runtime behaviour |
 | [Prototype Strategies](strategies.md) | Scoring strategy reference for prototype mode |
 | [Hierarchical Prototype Store](hierarchical_store.md) | Two-stage domain-routed prototype matching |
+| [Hierarchical Trained Classifier](hierarchical_classifier.md) | Two-stage domain-routed supervised matching |
 | [Models](models.md) | Available pre-trained models and benchmark results |
 | [Training](training.md) | How to gather data and train/retrain models |

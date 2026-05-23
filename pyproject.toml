@@ -45,6 +45,8 @@ benchmark = [
     "fann2==1.0.7",
     "nebulento",
     "datasets",
+    "scikit-learn",
+    "joblib",
 ]
 
 [project.urls]
@@ -56,6 +58,7 @@ Funding = "https://nlnet.nl/project/OpenVoiceOS"
 ovos-m2v-pipeline = "ovos_m2v_pipeline:Model2VecIntentPipeline"
 ovos-m2v-prototype-pipeline = "ovos_m2v_pipeline:Model2VecPrototypePipeline"
 ovos-m2v-hierarchical-prototype-pipeline = "ovos_m2v_pipeline:Model2VecHierarchicalPrototypePipeline"
+ovos-m2v-hierarchical-intent-pipeline = "ovos_m2v_pipeline:Model2VecHierarchicalIntentPipeline"
 
 [tool.setuptools]
 packages = ["ovos_m2v_pipeline"]
