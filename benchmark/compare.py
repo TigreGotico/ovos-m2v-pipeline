@@ -43,6 +43,52 @@ logging.disable(logging.CRITICAL)
 
 _CI_MODE = "--ci" in sys.argv
 
+
+def fbeta(precision, recall, beta=0.5):
+    """F_beta score. beta<1 weights precision over recall — appropriate for voice
+    assistants where a false positive (wrong skill fires) is unrecoverable while
+    a false negative falls through to fallback handlers (LLM, etc.).
+    """
+    b2 = beta * beta
+    denom = b2 * precision + recall
+    return ((1 + b2) * precision * recall / denom) if denom else 0.0
+
+
+def recall_at_precision(results_no_thresh, cases, p_floor=0.99, step=0.01):
+    """Sweep the threshold and return the max recall achievable while keeping
+    precision >= ``p_floor`` (and the threshold that gets there).
+    """
+    best_r, best_t = 0.0, None
+    t = 0.0
+    while t <= 1.0 + 1e-9:
+        thresholded = [
+            (lbl if c >= t else None, c) for (lbl, c) in results_no_thresh
+        ]
+        m = compute_metrics(thresholded, cases)
+        if m["precision"] >= p_floor and m["recall"] > best_r:
+            best_r, best_t = m["recall"], round(t, 4)
+        t += step
+    return best_r, best_t
+
+
+def calibrate_threshold(results_no_thresh, cases, step=0.01, metric="f0.5"):
+    """Sweep threshold and return (best_threshold, best_metric_value, best_metrics)."""
+    def score(m):
+        return m["f1"] if metric == "f1" else fbeta(m["precision"], m["recall"], 0.5)
+
+    best = (0.0, -1.0, None)
+    t = 0.0
+    while t <= 1.0 + 1e-9:
+        thresholded = [
+            (lbl if c >= t else None, c) for (lbl, c) in results_no_thresh
+        ]
+        m = compute_metrics(thresholded, cases)
+        s = score(m)
+        if s > best[1]:
+            best = (round(t, 4), s, m)
+        t += step
+    return best
+
 #: model2vec encoder used for the m2v rows. A bare ``StaticModel`` — no
 #: trained classifier head — embeddings only, exactly the prototype mode.
 #: ``potion-retrieval-32M`` is the English-tuned retrieval/similarity model,
@@ -188,7 +234,7 @@ def run_padaos(bundle, cases):
 
     m = compute_metrics(results, cases)
     print_report("padaos  (regex, no fuzz)", m, latencies, bundle.intents, train_ms)
-    return m, statistics.median(latencies), statistics.mean(latencies), train_ms
+    return m, statistics.median(latencies), statistics.mean(latencies), train_ms, None
 
 
 def run_padatious(bundle, cases, threshold=0.5):
@@ -203,18 +249,18 @@ def run_padatious(bundle, cases, threshold=0.5):
         c.train(single_thread=True, debug=False)
         train_ms = (time.perf_counter() - t0) * 1000
 
-        results, latencies = [], []
+        raw, latencies = [], []
         for utt, _ in cases:
             t0 = time.perf_counter()
             r  = c.calc_intent(normalize_utterance(utt))
             latencies.append((time.perf_counter() - t0) * 1000)
-            predicted = r.name if (r and r.conf >= threshold) else None
-            results.append((predicted, r.conf if r else 0.0))
+            raw.append((r.name if r else None, r.conf if r else 0.0))
 
+    results = [(lbl if c >= threshold else None, c) for (lbl, c) in raw]
     m = compute_metrics(results, cases)
     print_report(f"padatious  (neural, threshold={threshold})", m, latencies,
                  bundle.intents, train_ms)
-    return m, statistics.median(latencies), statistics.mean(latencies), train_ms
+    return m, statistics.median(latencies), statistics.mean(latencies), train_ms, raw
 
 
 def run_nebulento(bundle, cases, strategy_name="DAMERAU_LEVENSHTEIN_SIMILARITY",
@@ -236,18 +282,18 @@ def run_nebulento(bundle, cases, strategy_name="DAMERAU_LEVENSHTEIN_SIMILARITY",
         print(f"  [SKIP] nebulento — registration failed: {exc}")
         return None
 
-    results, latencies = [], []
+    raw, latencies = [], []
     for utt, _ in cases:
         t0 = time.perf_counter()
         r  = c.calc_intent(utt)
         latencies.append((time.perf_counter() - t0) * 1000)
-        predicted = r.get("name") if (r and r.get("conf", 0) >= threshold) else None
-        results.append((predicted, r.get("conf", 0.0) if r else 0.0))
+        raw.append((r.get("name") if r else None, r.get("conf", 0.0) if r else 0.0))
 
+    results = [(lbl if c >= threshold else None, c) for (lbl, c) in raw]
     m = compute_metrics(results, cases)
     label = f"nebulento  {strategy_name.lower().replace('_', '-')}"
     print_report(label, m, latencies, bundle.intents)
-    return m, statistics.median(latencies), statistics.mean(latencies), None
+    return m, statistics.median(latencies), statistics.mean(latencies), None, raw
 
 
 # ── m2v engine runners ─────────────────────────────────────────────────────
@@ -340,7 +386,7 @@ def run_m2v(bundle, cases, model=None, threshold=0.5, strategy=None):
     store = PrototypeIntentStore.build(model, sentences, labels, strategy=strategy)
     train_ms = (time.perf_counter() - t0) * 1000
 
-    results, latencies = [], []
+    raw, latencies = [], []
     for utt, _ in cases:
         t0 = time.perf_counter()
         emb = model.encode([utt])[0]
@@ -351,13 +397,13 @@ def run_m2v(bundle, cases, model=None, threshold=0.5, strategy=None):
             conf = scored[label]
         else:
             label, conf = None, 0.0
-        predicted = label if conf >= threshold else None
-        results.append((predicted, conf))
+        raw.append((label, conf))
 
+    results = [(lbl if c >= threshold else None, c) for (lbl, c) in raw]
     m = compute_metrics(results, cases)
     print_report(f"m2v  flat-prototype  {strategy.value}", m, latencies,
                  bundle.intents, train_ms)
-    return m, statistics.median(latencies), statistics.mean(latencies), train_ms
+    return m, statistics.median(latencies), statistics.mean(latencies), train_ms, raw
 
 
 def run_m2v_hierarchical(bundle, cases, model=None, threshold=0.5,
@@ -381,7 +427,7 @@ def run_m2v_hierarchical(bundle, cases, model=None, threshold=0.5,
         store.add(model, _domain_of(name), name, data["train"])
     train_ms = (time.perf_counter() - t0) * 1000
 
-    results, latencies = [], []
+    raw, latencies = [], []
     for utt, _ in cases:
         t0 = time.perf_counter()
         emb = model.encode([utt])[0]
@@ -392,14 +438,14 @@ def run_m2v_hierarchical(bundle, cases, model=None, threshold=0.5,
             conf = scored[label]
         else:
             label, conf = None, 0.0
-        predicted = label if conf >= threshold else None
-        results.append((predicted, conf))
+        raw.append((label, conf))
 
+    results = [(lbl if c >= threshold else None, c) for (lbl, c) in raw]
     m = compute_metrics(results, cases)
     print_report(
         f"m2v  hierarchical-prototype  {intent_strategy.value}",
         m, latencies, bundle.intents, train_ms)
-    return m, statistics.median(latencies), statistics.mean(latencies), train_ms
+    return m, statistics.median(latencies), statistics.mean(latencies), train_ms, raw
 
 
 # ── m2v trained-classifier runners (scikit-learn) ──────────────────────────
@@ -461,18 +507,18 @@ def run_m2v_trained_flat(bundle, cases, model=None, threshold=0.0):
     total_ms = (time.perf_counter() - t0) * 1000
     classes = list(clf.classes)
 
-    results, latencies = [], []
+    raw, latencies = [], []
     for row in probs:
         idx = int(row.argmax())
         conf = float(row[idx])
         label = str(classes[idx])
         latencies.append(total_ms / len(test_utts))
-        predicted = label if conf >= threshold else None
-        results.append((predicted, conf))
+        raw.append((label, conf))
 
+    results = [(lbl if c >= threshold else None, c) for (lbl, c) in raw]
     m = compute_metrics(results, cases)
     print_report("m2v  trained  flat", m, latencies, bundle.intents, train_ms)
-    return m, statistics.median(latencies), statistics.mean(latencies), train_ms
+    return m, statistics.median(latencies), statistics.mean(latencies), train_ms, raw
 
 
 _OTHER_LABEL = "__other__"
@@ -564,16 +610,17 @@ def run_m2v_trained_domain(bundle, cases, model=None, threshold=0.0):
                 best_conf[i] = 1.0
     total_ms = (time.perf_counter() - t0) * 1000
 
-    results, latencies = [], []
+    raw, latencies = [], []
     for label, conf in zip(best_label, best_conf):
         latencies.append(total_ms / len(test_utts))
-        predicted = label if (label is not None and conf >= threshold) else None
-        results.append((predicted, conf))
+        raw.append((label, conf))
 
+    results = [(lbl if (lbl is not None and c >= threshold) else None, c)
+               for (lbl, c) in raw]
     m = compute_metrics(results, cases)
     print_report("m2v  trained  domain", m, latencies,
                  bundle.intents, train_ms)
-    return m, statistics.median(latencies), statistics.mean(latencies), train_ms
+    return m, statistics.median(latencies), statistics.mean(latencies), train_ms, raw
 
 
 def run_m2v_trained_hierarchical(bundle, cases, model=None, threshold=0.0,
@@ -656,16 +703,17 @@ def run_m2v_trained_hierarchical(bundle, cases, model=None, threshold=0.0,
                 predicted_conf[i] = float(iprobs[k][idx])
     total_ms = (time.perf_counter() - t0) * 1000
 
-    results, latencies = [], []
+    raw, latencies = [], []
     for label, conf in zip(predicted_label, predicted_conf):
         latencies.append(total_ms / len(test_utts))
-        predicted = label if (label is not None and conf >= threshold) else None
-        results.append((predicted, conf))
+        raw.append((label, conf))
 
+    results = [(lbl if (lbl is not None and c >= threshold) else None, c)
+               for (lbl, c) in raw]
     m = compute_metrics(results, cases)
     print_report("m2v  trained  hierarchical", m, latencies,
                  bundle.intents, train_ms)
-    return m, statistics.median(latencies), statistics.mean(latencies), train_ms
+    return m, statistics.median(latencies), statistics.mean(latencies), train_ms, raw
 
 
 # ── summary table ──────────────────────────────────────────────────────────
@@ -707,56 +755,103 @@ def run_dataset(name):
     print("Splits  : " + ", ".join(f"{k}={len(v)}" for k, v in bundle.splits.items()))
 
     rows = []
+    cal_rows = []
 
     # ── fixed baselines (shared across the OVOS intent-engine family) ──
-    m, lat, mean_lat, tr = run_padaos(bundle, cases)
+    m, lat, mean_lat, tr, raw = run_padaos(bundle, cases)
     rows.append(("padaos  (regex)", m, lat, mean_lat, tr))
+    # padaos has no conf knob — skip calibration
 
-    m, lat, mean_lat, tr = run_padatious(bundle, cases, threshold=0.5)
+    m, lat, mean_lat, tr, raw = run_padatious(bundle, cases, threshold=0.5)
     rows.append(("padatious  neural  threshold=0.5", m, lat, mean_lat, tr))
+    cal_rows.append(_calibrate_row("padatious", raw, cases, 0.5, m))
 
     res = run_nebulento(bundle, cases, threshold=0.5)
     if res is not None:
-        m, lat, mean_lat, tr = res
+        m, lat, mean_lat, tr, raw = res
         rows.append(("nebulento  damerau-levenshtein", m, lat, mean_lat, tr))
+        cal_rows.append(_calibrate_row("nebulento", raw, cases, 0.5, m))
 
     # ── subject — this repo's model2vec embedding engine, every variant ──
-    # one row per PrototypeStrategy, for both flat and hierarchical
     model = _load_m2v_model()
     from ovos_m2v_pipeline.strategies import PrototypeStrategy
 
     for strat in PrototypeStrategy:
         res = run_m2v(bundle, cases, model=model, threshold=0.5, strategy=strat)
         if res is not None:
-            m, lat, mean_lat, tr = res
+            m, lat, mean_lat, tr, raw = res
             rows.append((f"m2v  flat  {strat.value}", m, lat, mean_lat, tr))
+            cal_rows.append(_calibrate_row(f"m2v flat {strat.value}",
+                                            raw, cases, 0.5, m))
 
     for strat in PrototypeStrategy:
         res = run_m2v_hierarchical(bundle, cases, model=model, threshold=0.5,
                                    domain_threshold=0.0, intent_strategy=strat)
         if res is not None:
-            m, lat, mean_lat, tr = res
+            m, lat, mean_lat, tr, raw = res
             rows.append((f"m2v  hierarchical  {strat.value}",
                          m, lat, mean_lat, tr))
+            cal_rows.append(_calibrate_row(f"m2v hier {strat.value}",
+                                            raw, cases, 0.5, m))
 
-    # ── trained classifier rows (flat + hierarchical) ──
-    res = run_m2v_trained_flat(bundle, cases, model=model, threshold=0.5)
+    # ── trained classifier rows (flat + domain + hierarchical) ──
+    res = run_m2v_trained_flat(bundle, cases, model=model, threshold=0.0)
     if res is not None:
-        m, lat, mean_lat, tr = res
+        m, lat, mean_lat, tr, raw = res
         rows.append(("m2v  trained  flat", m, lat, mean_lat, tr))
+        cal_rows.append(_calibrate_row("m2v trained flat", raw, cases, 0.0, m))
 
-    res = run_m2v_trained_domain(bundle, cases, model=model, threshold=0.5)
+    res = run_m2v_trained_domain(bundle, cases, model=model, threshold=0.0)
     if res is not None:
-        m, lat, mean_lat, tr = res
+        m, lat, mean_lat, tr, raw = res
         rows.append(("m2v  trained  domain", m, lat, mean_lat, tr))
+        cal_rows.append(_calibrate_row("m2v trained domain", raw, cases, 0.0, m))
 
     res = run_m2v_trained_hierarchical(bundle, cases, model=model,
-                                       threshold=0.5, domain_threshold=0.0)
+                                       threshold=0.0, domain_threshold=0.0)
     if res is not None:
-        m, lat, mean_lat, tr = res
+        m, lat, mean_lat, tr, raw = res
         rows.append(("m2v  trained  hierarchical", m, lat, mean_lat, tr))
+        cal_rows.append(_calibrate_row("m2v trained hier", raw, cases, 0.0, m))
 
     summary(f"{name}  —  {bundle.repo}", rows)
+    _print_calibration_table(cal_rows)
+
+
+def _calibrate_row(label, raw, cases, default_thr, default_metrics):
+    """Compute the calibration row for one engine."""
+    df1 = default_metrics["f1"]
+    dfp = default_metrics["fp"]
+    df05 = fbeta(default_metrics["precision"], default_metrics["recall"], 0.5)
+    opt_thr, _, opt_metrics = calibrate_threshold(raw, cases, step=0.01,
+                                                  metric="f0.5")
+    of1 = opt_metrics["f1"]
+    ofp = opt_metrics["fp"]
+    of05 = fbeta(opt_metrics["precision"], opt_metrics["recall"], 0.5)
+    rec_at_p, rec_thr = recall_at_precision(raw, cases, p_floor=0.99, step=0.01)
+    return (label, default_thr, df1, df05, dfp,
+            opt_thr, of1, of05, ofp, rec_at_p, rec_thr)
+
+
+def _print_calibration_table(rows):
+    print(f"\n{'─'*112}")
+    print("  Per-engine threshold calibration  (sweep 0..1 step 0.01, max F_0.5)")
+    print(f"  {'Engine':<28} {'def_thr':>7} {'def_F1':>7} {'defF.5':>7} {'def_FP':>6}"
+          f"  {'opt_thr':>7} {'opt_F1':>7} {'optF.5':>7} {'opt_FP':>6}"
+          f"  {'R@P99':>6} {'thr':>5}")
+    print(f"{'─'*112}")
+    for r in rows:
+        (label, dthr, df1, df05, dfp,
+         othr, of1, of05, ofp, rec_at_p, rec_thr) = r
+        rec_t = f"{rec_thr:.2f}" if rec_thr is not None else "--"
+        print(f"  {label:<28} {dthr:>7.2f} {df1:>7.3f} {df05:>7.3f} {dfp:>6d}"
+              f"  {othr:>7.2f} {of1:>7.3f} {of05:>7.3f} {ofp:>6d}"
+              f"  {rec_at_p:>6.1%} {rec_t:>5}")
+    print(f"{'─'*112}")
+    print("  F_0.5 (β=0.5) weights precision 2x recall — the right summary metric")
+    print("  for OVOS, where a wrong intent is unrecoverable but a missed intent")
+    print("  falls through to fallback handlers. R@P99 = max recall achievable")
+    print("  with the threshold tuned to keep precision >= 99%.")
 
 
 if __name__ == "__main__":
