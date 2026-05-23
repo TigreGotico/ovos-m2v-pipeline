@@ -475,14 +475,16 @@ def run_m2v_trained_flat(bundle, cases, model=None, threshold=0.0):
     return m, statistics.median(latencies), statistics.mean(latencies), train_ms
 
 
-def run_m2v_trained_domain(bundle, cases, model=None, threshold=0.0):
-    """Domain (parallel-argmax) trained classifier — one classifier per domain,
-    each fine-tuned end-to-end with ``StaticModelForClassification``. No
-    top-level router: every head scores every query and a global argmax over
-    their softmax outputs picks the winner.
+_OTHER_LABEL = "__other__"
 
-    Same recipe as ``run_m2v_trained_flat`` (fills slot placeholders, top-1
-    argmax), but trains one intent classifier per domain on its own subset.
+
+def run_m2v_trained_domain(bundle, cases, model=None, threshold=0.0):
+    """Domain (parallel-argmax) trained classifier — one classifier per domain
+    trained with open-set rejection (a ``__other__`` class fed negative samples
+    from every OTHER domain). At inference each head's softmax mass over its
+    real intents drops naturally when the query is off-domain (because
+    ``__other__`` absorbs it), so the max-real-intent prob becomes a directly
+    comparable cross-head score — no calibration needed.
     """
     if not _have_sklearn():
         print("  [SKIP] m2v (trained domain) — scikit-learn unavailable")
@@ -492,6 +494,7 @@ def run_m2v_trained_domain(bundle, cases, model=None, threshold=0.0):
     except ImportError:
         print("  [SKIP] m2v (trained domain) — model2vec[train] unavailable")
         return None
+    import random
 
     sentences, labels, domains = [], [], []
     for s, lbl in _build_training_set(bundle):
@@ -502,6 +505,7 @@ def run_m2v_trained_domain(bundle, cases, model=None, threshold=0.0):
         print("  [SKIP] m2v (trained domain) — need >=2 intents to train")
         return None
 
+    rng = random.Random(0)
     t0 = time.perf_counter()
     by_domain = defaultdict(list)
     for s, lbl, dom in zip(sentences, labels, domains):
@@ -512,38 +516,44 @@ def run_m2v_trained_domain(bundle, cases, model=None, threshold=0.0):
         if len(intent_labels) < 2:
             intent_clfs[dom] = ("single", intent_labels[0])
             continue
+        pos_sents = [s for s, _ in pairs]
+        pos_labels = [lbl for _, lbl in pairs]
+        # negatives: a balanced sample from every other domain, labelled __other__
+        neg_pool = [s for s, _, d in zip(sentences, labels, domains) if d != dom]
+        rng.shuffle(neg_pool)
+        neg_sents = neg_pool[:len(pos_sents)]
+        neg_labels = [_OTHER_LABEL] * len(neg_sents)
         intent_clfs[dom] = ("clf", _train_static_classifier(
-            [s for s, _ in pairs], [lbl for _, lbl in pairs]))
+            pos_sents + neg_sents, pos_labels + neg_labels))
     train_ms = (time.perf_counter() - t0) * 1000
 
     test_utts = [utt for utt, _ in cases]
     t0 = time.perf_counter()
-    # Score every utterance with every per-domain head; global argmax wins.
-    # Per-classifier softmax outputs are NOT directly comparable — a 2-class
-    # head's max sits near 0.5 even on random inputs, while a 10-class head's
-    # max sits near 0.1. We rank by margin above the random baseline
-    # (max_prob - 1/num_classes), so off-topic uniform predictions across
-    # heads of any size score ~0 and don't fight for the argmax.
+    # Open-set scoring: each head's per-real-intent softmax mass is the
+    # comparable cross-head score. When a query is off-domain, the __other__
+    # class absorbs the probability mass and the real-intent maxes are small;
+    # when it is in-domain, __other__ is suppressed and the right intent wins.
     best_label = [None] * len(test_utts)
     best_conf = [0.0] * len(test_utts)
     best_score = [-1.0] * len(test_utts)
     for dom, (kind, payload) in intent_clfs.items():
         if kind == "single":
-            # A single-label head has random baseline 1.0, so its margin is
-            # always 0 — it only wins where no multi-label head has scored,
-            # which is handled in the fill-in pass below.
             continue
         iprobs = payload.predict_proba(test_utts)
         iclasses = list(payload.classes)
-        baseline = 1.0 / len(iclasses)
+        # mask out the __other__ column
+        real_cols = [i for i, c in enumerate(iclasses) if str(c) != _OTHER_LABEL]
+        if not real_cols:
+            continue
         for i, row in enumerate(iprobs):
-            idx = int(row.argmax())
-            conf = float(row[idx])
-            score = conf - baseline
+            real_idx = max(real_cols, key=lambda c: row[c])
+            conf = float(row[real_idx])
+            score = conf
+            label_str = str(iclasses[real_idx])
             if score > best_score[i]:
                 best_score[i] = score
                 best_conf[i] = conf
-                best_label[i] = str(iclasses[idx])
+                best_label[i] = label_str
     # Single-label-domain fill-in: only when nothing multi-class scored.
     for dom, (kind, payload) in intent_clfs.items():
         if kind != "single":
