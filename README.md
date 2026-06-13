@@ -93,7 +93,7 @@ This project is licensed under the [Apache 2.0 License](LICENSE).
 
 The model2vec intent pipeline was first prototyped by
 [TigreGótico](https://tigregotico.pt) under the [ILENIA](https://proyectoilenia.es)
-project and substantially extended for [OpenVoiceOS](https://openvoiceos.org) —
+project for [OpenVoiceOS](https://openvoiceos.org) and substantially extended  —
 an embeddings-only mode and new models — through the NGI0 Commons Fund.
 
 <img src="./ilenia.png" width="128"/>
