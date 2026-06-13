@@ -89,12 +89,21 @@ This project is licensed under the [Apache 2.0 License](LICENSE).
 
 ---
 
-## 🙏 Credits
+## Credits
 
-Originally an experimental research project by [**TigreGoticoLda**](https://tigregotico.pt), polished
-and donated to OpenVoiceOS as part of the NLnet
-[NGI0 Commons Fund](https://nlnet.nl/project/OpenVoiceOS) under grant
-agreement No [101135429](https://cordis.europa.eu/project/id/101135429).
+The model2vec intent pipeline was first prototyped by
+[TigreGótico](https://tigregotico.pt) under the [ILENIA](https://proyectoilenia.es)
+project and substantially extended for [OpenVoiceOS](https://openvoiceos.org) —
+an embeddings-only mode and new models — through the NGI0 Commons Fund.
 
-![NGI0 / NLnet](./ngi.png)
+<img src="./ilenia.png" width="128"/>
 
+> This project was funded by the Ministerio para la Transformación Digital y de la Función Pública and Plan de Recuperación, Transformación y Resiliencia - Funded by EU – NextGenerationEU within the framework of the project [ILENIA](https://proyectoilenia.es) with reference 2022/TL22/00215337
+
+[![NGI0 Commons Fund](./ngi.png)](https://nlnet.nl/project/OpenVoiceOS)
+
+This project was funded through the [NGI0 Commons Fund](https://nlnet.nl/commonsfund),
+a fund established by [NLnet](https://nlnet.nl) with financial support from the
+European Commission's [Next Generation Internet](https://ngi.eu) programme, under
+the aegis of [DG Communications Networks, Content and Technology](https://commission.europa.eu/about-european-commission/departments-and-executive-agencies/communications-networks-content-and-technology_en)
+under grant agreement No [101135429](https://cordis.europa.eu/project/id/101135429).
