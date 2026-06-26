@@ -24,12 +24,6 @@ from ovos_m2v_pipeline.strategies import (
 #: Regex matching ``{slot}`` placeholders in OVOS-INTENT-1 template samples.
 _SLOT_RE = re.compile(r"\{([a-zA-Z_][a-zA-Z0-9_]*)\}")
 
-#: Max number of ``{slot}`` fill combinations generated per template sample
-#: when expanding registered entity values (OVOS-INTENT-4 §7) before
-#: embedding. Bounds the per-intent prototype count for templates with many
-#: slots / large entity vocabularies.
-_ENTITY_EXPANSION_CAP: int = 8
-
 # Labels that bypass the registered-intent check and are always matched
 _SPECIAL_LABELS = {"ocp:play", "common_query:common_query", "stop:stop"}
 
@@ -593,9 +587,9 @@ class Model2VecIntentPipeline(ConfidenceMatcherPipeline):
 
     def _expand_entities(self, samples: List[str]) -> List[str]:
         """Fill ``{slot}`` placeholders in template *samples* with registered
-        entity values (OVOS-INTENT-4 §7), capped per sample. Samples without
-        placeholders, or whose entity is unregistered, are passed through with
-        the placeholder left literal (entities are an optional hint, §7).
+        entity values (OVOS-INTENT-4 §7). Samples without placeholders, or whose
+        entity is unregistered, are passed through with the placeholder left
+        literal (entities are an optional hint, §7).
         """
         if not self.entities:
             return list(samples)
@@ -609,9 +603,7 @@ class Model2VecIntentPipeline(ConfidenceMatcherPipeline):
             for slot in slots:
                 vals = self.entities.get(slot.lower())
                 slot_values.append(vals if vals else ["{" + slot + "}"])
-            for combo in itertools.islice(
-                itertools.product(*slot_values), _ENTITY_EXPANSION_CAP
-            ):
+            for combo in itertools.product(*slot_values):
                 filled = tmpl
                 for slot, val in zip(slots, combo):
                     filled = filled.replace("{" + slot + "}", val, 1)
