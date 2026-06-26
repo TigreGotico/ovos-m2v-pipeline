@@ -23,7 +23,7 @@ dependencies = [
     "ovos-bus-client",
     "ovos-config",
     "ovos-utils>=0.3.4,<1.0.0",
-    "ovos-spec-tools>=0.10.0a1",
+    "ovos-spec-tools>=0.11.0a1",
     "model2vec[inference]",
 ]
 
