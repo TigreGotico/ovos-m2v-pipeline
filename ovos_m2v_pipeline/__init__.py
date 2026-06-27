@@ -1,3 +1,5 @@
+import itertools
+import re
 import time
 import numpy as np
 from typing import List, Optional, Union, Dict, Iterable, Tuple
@@ -8,6 +10,7 @@ from ovos_bus_client.message import Message
 from ovos_bus_client.session import SessionManager
 from ovos_config.config import Configuration
 from ovos_plugin_manager.templates.pipeline import IntentHandlerMatch, ConfidenceMatcherPipeline
+from ovos_spec_tools import SpecMessage
 from ovos_utils.bracket_expansion import expand_template
 from ovos_utils.fakebus import FakeBus
 from ovos_utils.log import LOG
@@ -17,6 +20,9 @@ from ovos_m2v_pipeline.strategies import (
     select_anchors,
     score_labels,
 )
+
+#: Regex matching ``{slot}`` placeholders in OVOS-INTENT-1 template samples.
+_SLOT_RE = re.compile(r"\{([a-zA-Z_][a-zA-Z0-9_]*)\}")
 
 # Labels that bypass the registered-intent check and are always matched
 _SPECIAL_LABELS = {"ocp:play", "common_query:common_query", "stop:stop"}
@@ -303,6 +309,10 @@ class Model2VecIntentPipeline(ConfidenceMatcherPipeline):
         self.intents: set = set()
         self.ignore_labels: List[str] = self.config.get("ignore_intents") or []
         self._syncing = False
+        #: Registered entity value-sets (OVOS-INTENT-4 §7), keyed by entity
+        #: name (lowercase). Used to fill ``{slot}`` placeholders in template
+        #: samples before embedding. Disabled (left empty) in classifier mode.
+        self.entities: Dict[str, List[str]] = {}
 
         mode = self.config.get("mode", "classifier")
 
@@ -324,10 +334,16 @@ class Model2VecIntentPipeline(ConfidenceMatcherPipeline):
             )
 
             self.bus.on("mycroft.ready", self._handle_ready_prototype)
+            # Legacy registration topics (kept alongside OVOS-INTENT-4).
             self.bus.on("padatious:register_intent", self._handle_register_padatious)
             self.bus.on("register_intent", self._handle_register_adapt)
             self.bus.on("detach_intent", self._handle_detach_intent)
             self.bus.on("detach_skill", self._handle_detach_skill)
+            # OVOS-INTENT-4 registration topics. m2v matches on example
+            # utterances, so it is a TEMPLATE-style engine: it consumes
+            # `ovos.intent.register.template` (§6) and NOT
+            # `ovos.intent.register.keyword` (§11).
+            self._wire_intent4_handlers()
 
             LOG.info(
                 f"Loaded Model2VecIntents pipeline (prototype mode) "
@@ -344,6 +360,10 @@ class Model2VecIntentPipeline(ConfidenceMatcherPipeline):
             self.bus.on("register_intent", self.handle_sync_intents)
             self.bus.on("detach_intent", self.handle_sync_intents)
             self.bus.on("detach_skill", self.handle_sync_intents)
+            # OVOS-INTENT-4 registration topics. In classifier mode the model
+            # is frozen, so registrations only (de)gate which trained classes
+            # are eligible — exactly like the legacy manifest sync above.
+            self._wire_intent4_handlers()
 
             LOG.info(f"Loaded Model2VecIntents pipeline with model: '{model_path}'")
 
@@ -520,6 +540,193 @@ class Model2VecIntentPipeline(ConfidenceMatcherPipeline):
             self.prototype_store.remove_skill(skill_id)
             self.intents = {i for i in self.intents if not i.startswith(skill_id + ":")}
             LOG.debug(f"Prototype store: removed prototypes for skill '{skill_id}'")
+
+    # ------------------------------------------------------------------
+    # OVOS-INTENT-4 registration (template method) — consumed in addition
+    # to the legacy topics. m2v is a template-style engine (it matches on
+    # example utterances), so it subscribes to `ovos.intent.register.template`
+    # (§6) and `ovos.entity.register` (§7), plus the shared deregister /
+    # enable / disable topics (§8). It deliberately does NOT consume
+    # `ovos.intent.register.keyword` (§11 — keyword engines only).
+    # ------------------------------------------------------------------
+
+    def _wire_intent4_handlers(self) -> None:
+        """Subscribe to the OVOS-INTENT-4 registration topics (§4)."""
+        self.bus.on(SpecMessage.INTENT_REGISTER_TEMPLATE.value,
+                    self._handle_intent4_register_template)
+        self.bus.on(SpecMessage.ENTITY_REGISTER.value,
+                    self._handle_intent4_register_entity)
+        self.bus.on(SpecMessage.INTENT_DEREGISTER.value,
+                    self._handle_intent4_deregister_intent)
+        self.bus.on(SpecMessage.ENTITY_DEREGISTER.value,
+                    self._handle_intent4_deregister_entity)
+        self.bus.on(SpecMessage.SKILL_DEREGISTER.value,
+                    self._handle_intent4_deregister_skill)
+        self.bus.on(SpecMessage.INTENT_ENABLE.value,
+                    self._handle_intent4_enable)
+        self.bus.on(SpecMessage.INTENT_DISABLE.value,
+                    self._handle_intent4_disable)
+
+    @staticmethod
+    def _intent4_label(message: Message) -> str:
+        """Build the internal ``<skill_id>:<intent_name>`` label from §3.2 fields."""
+        skill_id = message.data.get("skill_id") or message.context.get("skill_id", "")
+        intent_name = message.data.get("intent_name", "")
+        if not skill_id or not intent_name:
+            return ""
+        return f"{skill_id}:{intent_name}"
+
+    def _intent4_warn(self, topic: str, message: Message, reason: str) -> None:
+        """Log a malformed-registration rejection at WARN (§5.3 / §6.3 / §7.2)."""
+        LOG.warning(
+            f"rejecting {topic} registration: {reason} "
+            f"[skill_id={message.data.get('skill_id')!r} "
+            f"name={message.data.get('intent_name') or message.data.get('entity_name')!r} "
+            f"lang={message.data.get('lang')!r}]"
+        )
+
+    def _expand_entities(self, samples: List[str]) -> List[str]:
+        """Fill ``{slot}`` placeholders in template *samples* with registered
+        entity values (OVOS-INTENT-4 §7). Samples without placeholders, or whose
+        entity is unregistered, are passed through with the placeholder left
+        literal (entities are an optional hint, §7).
+        """
+        if not self.entities:
+            return list(samples)
+        out: List[str] = []
+        for tmpl in samples:
+            slots = _SLOT_RE.findall(tmpl)
+            if not slots:
+                out.append(tmpl)
+                continue
+            slot_values: List[List[str]] = []
+            for slot in slots:
+                vals = self.entities.get(slot.lower())
+                slot_values.append(vals if vals else ["{" + slot + "}"])
+            for combo in itertools.product(*slot_values):
+                filled = tmpl
+                for slot, val in zip(slots, combo):
+                    filled = filled.replace("{" + slot + "}", val, 1)
+                out.append(filled.strip())
+        return out
+
+    def _handle_intent4_register_template(self, message: Message) -> None:
+        """Register a template intent (§6): bracket-expand + entity-fill the
+        ``samples`` and embed them as prototypes (prototype mode) or track the
+        label name (classifier mode)."""
+        topic = SpecMessage.INTENT_REGISTER_TEMPLATE.value
+        label = self._intent4_label(message)
+        if not label:
+            self._intent4_warn(topic, message, "missing skill_id or intent_name")
+            return
+        if label in self.ignore_labels:
+            return
+        samples = message.data.get("samples")
+        if not samples:  # missing or empty -> malformed (§6.3)
+            self._intent4_warn(topic, message, "samples missing or empty")
+            return
+
+        # Classifier mode is frozen: only gate the (already trained) label.
+        if self.prototype_store is None:
+            self.intents.add(label)
+            LOG.debug(f"Model2Vec: tracking INTENT-4 template label '{label}'")
+            return
+
+        expanded: List[str] = []
+        for s in self._expand_entities(list(samples)):
+            try:
+                expanded.extend(expand_template(s))
+            except Exception:
+                expanded.append(s)
+        expanded = [s for s in (e.strip() for e in expanded) if s]
+        if not expanded:  # zero non-empty expansions -> malformed (§6.3)
+            self._intent4_warn(topic, message, "samples expand to zero non-empty templates")
+            return
+        n = self.prototype_store.add(self.model, label, expanded, k=self._prototype_k)
+        self.intents.add(label)
+        LOG.debug(f"Prototype store: added {n} prototype(s) for INTENT-4 template '{label}'")
+
+    def _handle_intent4_register_entity(self, message: Message) -> None:
+        """Register an entity value-set hint (§7). No-op in classifier mode."""
+        topic = SpecMessage.ENTITY_REGISTER.value
+        name: str = message.data.get("entity_name", "")
+        samples = message.data.get("samples")
+        if not name:
+            self._intent4_warn(topic, message, "missing entity_name")
+            return
+        if not samples:  # missing or empty -> malformed (§7.2)
+            self._intent4_warn(topic, message, "samples missing or empty")
+            return
+        if self.prototype_store is None:
+            return  # classifier model is frozen; no slot-fill to perform
+        values: set = set()
+        for s in samples:
+            try:
+                for v in expand_template(s):
+                    v = v.strip()
+                    if v:
+                        values.add(v)
+            except Exception:
+                v = str(s).strip()
+                if v:
+                    values.add(v)
+        self.entities[name.lower()] = list(values)
+        LOG.debug(f"Model2Vec: registered INTENT-4 entity '{name}' ({len(values)} values)")
+
+    def _handle_intent4_deregister_intent(self, message: Message) -> None:
+        """Remove one intent (§8.2)."""
+        label = self._intent4_label(message)
+        if not label:
+            return
+        if self.prototype_store is not None:
+            self.prototype_store.remove(label)
+        self.intents.discard(label)
+        LOG.debug(f"Model2Vec: deregistered INTENT-4 intent '{label}'")
+
+    def _handle_intent4_deregister_entity(self, message: Message) -> None:
+        """Remove one entity (§8.3). No-op in classifier mode."""
+        name: str = message.data.get("entity_name", "")
+        if name:
+            self.entities.pop(name.lower(), None)
+            LOG.debug(f"Model2Vec: deregistered INTENT-4 entity '{name}'")
+
+    def _handle_intent4_deregister_skill(self, message: Message) -> None:
+        """Remove every intent and entity owned by a skill (§8.4)."""
+        skill_id: str = message.data.get("skill_id") or message.context.get("skill_id", "")
+        if not skill_id:
+            return
+        if self.prototype_store is not None:
+            self.prototype_store.remove_skill(skill_id)
+        self.intents = {i for i in self.intents if not i.startswith(skill_id + ":")}
+        LOG.debug(f"Model2Vec: deregistered all INTENT-4 registrations for skill '{skill_id}'")
+
+    def _handle_intent4_disable(self, message: Message) -> None:
+        """Suppress an intent without losing its definition (§8.5).
+
+        m2v keeps no separate enabled/disabled flag; suppression is realised
+        by dropping the label from the match-eligible set (and its prototypes),
+        mirroring deregistration. Re-enabling requires re-registration, which
+        is how skills re-arm intents on this engine.
+        """
+        label = self._intent4_label(message)
+        if not label:
+            return
+        if self.prototype_store is not None:
+            self.prototype_store.remove(label)
+        self.intents.discard(label)
+        LOG.debug(f"Model2Vec: disabled INTENT-4 intent '{label}'")
+
+    def _handle_intent4_enable(self, message: Message) -> None:
+        """Re-arm a previously disabled intent (§8.5).
+
+        In classifier mode the trained class is re-added to the eligible set.
+        In prototype mode the prototypes were dropped on disable and can only
+        be restored by re-registration, so this only restores label tracking.
+        """
+        label = self._intent4_label(message)
+        if label and label not in self.ignore_labels:
+            self.intents.add(label)
+            LOG.debug(f"Model2Vec: enabled INTENT-4 intent '{label}'")
 
     # ------------------------------------------------------------------
     # Matching
