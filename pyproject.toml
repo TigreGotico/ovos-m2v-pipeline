@@ -23,8 +23,19 @@ dependencies = [
     "ovos-bus-client",
     "ovos-config",
     "ovos-utils>=0.3.4,<1.0.0",
-    "ovos-spec-tools>=0.11.0a1",
+    "ovos-spec-tools>=0.16.1a2",
     "model2vec[inference]",
+]
+
+[project.optional-dependencies]
+test = [
+    "pytest",
+    "pytest-cov",
+    "numpy",
+    # INTENT-4 consumer e2e stack floor (ovos.intent.register.* topics +
+    # E2EPipelineHarness namespace flags). Mirrors ovos-test-harness@dev.
+    "ovos-bus-client>=2.4.0a1",
+    "ovos-spec-tools>=0.16.1a2",
 ]
 
 [project.urls]
