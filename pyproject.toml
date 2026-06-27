@@ -22,7 +22,7 @@ dependencies = [
     # opm.pipeline entrypoints + the bus-client 2.x e2e stack need modern opm;
     # the prerelease floor lets the resolver pick it without --pre.
     "ovos-plugin-manager>=2.3.0a1,<3.0.0",
-    "ovos-bus-client>=2.4.0a1",
+    "ovos-bus-client>=2.5.1a1,<3.0.0",
     "ovos-config",
     "ovos-utils>=0.3.4,<1.0.0",
     "ovos-spec-tools>=0.16.1a2",
@@ -36,7 +36,7 @@ test = [
     "numpy",
     # INTENT-4 consumer e2e stack floor (ovos.intent.register.* topics +
     # E2EPipelineHarness namespace flags). Mirrors ovos-test-harness@dev.
-    "ovos-bus-client>=2.4.0a1",
+    "ovos-bus-client>=2.5.1a1,<3.0.0",
     "ovos-spec-tools>=0.16.1a2",
 ]
 
