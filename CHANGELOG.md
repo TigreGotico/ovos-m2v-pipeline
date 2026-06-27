@@ -6,6 +6,7 @@
 
 **Merged pull requests:**
 
+- fix\(deps\): allow ovos-workshop 9.x \(widen \<9.0.0 -\> \<10.0.0\) [\#42](https://github.com/OpenVoiceOS/ovos-m2v-pipeline/pull/42) ([JarbasAl](https://github.com/JarbasAl))
 - docs: standardize NGI0 Commons Fund attribution [\#38](https://github.com/OpenVoiceOS/ovos-m2v-pipeline/pull/38) ([JarbasAl](https://github.com/JarbasAl))
 - feat: configurable PrototypeStrategy for prototype-mode scoring [\#37](https://github.com/OpenVoiceOS/ovos-m2v-pipeline/pull/37) ([JarbasAl](https://github.com/JarbasAl))
 - Gate special labels by session.pipeline and seed intents at startup [\#33](https://github.com/OpenVoiceOS/ovos-m2v-pipeline/pull/33) ([JarbasAl](https://github.com/JarbasAl))
