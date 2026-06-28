@@ -1,11 +1,12 @@
 # Changelog
 
-## [Unreleased](https://github.com/OpenVoiceOS/ovos-m2v-pipeline/tree/HEAD)
+## [0.3.1a1](https://github.com/OpenVoiceOS/ovos-m2v-pipeline/tree/0.3.1a1) (2026-06-28)
 
-[Full Changelog](https://github.com/OpenVoiceOS/ovos-m2v-pipeline/compare/0.0.10a1...HEAD)
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-m2v-pipeline/compare/0.0.10a1...0.3.1a1)
 
 **Merged pull requests:**
 
+- fix\(ci\): adopt OpenVoiceOS shared release + build workflows \(unblock PyPI publish\) [\#43](https://github.com/OpenVoiceOS/ovos-m2v-pipeline/pull/43) ([JarbasAl](https://github.com/JarbasAl))
 - fix\(deps\): allow ovos-workshop 9.x \(widen \<9.0.0 -\> \<10.0.0\) [\#42](https://github.com/OpenVoiceOS/ovos-m2v-pipeline/pull/42) ([JarbasAl](https://github.com/JarbasAl))
 - feat: consume OVOS-INTENT-4 template registration \(alongside legacy\) [\#41](https://github.com/OpenVoiceOS/ovos-m2v-pipeline/pull/41) ([JarbasAl](https://github.com/JarbasAl))
 - docs: standardize NGI0 Commons Fund attribution [\#38](https://github.com/OpenVoiceOS/ovos-m2v-pipeline/pull/38) ([JarbasAl](https://github.com/JarbasAl))
