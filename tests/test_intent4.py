@@ -347,6 +347,88 @@ class TestIntent4ContextGating(unittest.TestCase):
         p._handle_intent4_deregister_skill(Message(
             SpecMessage.SKILL_DEREGISTER.value, data={"skill_id": "music.skill"}))
         self.assertNotIn("music.skill:play_music", p._context_gates)
+class TestIntent4Blacklist(unittest.TestCase):
+    """OVOS-INTENT-4 §6.1 template blacklist + session-level blacklists.
+
+    m2v was the only matcher engine that ignored these; the filter mirrors
+    padacioso's word-boundary ``_filter`` and adapt/padatious' session
+    ``blacklisted_intents`` / ``blacklisted_skills`` gating.
+    """
+
+    def _register(self, p, skill_id="music.skill", intent_name="play_music",
+                  samples=None, blacklist=None, lang="en-US"):
+        data = {
+            "skill_id": skill_id,
+            "intent_name": intent_name,
+            "lang": lang,
+            "samples": samples if samples is not None else ["play music"],
+        }
+        if blacklist is not None:
+            data["blacklist"] = blacklist
+        p._handle_intent4_register_template(
+            Message(SpecMessage.INTENT_REGISTER_TEMPLATE.value,
+                    data=data, context={"skill_id": skill_id}))
+
+    @staticmethod
+    def _pin_query_vector(p):
+        # query embedding identical to the stored prototype -> cosine 1.0
+        p.model.encode.side_effect = None
+        p.model.encode.return_value = np.array([[1.0, 0.0, 0.0, 0.0]],
+                                               dtype=np.float32)
+
+    def _session_message(self, **session_kwargs):
+        from ovos_bus_client.session import Session
+        sess = Session(session_id="s")
+        for k, v in session_kwargs.items():
+            setattr(sess, k, v)
+        return Message("recognizer_loop:utterance",
+                       context={"session": sess.serialize()})
+
+    def test_blacklist_stored_on_register(self):
+        p = _make_prototype_pipeline()
+        self._register(p, samples=["play music"], blacklist=["trailer"])
+        self.assertEqual(p.excluded_keywords["music.skill:play_music"],
+                         ["trailer"])
+
+    def test_blacklist_suppresses_match(self):
+        p = _make_prototype_pipeline()
+        self._register(p, samples=["play music"], blacklist=["trailer"])
+        self._pin_query_vector(p)
+        # (a) blacklisted phrase present -> no match (§6.1)
+        self.assertEqual(list(p._match("play the trailer")), [])
+        # (a) clean utterance still matches
+        results = list(p._match("play music"))
+        self.assertEqual(len(results), 1)
+        self.assertEqual(results[0][1], "music.skill:play_music")
+
+    def test_session_blacklisted_intent_dropped(self):
+        p = _make_prototype_pipeline()
+        self._register(p, samples=["play music"])
+        self._pin_query_vector(p)
+        # control: no blacklist -> matches
+        self.assertEqual(len(list(p._match("play music"))), 1)
+        # (b) intent blacklisted in session -> dropped
+        msg = self._session_message(
+            blacklisted_intents=["music.skill:play_music"])
+        self.assertEqual(list(p._match("play music", msg)), [])
+
+    def test_session_blacklisted_skill_dropped(self):
+        p = _make_prototype_pipeline()
+        self._register(p, samples=["play music"])
+        self._pin_query_vector(p)
+        # (b) skill blacklisted in session -> dropped
+        msg = self._session_message(blacklisted_skills=["music.skill"])
+        self.assertEqual(list(p._match("play music", msg)), [])
+
+    def test_deregister_intent_drops_blacklist(self):
+        p = _make_prototype_pipeline()
+        self._register(p, samples=["play music"], blacklist=["trailer"])
+        p._handle_intent4_deregister_intent(Message(
+            SpecMessage.INTENT_DEREGISTER.value,
+            data={"skill_id": "music.skill", "intent_name": "play_music",
+                  "lang": "en-US"}))
+        self.assertNotIn("music.skill:play_music", p.excluded_keywords)
+
 
 
 if __name__ == "__main__":
