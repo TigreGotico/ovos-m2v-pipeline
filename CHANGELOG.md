@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.4.0a1](https://github.com/OpenVoiceOS/ovos-m2v-pipeline/tree/0.4.0a1) (2026-07-02)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-m2v-pipeline/compare/0.3.1a1...0.4.0a1)
+
+**Merged pull requests:**
+
+- feat: enforce OVOS-CONTEXT-1 requires/excludes\_context gating at match [\#46](https://github.com/OpenVoiceOS/ovos-m2v-pipeline/pull/46) ([JarbasAl](https://github.com/JarbasAl))
+
 ## [0.3.1a1](https://github.com/OpenVoiceOS/ovos-m2v-pipeline/tree/0.3.1a1) (2026-06-28)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-m2v-pipeline/compare/0.0.10a1...0.3.1a1)
