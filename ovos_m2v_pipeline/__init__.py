@@ -319,6 +319,11 @@ class Model2VecIntentPipeline(ConfidenceMatcherPipeline):
         #: holds bare-string keys or ``{"key", "scope"}`` mappings and is
         #: evaluated at match time via ``gate_satisfied``.
         self._context_gates: Dict[str, Tuple[list, list]] = {}
+        #: Per-label suppression phrases (OVOS-INTENT-4 §6.1 ``blacklist``),
+        #: keyed by intent label. A candidate is dropped at match time when the
+        #: utterance contains one of its label's blacklisted phrases. Named and
+        #: matched consistently with the padacioso engine's ``excluded_keywords``.
+        self.excluded_keywords: Dict[str, List[str]] = {}
 
         mode = self.config.get("mode", "classifier")
 
@@ -632,6 +637,10 @@ class Model2VecIntentPipeline(ConfidenceMatcherPipeline):
             self._intent4_warn(topic, message, "samples missing or empty")
             return
 
+        blacklist = message.data.get("blacklist")
+        if blacklist:  # §6.1 suppression phrases: drop matches containing these
+            self.excluded_keywords[label] = list(blacklist)
+
         # Classifier mode is frozen: only gate the (already trained) label.
         if self.prototype_store is None:
             self.intents.add(label)
@@ -701,6 +710,7 @@ class Model2VecIntentPipeline(ConfidenceMatcherPipeline):
             self.prototype_store.remove(label)
         self.intents.discard(label)
         self._context_gates.pop(label, None)
+        self.excluded_keywords.pop(label, None)
         LOG.debug(f"Model2Vec: deregistered INTENT-4 intent '{label}'")
 
     def _handle_intent4_deregister_entity(self, message: Message) -> None:
@@ -720,6 +730,8 @@ class Model2VecIntentPipeline(ConfidenceMatcherPipeline):
         self.intents = {i for i in self.intents if not i.startswith(skill_id + ":")}
         self._context_gates = {l: g for l, g in self._context_gates.items()
                                if not l.startswith(skill_id + ":")}
+        self.excluded_keywords = {i: kw for i, kw in self.excluded_keywords.items()
+                                  if not i.startswith(skill_id + ":")}
         LOG.debug(f"Model2Vec: deregistered all INTENT-4 registrations for skill '{skill_id}'")
 
     def _handle_intent4_disable(self, message: Message) -> None:
@@ -737,6 +749,7 @@ class Model2VecIntentPipeline(ConfidenceMatcherPipeline):
             self.prototype_store.remove(label)
         self.intents.discard(label)
         self._context_gates.pop(label, None)
+        self.excluded_keywords.pop(label, None)
         LOG.debug(f"Model2Vec: disabled INTENT-4 intent '{label}'")
 
     def _handle_intent4_enable(self, message: Message) -> None:
@@ -766,22 +779,65 @@ class Model2VecIntentPipeline(ConfidenceMatcherPipeline):
             return "stop.openvoiceos", "mycroft.stop"
         return label.split(":")[0], label
 
+    def _excluded_labels(self, utterance: str) -> List[str]:
+        """Labels whose §6.1 ``blacklist`` phrases occur in *utterance*.
+
+        Uses the same word-boundary convention as the padacioso engine's
+        ``_filter``: single-word phrases must match a whole token, multi-word
+        phrases match on a ``\\b``-delimited substring.
+        """
+        if not self.excluded_keywords:
+            return []
+        excluded: List[str] = []
+        q_lower = utterance.lower()
+        query_words = set(q_lower.split())
+        for label, phrases in self.excluded_keywords.items():
+            def _kw_hit(kw: str, _qw=query_words, _ql=q_lower) -> bool:
+                kw = kw.lower()
+                if " " not in kw:
+                    return kw in _qw
+                return bool(re.search(r"\b" + re.escape(kw) + r"\b", _ql))
+            if any(_kw_hit(p) for p in phrases):
+                excluded.append(label)
+        return excluded
+
+    def _session_blacklists(self, message: Optional[Message]) -> Tuple[frozenset, frozenset]:
+        """``(blacklisted_intents, blacklisted_skills)`` for the caller's session.
+
+        Mirrors adapt/padatious: candidates whose intent label or skill_id is
+        blacklisted in the session are dropped at match time.
+        """
+        if message is None:
+            return frozenset(), frozenset()
+        try:
+            sess = SessionManager.get(message)
+        except Exception:
+            return frozenset(), frozenset()
+        return (frozenset(sess.blacklisted_intents or []),
+                frozenset(sess.blacklisted_skills or []))
+
     def _match(self, utterance: str,
                message: Optional[Message] = None) -> Iterable[Tuple[str, str, float]]:
         """Yield ``(skill_id, label, score)`` tuples sorted by score descending.
 
+        Candidates suppressed by a §6.1 template ``blacklist`` phrase, or by the
+        session's ``blacklisted_intents`` / ``blacklisted_skills``, are dropped.
+
         Args:
             utterance: The utterance to match.
             message: The incoming bus message (used to read session.pipeline for
-                     special-label gating in both classifier and prototype modes).
+                     special-label gating, plus the session blacklists).
         """
         if self.prototype_store is not None:
             candidates = self._match_prototype(utterance, message)
         else:
             candidates = self._match_classifier(utterance, message)
-        # OVOS-CONTEXT-1 §6/§6.1: drop candidates whose requires/excludes
-        # context gate is not satisfied by the caller session's intent_context.
+        # OVOS-CONTEXT-1 §6/§6.1 context gate + OVOS-INTENT-4 §6.1 blacklist +
+        # session blacklists — applied together so a candidate must survive all
+        # three to be yielded.
         intent_context = (SessionManager.get(message).intent_context or {}) if self._context_gates else {}
+        excluded = self._excluded_labels(utterance)
+        blacklisted_intents, blacklisted_skills = self._session_blacklists(message)
         for skill_id, label, score in candidates:
             gate = self._context_gates.get(label)
             if gate is not None:
@@ -789,6 +845,12 @@ class Model2VecIntentPipeline(ConfidenceMatcherPipeline):
                 if not gate_satisfied(intent_context, requires, excludes, owner_id=skill_id):
                     LOG.debug(f"discarding '{label}': CONTEXT-1 gate not satisfied")
                     continue
+            if label in excluded:
+                LOG.debug(f"discarding match: {label} - utterance hits §6.1 blacklist")
+                continue
+            if label in blacklisted_intents or skill_id in blacklisted_skills:
+                LOG.debug(f"discarding match: {label} - blacklisted in session")
+                continue
             yield skill_id, label, score
 
     def _match_classifier(self, utterance: str,
