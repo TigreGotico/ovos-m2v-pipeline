@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.5.0a1](https://github.com/OpenVoiceOS/ovos-m2v-pipeline/tree/0.5.0a1) (2026-07-02)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-m2v-pipeline/compare/0.4.0a1...0.5.0a1)
+
+**Merged pull requests:**
+
+- feat: honor INTENT-4 §6.1 blacklist + session blacklists at match [\#45](https://github.com/OpenVoiceOS/ovos-m2v-pipeline/pull/45) ([JarbasAl](https://github.com/JarbasAl))
+
 ## [0.4.0a1](https://github.com/OpenVoiceOS/ovos-m2v-pipeline/tree/0.4.0a1) (2026-07-02)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-m2v-pipeline/compare/0.3.1a1...0.4.0a1)
