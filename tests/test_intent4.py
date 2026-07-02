@@ -268,5 +268,86 @@ class TestIntent4Deregistration(unittest.TestCase):
         self.assertIn("music.skill:play_music", p.intents)
 
 
+class TestIntent4ContextGating(unittest.TestCase):
+    """OVOS-CONTEXT-1 §6/§6.1 requires_context / excludes_context gating."""
+
+    def _register(self, p, requires=None, excludes=None,
+                  skill_id="music.skill", intent_name="play_music"):
+        data = {"skill_id": skill_id, "intent_name": intent_name,
+                "lang": "en-US", "samples": ["play music"]}
+        if requires is not None:
+            data["requires_context"] = requires
+        if excludes is not None:
+            data["excludes_context"] = excludes
+        p._handle_intent4_register_template(Message(
+            SpecMessage.INTENT_REGISTER_TEMPLATE.value, data=data,
+            context={"skill_id": skill_id}))
+
+    def _match_with_context(self, p, intent_context):
+        # query embedding identical to the single stored prototype -> cosine 1.0
+        p.model.encode.side_effect = None
+        p.model.encode.return_value = np.array([[1.0, 0.0, 0.0, 0.0]], dtype=np.float32)
+        sess = MagicMock()
+        sess.intent_context = intent_context
+        with patch("ovos_m2v_pipeline.SessionManager.get", return_value=sess):
+            return list(p._match("play music"))
+
+    def test_gate_stored_on_register(self):
+        p = _make_prototype_pipeline()
+        self._register(p, requires=["mode"], excludes=[{"key": "busy", "scope": "shared"}])
+        self.assertIn("music.skill:play_music", p._context_gates)
+        requires, excludes = p._context_gates["music.skill:play_music"]
+        self.assertEqual(requires, ["mode"])
+        self.assertEqual(excludes, [{"key": "busy", "scope": "shared"}])
+
+    def test_requires_context_present_matches(self):
+        p = _make_prototype_pipeline()
+        self._register(p, requires=["mode"])
+        # private key resolves to "<skill_id>:mode"
+        results = self._match_with_context(p, {"music.skill:mode": {"value": "party"}})
+        self.assertEqual(len(results), 1)
+        self.assertEqual(results[0][1], "music.skill:play_music")
+
+    def test_requires_context_absent_dropped(self):
+        p = _make_prototype_pipeline()
+        self._register(p, requires=["mode"])
+        results = self._match_with_context(p, {})
+        self.assertEqual(results, [])
+
+    def test_excludes_context_present_dropped(self):
+        p = _make_prototype_pipeline()
+        self._register(p, excludes=["busy"])
+        results = self._match_with_context(p, {"music.skill:busy": {"value": True}})
+        self.assertEqual(results, [])
+
+    def test_excludes_context_absent_matches(self):
+        p = _make_prototype_pipeline()
+        self._register(p, excludes=["busy"])
+        results = self._match_with_context(p, {})
+        self.assertEqual(len(results), 1)
+
+    def test_ungated_intent_always_matches(self):
+        p = _make_prototype_pipeline()
+        self._register(p)  # no requires/excludes
+        self.assertNotIn("music.skill:play_music", p._context_gates)
+        results = self._match_with_context(p, {})
+        self.assertEqual(len(results), 1)
+
+    def test_gate_cleared_on_deregister(self):
+        p = _make_prototype_pipeline()
+        self._register(p, requires=["mode"])
+        p._handle_intent4_deregister_intent(Message(
+            SpecMessage.INTENT_DEREGISTER.value,
+            data={"skill_id": "music.skill", "intent_name": "play_music", "lang": "en-US"}))
+        self.assertNotIn("music.skill:play_music", p._context_gates)
+
+    def test_gate_cleared_on_skill_deregister(self):
+        p = _make_prototype_pipeline()
+        self._register(p, requires=["mode"])
+        p._handle_intent4_deregister_skill(Message(
+            SpecMessage.SKILL_DEREGISTER.value, data={"skill_id": "music.skill"}))
+        self.assertNotIn("music.skill:play_music", p._context_gates)
+
+
 if __name__ == "__main__":
     unittest.main()
