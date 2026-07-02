@@ -25,7 +25,7 @@ dependencies = [
     "ovos-bus-client>=2.5.1a1,<3.0.0",
     "ovos-config",
     "ovos-utils>=0.3.4,<1.0.0",
-    "ovos-spec-tools>=0.16.1a2",
+    "ovos-spec-tools>=1.4.0a1",
     "model2vec[inference]",
 ]
 
@@ -37,7 +37,7 @@ test = [
     # INTENT-4 consumer e2e stack floor (ovos.intent.register.* topics +
     # E2EPipelineHarness namespace flags). Mirrors ovos-test-harness@dev.
     "ovos-bus-client>=2.5.1a1,<3.0.0",
-    "ovos-spec-tools>=0.16.1a2",
+    "ovos-spec-tools>=1.4.0a1",
 ]
 
 [project.urls]

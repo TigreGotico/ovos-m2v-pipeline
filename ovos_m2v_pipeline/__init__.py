@@ -11,6 +11,7 @@ from ovos_bus_client.session import SessionManager
 from ovos_config.config import Configuration
 from ovos_plugin_manager.templates.pipeline import IntentHandlerMatch, ConfidenceMatcherPipeline
 from ovos_spec_tools import SpecMessage
+from ovos_spec_tools.context import gate_satisfied
 from ovos_utils.bracket_expansion import expand_template
 from ovos_utils.fakebus import FakeBus
 from ovos_utils.log import LOG
@@ -313,6 +314,11 @@ class Model2VecIntentPipeline(ConfidenceMatcherPipeline):
         #: name (lowercase). Used to fill ``{slot}`` placeholders in template
         #: samples before embedding. Disabled (left empty) in classifier mode.
         self.entities: Dict[str, List[str]] = {}
+        #: OVOS-CONTEXT-1 §6/§6.1 gating declarations per registered label,
+        #: keyed by label -> (requires_context, excludes_context). Each list
+        #: holds bare-string keys or ``{"key", "scope"}`` mappings and is
+        #: evaluated at match time via ``gate_satisfied``.
+        self._context_gates: Dict[str, Tuple[list, list]] = {}
 
         mode = self.config.get("mode", "classifier")
 
@@ -629,6 +635,7 @@ class Model2VecIntentPipeline(ConfidenceMatcherPipeline):
         # Classifier mode is frozen: only gate the (already trained) label.
         if self.prototype_store is None:
             self.intents.add(label)
+            self._store_context_gate(label, message)
             LOG.debug(f"Model2Vec: tracking INTENT-4 template label '{label}'")
             return
 
@@ -644,7 +651,19 @@ class Model2VecIntentPipeline(ConfidenceMatcherPipeline):
             return
         n = self.prototype_store.add(self.model, label, expanded, k=self._prototype_k)
         self.intents.add(label)
+        self._store_context_gate(label, message)
         LOG.debug(f"Prototype store: added {n} prototype(s) for INTENT-4 template '{label}'")
+
+    def _store_context_gate(self, label: str, message: Message) -> None:
+        """Record OVOS-CONTEXT-1 §6/§6.1 ``requires_context`` /
+        ``excludes_context`` declarations for ``label`` (if any) so they can be
+        enforced at match time. Absent declarations clear any stale entry."""
+        requires = message.data.get("requires_context")
+        excludes = message.data.get("excludes_context")
+        if requires or excludes:
+            self._context_gates[label] = (requires or [], excludes or [])
+        else:
+            self._context_gates.pop(label, None)
 
     def _handle_intent4_register_entity(self, message: Message) -> None:
         """Register an entity value-set hint (§7). No-op in classifier mode."""
@@ -681,6 +700,7 @@ class Model2VecIntentPipeline(ConfidenceMatcherPipeline):
         if self.prototype_store is not None:
             self.prototype_store.remove(label)
         self.intents.discard(label)
+        self._context_gates.pop(label, None)
         LOG.debug(f"Model2Vec: deregistered INTENT-4 intent '{label}'")
 
     def _handle_intent4_deregister_entity(self, message: Message) -> None:
@@ -698,6 +718,8 @@ class Model2VecIntentPipeline(ConfidenceMatcherPipeline):
         if self.prototype_store is not None:
             self.prototype_store.remove_skill(skill_id)
         self.intents = {i for i in self.intents if not i.startswith(skill_id + ":")}
+        self._context_gates = {l: g for l, g in self._context_gates.items()
+                               if not l.startswith(skill_id + ":")}
         LOG.debug(f"Model2Vec: deregistered all INTENT-4 registrations for skill '{skill_id}'")
 
     def _handle_intent4_disable(self, message: Message) -> None:
@@ -714,6 +736,7 @@ class Model2VecIntentPipeline(ConfidenceMatcherPipeline):
         if self.prototype_store is not None:
             self.prototype_store.remove(label)
         self.intents.discard(label)
+        self._context_gates.pop(label, None)
         LOG.debug(f"Model2Vec: disabled INTENT-4 intent '{label}'")
 
     def _handle_intent4_enable(self, message: Message) -> None:
@@ -753,9 +776,20 @@ class Model2VecIntentPipeline(ConfidenceMatcherPipeline):
                      special-label gating in both classifier and prototype modes).
         """
         if self.prototype_store is not None:
-            yield from self._match_prototype(utterance, message)
+            candidates = self._match_prototype(utterance, message)
         else:
-            yield from self._match_classifier(utterance, message)
+            candidates = self._match_classifier(utterance, message)
+        # OVOS-CONTEXT-1 §6/§6.1: drop candidates whose requires/excludes
+        # context gate is not satisfied by the caller session's intent_context.
+        intent_context = (SessionManager.get(message).intent_context or {}) if self._context_gates else {}
+        for skill_id, label, score in candidates:
+            gate = self._context_gates.get(label)
+            if gate is not None:
+                requires, excludes = gate
+                if not gate_satisfied(intent_context, requires, excludes, owner_id=skill_id):
+                    LOG.debug(f"discarding '{label}': CONTEXT-1 gate not satisfied")
+                    continue
+            yield skill_id, label, score
 
     def _match_classifier(self, utterance: str,
                            message: Optional[Message] = None) -> Iterable[Tuple[str, str, float]]:
