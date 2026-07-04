@@ -735,7 +735,7 @@ class Model2VecIntentPipeline(ConfidenceMatcherPipeline):
         if not expanded:  # zero non-empty expansions -> malformed (§6.3)
             self._intent4_warn(topic, message, "samples expand to zero non-empty templates")
             return
-        n = self.prototype_store.add(self.model, label, expanded, k=self._prototype_k)
+        n = self._add_intent(label, expanded)
         self.intents.add(label)
         self._store_context_gate(label, message)
         LOG.debug(f"Prototype store: added {n} prototype(s) for INTENT-4 template '{label}'")
@@ -790,7 +790,7 @@ class Model2VecIntentPipeline(ConfidenceMatcherPipeline):
         if not label:
             return
         if self.prototype_store is not None:
-            self.prototype_store.remove(label)
+            self._remove_intent(label)
         self.intents.discard(label)
         self._context_gates.pop(label, None)
         self.excluded_keywords.pop(label, None)
@@ -809,7 +809,7 @@ class Model2VecIntentPipeline(ConfidenceMatcherPipeline):
         if not skill_id:
             return
         if self.prototype_store is not None:
-            self.prototype_store.remove_skill(skill_id)
+            self._remove_skill(skill_id)
         self.intents = {i for i in self.intents if not i.startswith(skill_id + ":")}
         self._context_gates = {l: g for l, g in self._context_gates.items()
                                if not l.startswith(skill_id + ":")}
@@ -829,7 +829,7 @@ class Model2VecIntentPipeline(ConfidenceMatcherPipeline):
         if not label:
             return
         if self.prototype_store is not None:
-            self.prototype_store.remove(label)
+            self._remove_intent(label)
         self.intents.discard(label)
         self._context_gates.pop(label, None)
         self.excluded_keywords.pop(label, None)
