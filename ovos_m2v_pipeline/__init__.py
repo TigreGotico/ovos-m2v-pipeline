@@ -244,15 +244,17 @@ class PrototypeIntentStore:
         )
 
 
-def _parse_intent_file(path: str) -> List[str]:
+def _parse_intent_file(path: str, ctx: str = "") -> List[str]:
     """Return expanded, non-empty, non-comment lines from a Padatious ``.intent`` file.
 
     Template syntax (``(a|b)``, ``[optional]``) is expanded via
     ``ovos_spec_tools.expansion.expand`` so that every concrete
     utterance variant is represented as a separate prototype.
 
-    Malformed lines are logged and skipped so that a single bad template
-    never discards the rest of the file.
+    A line that is not parsable as OVOS-INTENT-1 grammar is logged and
+    skipped so that a single bad template never discards the rest of the
+    file (OVOS-INTENT-4 §6.3); *ctx* carries the §5.3 identifier fields
+    for those warnings.
     """
     try:
         sentences: List[str] = []
@@ -263,8 +265,8 @@ def _parse_intent_file(path: str) -> List[str]:
                     try:
                         sentences.extend(expand_template(line))
                     except Exception as exc:
-                        LOG.warning(f"Skipping malformed template {line!r} "
-                                    f"in '{path}': {exc}")
+                        LOG.warning(f"skipping malformed template {line!r}: "
+                                    f"{exc} {ctx}")
         return sentences
     except OSError as exc:
         LOG.warning(f"Could not read intent file '{path}': {exc}")
@@ -521,6 +523,10 @@ class Model2VecIntentPipeline(ConfidenceMatcherPipeline):
         if not name or name in self.ignore_labels:
             return
 
+        skill_id = message.data.get("skill_id") or message.context.get("skill_id")
+        ctx = (f"[skill_id={skill_id!r} name={name!r} "
+               f"lang={message.data.get('lang')!r} topic={message.msg_type}]")
+
         inline = message.data.get("samples") or []
         if inline:
             sentences: List[str] = []
@@ -528,14 +534,14 @@ class Model2VecIntentPipeline(ConfidenceMatcherPipeline):
                 try:
                     sentences.extend(expand_template(s))
                 except Exception as exc:
-                    LOG.warning(f"Skipping malformed template {s!r} for "
-                                f"Padatious intent '{name}': {exc}")
+                    LOG.warning(f"skipping malformed template {s!r}: {exc} {ctx}")
         else:
             file_name: str = message.data.get("file_name", "")
-            sentences = _parse_intent_file(file_name) if file_name else []
+            sentences = _parse_intent_file(file_name, ctx) if file_name else []
 
         if not sentences:
-            LOG.warning(f"No examples found for Padatious intent '{name}' - skipping prototypes")
+            # zero valid templates -> the whole registration is malformed
+            LOG.warning(f"rejecting registration: no valid template remains {ctx}")
             return
         try:
             n = self.prototype_store.add(
@@ -668,8 +674,13 @@ class Model2VecIntentPipeline(ConfidenceMatcherPipeline):
         for s in self._expand_entities(list(samples)):
             try:
                 expanded.extend(expand_template(s))
-            except Exception:
-                expanded.append(s)
+            except Exception as exc:
+                # skip the unparsable template, keep the valid ones (§6.3)
+                LOG.warning(
+                    f"skipping malformed template {s!r}: {exc} "
+                    f"[skill_id={message.data.get('skill_id')!r} "
+                    f"name={message.data.get('intent_name')!r} "
+                    f"lang={message.data.get('lang')!r} topic={topic}]")
         expanded = [s for s in (e.strip() for e in expanded) if s]
         if not expanded:  # zero non-empty expansions -> malformed (§6.3)
             self._intent4_warn(topic, message, "samples expand to zero non-empty templates")
@@ -710,10 +721,16 @@ class Model2VecIntentPipeline(ConfidenceMatcherPipeline):
                     v = v.strip()
                     if v:
                         values.add(v)
-            except Exception:
-                v = str(s).strip()
-                if v:
-                    values.add(v)
+            except Exception as exc:
+                # skip the unparsable entry, keep the valid ones (§7.2)
+                LOG.warning(
+                    f"skipping malformed entity sample {s!r}: {exc} "
+                    f"[skill_id={message.data.get('skill_id')!r} "
+                    f"name={name!r} "
+                    f"lang={message.data.get('lang')!r} topic={topic}]")
+        if not values:  # zero valid entries -> malformed (§7.2)
+            self._intent4_warn(topic, message, "no valid entity sample remains")
+            return
         self.entities[name.lower()] = list(values)
         LOG.debug(f"Model2Vec: registered INTENT-4 entity '{name}' ({len(values)} values)")
 
