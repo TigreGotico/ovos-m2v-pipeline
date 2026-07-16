@@ -45,6 +45,8 @@ Strategies
 from __future__ import annotations
 
 import enum
+from typing import Optional
+
 import numpy as np
 
 
@@ -131,23 +133,26 @@ def _kmeans_centers(embs: np.ndarray, k: int, seed: int = 0,
 def select_anchors(
     embeddings: np.ndarray,
     strategy: PrototypeStrategy,
-    k: int = 5,
+    k: Optional[int] = None,
     random_state: int = 42,
 ) -> np.ndarray:
     """Return the L2-normalised anchors that ``scores()`` will consume.
 
     Input ``embeddings`` are assumed L2-normalised. Output is also
-    L2-normalised. The number of returned rows depends on the strategy:
+    L2-normalised. ``k`` caps the anchor count for the subsampling /
+    clustering strategies; ``None`` keeps every sample, guaranteeing that
+    an exact training sample scores a perfect cosine match. The number of
+    returned rows depends on the strategy:
 
-    ============================  ==============================
-    strategy                      anchor count
-    ============================  ==============================
-    MEAN_CENTROID                 1
-    MEDOID                        1
-    MAX_OVER_ALL                  min(k, n)   (random subsample)
-    TOP_K_MEAN, SOFTMAX_WEIGHTED  n           (all samples kept)
-    FARTHEST_POINT, KMEANS_CENTERS min(k, n)
-    ============================  ==============================
+    ==============================  ==============================
+    strategy                        anchor count
+    ==============================  ==============================
+    MEAN_CENTROID                   1
+    MEDOID                          1
+    MAX_OVER_ALL                    min(k, n)   (random subsample)
+    TOP_K_MEAN, SOFTMAX_WEIGHTED    n           (all samples kept)
+    FARTHEST_POINT, KMEANS_CENTERS  min(k, n)
+    ==============================  ==============================
     """
     n = len(embeddings)
     if n == 0:
@@ -162,17 +167,21 @@ def select_anchors(
         return embeddings[int(np.argmax(embeddings @ centroid))].reshape(1, -1)
 
     if strategy is PrototypeStrategy.MAX_OVER_ALL:
-        if n > k:
+        if k is not None and n > k:
             rng = np.random.default_rng(random_state)
             idx = rng.choice(n, size=k, replace=False)
             return embeddings[idx]
         return embeddings
 
     if strategy is PrototypeStrategy.FARTHEST_POINT:
+        if k is None:
+            return embeddings
         idx = _farthest_point_indices(embeddings, k)
         return embeddings[idx]
 
     if strategy is PrototypeStrategy.KMEANS_CENTERS:
+        if k is None:
+            return embeddings
         return _kmeans_centers(embeddings, k, seed=random_state)
 
     # TOP_K_MEAN / SOFTMAX_WEIGHTED keep all samples — aggregation

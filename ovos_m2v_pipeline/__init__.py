@@ -117,10 +117,14 @@ class PrototypeIntentStore:
         model,
         label: str,
         sentences: List[str],
-        k: int = 5,
+        k: Optional[int] = None,
         random_state: int = 42,
     ) -> int:
-        """Embed up to *k* sentences and add/replace prototypes for *label*.
+        """Embed *sentences* and add/replace prototypes for *label*.
+
+        ``k`` caps how many anchors the subsampling / clustering strategies
+        keep; ``None`` (the default) keeps every sample so exact training
+        samples always score a perfect match.
 
         Returns the number of prototypes actually added.
         """
@@ -199,7 +203,7 @@ class PrototypeIntentStore:
         model,
         sentences: List[str],
         labels: List[str],
-        k: int = 5,
+        k: Optional[int] = None,
         random_state: int = 42,
         *,
         strategy: PrototypeStrategy = PrototypeStrategy.MAX_OVER_ALL,
@@ -295,9 +299,12 @@ class Model2VecIntentPipeline(ConfidenceMatcherPipeline):
 
     Configuration keys (prototype mode)
     ------------------------------------
-    ``prototype_k`` : int, default 5
+    ``prototype_k`` : int, optional (default: unlimited)
         Maximum number of prototype embeddings kept per label (used by the
         strategies that subsample / cluster — see ``prototype_strategy``).
+        Unset (the default) keeps every registered sample as an anchor so
+        that an exact training sample always scores a perfect match;
+        set an integer to cap memory at the cost of recall.
     ``prototype_strategy`` : str, default ``"max_over_all"``
         One of the ``PrototypeStrategy`` values
         (``mean_centroid`` / ``medoid`` / ``max_over_all`` / ``top_k_mean`` /
@@ -340,7 +347,7 @@ class Model2VecIntentPipeline(ConfidenceMatcherPipeline):
             from model2vec import StaticModel
 
             self.model = StaticModel.from_pretrained(model_path)
-            self._prototype_k: int = self.config.get("prototype_k", 5)
+            self._prototype_k: Optional[int] = self.config.get("prototype_k")
             self._prototype_strategy: PrototypeStrategy = PrototypeStrategy(
                 self.config.get("prototype_strategy",
                                 PrototypeStrategy.MAX_OVER_ALL.value)
