@@ -12,7 +12,7 @@ from ovos_config.config import Configuration
 from ovos_plugin_manager.templates.pipeline import IntentHandlerMatch, ConfidenceMatcherPipeline
 from ovos_spec_tools import SpecMessage
 from ovos_spec_tools.context import gate_satisfied
-from ovos_utils.bracket_expansion import expand_template
+from ovos_spec_tools.expansion import expand as expand_template
 from ovos_utils.fakebus import FakeBus
 from ovos_utils.log import LOG
 
@@ -248,8 +248,11 @@ def _parse_intent_file(path: str) -> List[str]:
     """Return expanded, non-empty, non-comment lines from a Padatious ``.intent`` file.
 
     Template syntax (``(a|b)``, ``[optional]``) is expanded via
-    ``ovos_utils.bracket_expansion.expand_template`` so that every concrete
+    ``ovos_spec_tools.expansion.expand`` so that every concrete
     utterance variant is represented as a separate prototype.
+
+    Malformed lines are logged and skipped so that a single bad template
+    never discards the rest of the file.
     """
     try:
         sentences: List[str] = []
@@ -257,7 +260,11 @@ def _parse_intent_file(path: str) -> List[str]:
             for line in fh:
                 line = line.strip()
                 if line and not line.lstrip().startswith("#"):
-                    sentences.extend(expand_template(line))
+                    try:
+                        sentences.extend(expand_template(line))
+                    except Exception as exc:
+                        LOG.warning(f"Skipping malformed template {line!r} "
+                                    f"in '{path}': {exc}")
         return sentences
     except OSError as exc:
         LOG.warning(f"Could not read intent file '{path}': {exc}")
@@ -518,7 +525,11 @@ class Model2VecIntentPipeline(ConfidenceMatcherPipeline):
         if inline:
             sentences: List[str] = []
             for s in inline:
-                sentences.extend(expand_template(s))
+                try:
+                    sentences.extend(expand_template(s))
+                except Exception as exc:
+                    LOG.warning(f"Skipping malformed template {s!r} for "
+                                f"Padatious intent '{name}': {exc}")
         else:
             file_name: str = message.data.get("file_name", "")
             sentences = _parse_intent_file(file_name) if file_name else []
@@ -526,9 +537,14 @@ class Model2VecIntentPipeline(ConfidenceMatcherPipeline):
         if not sentences:
             LOG.warning(f"No examples found for Padatious intent '{name}' - skipping prototypes")
             return
-        n = self.prototype_store.add(
-            self.model, name, sentences, k=self._prototype_k
-        )
+        try:
+            n = self.prototype_store.add(
+                self.model, name, sentences, k=self._prototype_k
+            )
+        except Exception as exc:
+            LOG.error(f"Failed to add prototypes for Padatious intent "
+                      f"'{name}': {exc}")
+            return
         self.intents.add(name)
         LOG.debug(f"Prototype store: added {n} prototype(s) for '{name}'")
 
