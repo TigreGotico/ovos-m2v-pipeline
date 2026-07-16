@@ -1,7 +1,9 @@
-"""Regression tests for prototype-mode exact-sample recall."""
+"""Regression tests for prototype-mode exact-sample recall and
+store consistency under (re-)registration."""
 
 import hashlib
 import unittest
+import unittest.mock
 
 import numpy as np
 from ovos_bus_client.message import Message
@@ -82,3 +84,63 @@ class TestExactSampleHighTierMatch(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class TestReRegistration(unittest.TestCase):
+    """Skills re-register their intents (e.g. on language reload — twice per
+    skill in a normal boot). Re-registration is an implicit replacement and
+    must never corrupt the store.
+
+    Registration handlers run on an executor thread pool, so adds and
+    removals also arrive concurrently; without internal locking the parallel
+    embeddings/labels arrays tear apart and every later replacement fails
+    with a boolean-index size mismatch.
+    """
+
+    def test_second_registration_replaces_intent(self):
+        pipeline = _make_prototype_pipeline()
+        pipeline.model.encode.side_effect = _hash_encode
+        for _ in range(2):
+            pipeline.bus.emit(Message(
+                "padatious:register_intent",
+                {"name": "skill-a:intent", "lang": "en-US",
+                 "samples": [f"sample {i}" for i in range(10)]},
+                {"skill_id": "skill-a"}))
+            pipeline.bus.emit(Message(
+                "padatious:register_intent",
+                {"name": "skill-b:intent", "lang": "en-US",
+                 "samples": [f"other sample {i}" for i in range(15)]},
+                {"skill_id": "skill-b"}))
+        store = pipeline.prototype_store
+        self.assertEqual(len(store.labels), len(store.embeddings))
+        self.assertEqual((store.labels == "skill-a:intent").sum(), 10)
+        self.assertEqual((store.labels == "skill-b:intent").sum(), 15)
+
+    def test_concurrent_registrations_keep_store_consistent(self):
+        from concurrent.futures import ThreadPoolExecutor
+        from ovos_m2v_pipeline import PrototypeIntentStore
+
+        model = unittest.mock.MagicMock()
+        model.encode.side_effect = _hash_encode
+        store = PrototypeIntentStore()
+
+        def register(worker):
+            label = f"skill:{worker % 10}"
+            for _ in range(10):
+                store.add(model, label,
+                          [f"sample {i} of {label}" for i in range(10)])
+
+        with ThreadPoolExecutor(8) as pool:
+            futures = [pool.submit(register, w) for w in range(40)]
+            errors = []
+            for f in futures:
+                try:
+                    f.result()
+                except Exception as exc:  # noqa: BLE001 - recorded for assert
+                    errors.append(exc)
+
+        self.assertEqual(errors, [])
+        self.assertEqual(len(store.labels), len(store.embeddings))
+        # exactly 10 anchors per surviving label (implicit replacement)
+        for worker in range(10):
+            self.assertEqual((store.labels == f"skill:{worker}").sum(), 10)
