@@ -70,12 +70,8 @@ class PrototypeIntentStore:
         top_k: int = 3,
         tau: float = 0.1,
     ) -> None:
-        # Bus registration handlers run on an executor thread pool, so adds,
-        # removals and re-registrations of intents arrive concurrently. All
-        # methods that touch the parallel embeddings/labels arrays hold this
-        # lock; otherwise interleaved read-modify-write cycles tear the two
-        # arrays apart and every later replacement fails with a boolean-index
-        # size mismatch.
+        # Bus registration handlers run concurrently on an executor thread
+        # pool; this lock keeps the parallel embeddings/labels arrays in sync.
         self._lock = threading.RLock()
         self.strategy: PrototypeStrategy = PrototypeStrategy(strategy)
         self.top_k: int = top_k

@@ -166,22 +166,22 @@ def select_anchors(
         centroid = _l2_normalize(embeddings.mean(0))
         return embeddings[int(np.argmax(embeddings @ centroid))].reshape(1, -1)
 
+    if k is None:
+        # no cap: every remaining strategy keeps all samples
+        return embeddings
+
     if strategy is PrototypeStrategy.MAX_OVER_ALL:
-        if k is not None and n > k:
+        if n > k:
             rng = np.random.default_rng(random_state)
             idx = rng.choice(n, size=k, replace=False)
             return embeddings[idx]
         return embeddings
 
     if strategy is PrototypeStrategy.FARTHEST_POINT:
-        if k is None:
-            return embeddings
         idx = _farthest_point_indices(embeddings, k)
         return embeddings[idx]
 
     if strategy is PrototypeStrategy.KMEANS_CENTERS:
-        if k is None:
-            return embeddings
         return _kmeans_centers(embeddings, k, seed=random_state)
 
     # TOP_K_MEAN / SOFTMAX_WEIGHTED keep all samples — aggregation

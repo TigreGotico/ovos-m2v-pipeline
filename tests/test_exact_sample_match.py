@@ -3,7 +3,8 @@ store consistency under (re-)registration."""
 
 import hashlib
 import unittest
-import unittest.mock
+from concurrent.futures import ThreadPoolExecutor
+from unittest.mock import MagicMock
 
 import numpy as np
 from ovos_bus_client.message import Message
@@ -82,10 +83,6 @@ class TestExactSampleHighTierMatch(unittest.TestCase):
         self.assertEqual(len(pipeline.prototype_store), 5)
 
 
-if __name__ == "__main__":
-    unittest.main()
-
-
 class TestReRegistration(unittest.TestCase):
     """Skills re-register their intents (e.g. on language reload — twice per
     skill in a normal boot). Re-registration is an implicit replacement and
@@ -117,10 +114,9 @@ class TestReRegistration(unittest.TestCase):
         self.assertEqual((store.labels == "skill-b:intent").sum(), 15)
 
     def test_concurrent_registrations_keep_store_consistent(self):
-        from concurrent.futures import ThreadPoolExecutor
         from ovos_m2v_pipeline import PrototypeIntentStore
 
-        model = unittest.mock.MagicMock()
+        model = MagicMock()
         model.encode.side_effect = _hash_encode
         store = PrototypeIntentStore()
 
@@ -132,15 +128,14 @@ class TestReRegistration(unittest.TestCase):
 
         with ThreadPoolExecutor(8) as pool:
             futures = [pool.submit(register, w) for w in range(40)]
-            errors = []
             for f in futures:
-                try:
-                    f.result()
-                except Exception as exc:  # noqa: BLE001 - recorded for assert
-                    errors.append(exc)
+                f.result()  # propagate any worker exception
 
-        self.assertEqual(errors, [])
         self.assertEqual(len(store.labels), len(store.embeddings))
         # exactly 10 anchors per surviving label (implicit replacement)
         for worker in range(10):
             self.assertEqual((store.labels == f"skill:{worker}").sum(), 10)
+
+
+if __name__ == "__main__":
+    unittest.main()

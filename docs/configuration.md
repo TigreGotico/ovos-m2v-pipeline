@@ -38,7 +38,6 @@ Any bare `StaticModel` on Hugging Face (or a local path) can be used as the embe
       "model": "Jarbas/ovos-model2vec-intents-LaBSE",
       "mode": "classifier",
       "prototype_strategy": "max_over_all",
-      "prototype_strategy": "max_over_all",
       "prototype_top_k": 3,
       "prototype_tau": 0.1,
       "conf_high": 0.7,
