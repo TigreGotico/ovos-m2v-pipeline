@@ -42,7 +42,7 @@ Each plugin reads from its own key under `"intents"` in `mycroft.conf`, so both 
   "intents": {
     "ovos-m2v-prototype-pipeline": {
       "model": "minishlab/M2V_multilingual_output",
-      "prototype_k": 5,
+      "prototype_strategy": "max_over_all",
       "conf_high": 0.7,
       "conf_medium": 0.5,
       "conf_low": 0.15,
@@ -57,7 +57,7 @@ Each plugin reads from its own key under `"intents"` in `mycroft.conf`, so both 
 | Key | Type | Default | Applies to | Description |
 |-----|------|---------|------------|-------------|
 | `model` | `str` | `"Jarbas/ovos-model2vec-intents-distiluse-base-multilingual-cased-v2"` | both | HuggingFace repo ID or local path. Classifier mode requires a `StaticModelPipeline`; prototype mode accepts any bare `StaticModel`. |
-| `prototype_k` | `int` | `5` | prototype | Maximum prototype embeddings stored per intent label. |
+| `prototype_k` | `int` | unset (keep all) | prototype | Maximum prototype embeddings stored per intent label. Unset keeps every registered sample so exact training samples always match; set an integer to cap memory. |
 | `conf_high` | `float` | `0.7` | both | Minimum score for `match_high`. |
 | `conf_medium` | `float` | `0.5` | both | Minimum score for `match_medium`. |
 | `conf_low` | `float` | `0.15` | both | Minimum score for `match_low`. |
@@ -83,7 +83,7 @@ Sync is debounced with a 3-second sleep and the `_syncing` flag to coalesce burs
 | Event | Handler | Description |
 |-------|---------|-------------|
 | `mycroft.ready` | `_handle_ready_prototype` | Logs store statistics when system is ready. |
-| `padatious:register_intent` | `_handle_register_padatious` | Reads `file_name` or inline `samples`, expands templates, embeds up to `prototype_k` examples per label. |
+| `padatious:register_intent` | `_handle_register_padatious` | Reads `file_name` or inline `samples`, expands templates, embeds the expanded examples per label (capped by `prototype_k` when set). |
 | `register_intent` | `_handle_register_adapt` | Tracks Adapt label in `self.intents`; no prototypes (Adapt uses keywords, not examples). |
 | `detach_intent` | `_handle_detach_intent` | Removes prototypes and label for the detached intent. |
 | `detach_skill` | `_handle_detach_skill` | Removes all prototypes and labels for the skill. `skill_id` is taken from `message.data` with `message.context` as fallback. |
