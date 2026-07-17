@@ -1,5 +1,6 @@
 import itertools
 import re
+import threading
 import time
 import numpy as np
 from typing import List, Optional, Union, Dict, Iterable, Tuple
@@ -69,6 +70,9 @@ class PrototypeIntentStore:
         top_k: int = 3,
         tau: float = 0.1,
     ) -> None:
+        # Bus registration handlers run concurrently on an executor thread
+        # pool; this lock keeps the parallel embeddings/labels arrays in sync.
+        self._lock = threading.RLock()
         self.strategy: PrototypeStrategy = PrototypeStrategy(strategy)
         self.top_k: int = top_k
         self.tau: float = tau
@@ -117,18 +121,22 @@ class PrototypeIntentStore:
         model,
         label: str,
         sentences: List[str],
-        k: int = 5,
+        k: Optional[int] = None,
         random_state: int = 42,
     ) -> int:
-        """Embed up to *k* sentences and add/replace prototypes for *label*.
+        """Embed *sentences* and add/replace prototypes for *label*.
+
+        ``k`` caps how many anchors the subsampling / clustering strategies
+        keep; ``None`` (the default) keeps every sample so exact training
+        samples always score a perfect match.
 
         Returns the number of prototypes actually added.
         """
         if not sentences:
             return 0
-        self.remove(label)
         # Embed every sample first; the strategy decides which / how many
-        # to keep as anchors at storage time.
+        # to keep as anchors at storage time. Embedding happens outside the
+        # lock: it is the expensive step and touches no shared state.
         embs = np.atleast_2d(model.encode(list(sentences))).astype(np.float32)
         norms = np.linalg.norm(embs, axis=1, keepdims=True)
         embs = np.where(norms > 0, embs / norms, embs)
@@ -136,35 +144,38 @@ class PrototypeIntentStore:
             embs, self.strategy, k=k, random_state=random_state,
         ).astype(np.float32)
         n_added = len(anchors)
-        if n_added == 0:
-            return 0
-
-        if not len(self):
-            self._embeddings = anchors
-            self._labels = np.array([label] * n_added, dtype=object)
-        else:
-            self._embeddings = np.vstack([self._embeddings, anchors])
-            self._labels = np.concatenate(
-                [self._labels, np.array([label] * n_added, dtype=object)]
-            )
+        with self._lock:
+            self.remove(label)
+            if n_added == 0:
+                return 0
+            if not len(self):
+                self._embeddings = anchors
+                self._labels = np.array([label] * n_added, dtype=object)
+            else:
+                self._embeddings = np.vstack([self._embeddings, anchors])
+                self._labels = np.concatenate(
+                    [self._labels, np.array([label] * n_added, dtype=object)]
+                )
         return n_added
 
     def remove(self, label: str) -> None:
         """Remove all prototypes for *label*."""
-        if not len(self):
-            return
-        mask = self._labels != label
-        self._embeddings = self._embeddings[mask]
-        self._labels = self._labels[mask]
+        with self._lock:
+            if not len(self):
+                return
+            mask = self._labels != label
+            self._embeddings = self._embeddings[mask]
+            self._labels = self._labels[mask]
 
     def remove_skill(self, skill_id: str) -> None:
         """Remove all prototypes whose label starts with ``<skill_id>:``."""
-        if not len(self):
-            return
-        prefix = skill_id + ":"
-        mask = np.array([not str(lbl).startswith(prefix) for lbl in self._labels])
-        self._embeddings = self._embeddings[mask]
-        self._labels = self._labels[mask]
+        with self._lock:
+            if not len(self):
+                return
+            prefix = skill_id + ":"
+            mask = np.array([not str(lbl).startswith(prefix) for lbl in self._labels])
+            self._embeddings = self._embeddings[mask]
+            self._labels = self._labels[mask]
 
     # ------------------------------------------------------------------
     # Inference
@@ -178,14 +189,16 @@ class PrototypeIntentStore:
         query_embedding:
             Raw (unnormalised) embedding vector of shape ``(dim,)``.
         """
-        if not len(self):
-            return {}
+        with self._lock:
+            if not len(self):
+                return {}
+            embeddings, labels = self._embeddings, self._labels
         q = query_embedding.astype(np.float32)
         norm = np.linalg.norm(q)
         if norm > 0:
             q = q / norm
         return score_labels(
-            q, self._embeddings, self._labels,
+            q, embeddings, labels,
             self.strategy, top_k=self.top_k, tau=self.tau,
         )
 
@@ -199,7 +212,7 @@ class PrototypeIntentStore:
         model,
         sentences: List[str],
         labels: List[str],
-        k: int = 5,
+        k: Optional[int] = None,
         random_state: int = 42,
         *,
         strategy: PrototypeStrategy = PrototypeStrategy.MAX_OVER_ALL,
@@ -221,7 +234,8 @@ class PrototypeIntentStore:
 
     def save(self, path: str) -> None:
         """Save to a NumPy ``.npz`` archive."""
-        np.savez(path, embeddings=self._embeddings, labels=self._labels.astype(str))
+        with self._lock:
+            np.savez(path, embeddings=self._embeddings, labels=self._labels.astype(str))
         LOG.info(
             f"Saved {len(self)} prototypes "
             f"for {len(self.unique_labels)} labels -> {path}"
@@ -295,9 +309,12 @@ class Model2VecIntentPipeline(ConfidenceMatcherPipeline):
 
     Configuration keys (prototype mode)
     ------------------------------------
-    ``prototype_k`` : int, default 5
+    ``prototype_k`` : int, optional (default: unlimited)
         Maximum number of prototype embeddings kept per label (used by the
         strategies that subsample / cluster — see ``prototype_strategy``).
+        Unset (the default) keeps every registered sample as an anchor so
+        that an exact training sample always scores a perfect match;
+        set an integer to cap memory at the cost of recall.
     ``prototype_strategy`` : str, default ``"max_over_all"``
         One of the ``PrototypeStrategy`` values
         (``mean_centroid`` / ``medoid`` / ``max_over_all`` / ``top_k_mean`` /
@@ -340,7 +357,7 @@ class Model2VecIntentPipeline(ConfidenceMatcherPipeline):
             from model2vec import StaticModel
 
             self.model = StaticModel.from_pretrained(model_path)
-            self._prototype_k: int = self.config.get("prototype_k", 5)
+            self._prototype_k: Optional[int] = self.config.get("prototype_k")
             self._prototype_strategy: PrototypeStrategy = PrototypeStrategy(
                 self.config.get("prototype_strategy",
                                 PrototypeStrategy.MAX_OVER_ALL.value)

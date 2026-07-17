@@ -17,12 +17,12 @@ Both functions accept L2-normalised input and return L2-normalised output / scor
 
 | Value | Anchors stored | Score per label |
 |-------|---------------|-----------------|
-| `max_over_all` | Up to `prototype_k` samples (random subsample when `n > k`) | Max cosine over anchors |
+| `max_over_all` | Every sample (random subsample only when `prototype_k` is set and `n > k`) | Max cosine over anchors |
 | `mean_centroid` | 1 — mean of all samples, re-normalised | Cosine to centroid |
 | `medoid` | 1 — sample closest to centroid | Cosine to medoid |
 | `top_k_mean` | All samples | Mean of top-`prototype_top_k` cosines |
-| `farthest_point` | Up to `prototype_k` samples via maximin (farthest-point) sampling | Max cosine |
-| `kmeans_centers` | Up to `prototype_k` spherical k-means centroids | Max cosine |
+| `farthest_point` | Every sample, or `prototype_k` samples via maximin (farthest-point) sampling when set | Max cosine |
+| `kmeans_centers` | Every sample, or `prototype_k` spherical k-means centroids when set | Max cosine |
 | `softmax_weighted` | All samples | Softmax-weighted average; temperature = `prototype_tau` |
 
 ### Notes

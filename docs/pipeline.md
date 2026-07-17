@@ -80,7 +80,7 @@ Called for every `padatious:register_intent` event. Steps:
 3. Apply `ovos_utils.bracket_expansion.expand_template` to every line so that template syntax is expanded into concrete utterances:
    - `(turn on|switch on) the lights` → `["turn on the lights", "switch on the lights"]`
    - `[please] play music` → `["please play music", "play music"]`
-4. Embed all expanded examples; `select_anchors()` (`ovos_m2v_pipeline/strategies.py:131`) reduces them to the subset or aggregation dictated by `prototype_strategy`. Up to `prototype_k` anchors per label are stored in `PrototypeIntentStore`.
+4. Embed all expanded examples; `select_anchors()` (`ovos_m2v_pipeline/strategies.py:131`) reduces them to the subset or aggregation dictated by `prototype_strategy`. All resulting anchors are stored in `PrototypeIntentStore` (capped per label by `prototype_k` when set).
 5. Add the label to `self.intents`.
 
 ### `_handle_register_adapt`
