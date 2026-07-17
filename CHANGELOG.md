@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.5.3a1](https://github.com/OpenVoiceOS/ovos-m2v-pipeline/tree/0.5.3a1) (2026-07-17)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-m2v-pipeline/compare/0.5.2a1...0.5.3a1)
+
+**Merged pull requests:**
+
+- fix: keep every registered sample as a prototype anchor by default [\#54](https://github.com/OpenVoiceOS/ovos-m2v-pipeline/pull/54) ([JarbasAl](https://github.com/JarbasAl))
+
 ## [0.5.2a1](https://github.com/OpenVoiceOS/ovos-m2v-pipeline/tree/0.5.2a1) (2026-07-16)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-m2v-pipeline/compare/0.5.1a1...0.5.2a1)
