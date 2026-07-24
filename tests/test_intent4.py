@@ -174,6 +174,38 @@ class TestIntent4TemplateRegistration(unittest.TestCase):
         self.assertIsNone(p.prototype_store)
 
 
+class TestIntent4FrozenClassifierWarning(unittest.TestCase):
+    """The frozen classifier warns (once per skill) that it accepted an
+    INTENT-4 template registration it can never match; the prototype matcher
+    never warns, since it actually consumes the registration."""
+
+    def _msg(self, skill_id="music.skill", intent_name="play_music"):
+        return Message(
+            SpecMessage.INTENT_REGISTER_TEMPLATE.value,
+            data={"skill_id": skill_id, "intent_name": intent_name,
+                  "lang": "en-US", "samples": ["play music"]},
+            context={"skill_id": skill_id},
+        )
+
+    def test_classifier_mode_warns_once_per_skill(self):
+        p = _make_classifier_pipeline()
+        with patch("ovos_m2v_pipeline.LOG.warning") as warn:
+            p._handle_intent4_register_template(self._msg(intent_name="play_music"))
+            p._handle_intent4_register_template(self._msg(intent_name="stop_music"))
+            p._handle_intent4_register_template(self._msg(skill_id="other.skill"))
+        self.assertEqual(warn.call_count, 2)
+        first_msg = warn.call_args_list[0].args[0]
+        self.assertIn("frozen classifier", first_msg)
+        self.assertIn("ovos-m2v-prototype-pipeline", first_msg)
+        self.assertIn("music.skill", first_msg)
+
+    def test_prototype_mode_never_warns(self):
+        p = _make_prototype_pipeline()
+        with patch("ovos_m2v_pipeline.LOG.warning") as warn:
+            p._handle_intent4_register_template(self._msg())
+        warn.assert_not_called()
+
+
 class TestIntent4EntityRegistration(unittest.TestCase):
     def test_entity_fills_template_slots(self):
         p = _make_prototype_pipeline()

@@ -350,6 +350,10 @@ class Model2VecIntentPipeline(ConfidenceMatcherPipeline):
         #: utterance contains one of its label's blacklisted phrases. Named and
         #: matched consistently with the padacioso engine's ``excluded_keywords``.
         self.excluded_keywords: Dict[str, List[str]] = {}
+        #: skill_ids that already triggered the frozen-classifier INTENT-4
+        #: warning (see ``_handle_intent4_register_template``), so the
+        #: warning logs once per skill rather than once per template.
+        self._intent4_frozen_warned: set = set()
 
         mode = self.config.get("mode", "classifier")
 
@@ -682,6 +686,15 @@ class Model2VecIntentPipeline(ConfidenceMatcherPipeline):
 
         # Classifier mode is frozen: only gate the (already trained) label.
         if self.prototype_store is None:
+            skill_id = message.data.get("skill_id") or message.context.get("skill_id", "")
+            if skill_id and skill_id not in self._intent4_frozen_warned:
+                self._intent4_frozen_warned.add(skill_id)
+                LOG.warning(
+                    "Model2VecIntentPipeline is a frozen classifier and cannot "
+                    "match registered skill intents; use "
+                    "ovos-m2v-prototype-pipeline-* to match INTENT-4 "
+                    f"registrations from {skill_id}"
+                )
             self.intents.add(label)
             self._store_context_gate(label, message)
             LOG.debug(f"Model2Vec: tracking INTENT-4 template label '{label}'")

@@ -61,6 +61,35 @@ In your `mycroft.conf`:
 
 ---
 
+## 🧩 Which entrypoint do I want?
+
+This plugin ships two `opm.pipeline` entrypoints, backed by the same
+`Model2VecIntentPipeline` class but running in different modes:
+
+* **`ovos-m2v-pipeline`** (`Model2VecIntentPipeline`, `mode: "classifier"`, the
+  default) loads a pretrained, **frozen** classification head with a fixed
+  label set baked in at training time. It is fast and needs no runtime
+  fitting, but it can only ever return the labels it was trained on. It still
+  tracks OVOS-INTENT-4 `ovos.intent.register.template` registrations from
+  skills so it can gate/allowlist a trained label, but registering a new
+  intent that was not part of training does **not** teach it to that skill —
+  it will never be matched.
+* **`ovos-m2v-prototype-pipeline`** (`Model2VecPrototypePipeline`, `mode:
+  "prototype"`) loads a bare embedding model with no classification head and
+  builds its label set entirely at runtime, from the example utterances
+  supplied by Adapt/Padatious registrations and OVOS-INTENT-4 template
+  registrations. Use this entrypoint whenever skills need to register new
+  intents (including custom/dynamically-created skills) that must actually be
+  matched.
+
+Both entrypoints can be enabled together — configure each independently under
+its own `intents.<entrypoint-name>` key (see `Model2VecPrototypePipeline`
+docstring for an example) — so a deployment can keep the fast frozen
+classifier for its core trained intents while the prototype matcher picks up
+everything else.
+
+---
+
 ## 🧠 Usage
 
 The `Model2VecIntentPipeline` class integrates with the OVOS intent system. It:
