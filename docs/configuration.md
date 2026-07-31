@@ -2,7 +2,7 @@
 
 The pipeline is configured inside `mycroft.conf` under the `intents` section.
 
-## Minimal Configuration — Classifier Mode
+## Minimal Configuration: Classifier Mode
 
 ```json
 {
@@ -14,7 +14,7 @@ The pipeline is configured inside `mycroft.conf` under the `intents` section.
 }
 ```
 
-## Minimal Configuration — Prototype Mode
+## Minimal Configuration: Prototype Mode
 
 ```json
 {
@@ -27,7 +27,7 @@ The pipeline is configured inside `mycroft.conf` under the `intents` section.
 }
 ```
 
-Any bare `StaticModel` on Hugging Face (or a local path) can be used as the embedding backbone for prototype mode — no classifier head is needed.
+Any bare `StaticModel` on Hugging Face (or a local path) can be used as the embedding backbone for prototype mode. No classifier head is needed.
 
 ## Full Configuration Reference
 
@@ -54,12 +54,12 @@ Any bare `StaticModel` on Hugging Face (or a local path) can be used as the embe
 
 | Key | Type | Default | Description |
 |-----|------|---------|-------------|
-| `model` | `str` | `"Jarbas/ovos-model2vec-intents-distiluse-base-multilingual-cased-v2"` | Hugging Face repo ID or local path. In classifier mode this must be a `StaticModelPipeline`; in prototype mode any bare `StaticModel` works. |
+| `model` | `str` | `"Jarbas/ovos-model2vec-intents-distiluse-base-multilingual-cased-v2"` | Hugging Face repo ID or local path. In classifier mode this must be a `StaticModelPipeline`. In prototype mode any bare `StaticModel` works. |
 | `mode` | `str` | `"classifier"` | Operating mode: `"classifier"` or `"prototype"`. |
-| `prototype_k` | `int` | unset (keep all) | Maximum number of prototype embeddings stored per intent label (prototype mode only). Unset keeps every registered sample so exact training samples always match; set an integer to cap memory. |
+| `prototype_k` | `int` | unset (keep all) | Maximum number of prototype embeddings stored per intent label (prototype mode only). Unset keeps every registered sample so exact training samples always match. Set an integer to cap memory. |
 | `prototype_strategy` | `str` | `"max_over_all"` | Scoring strategy for prototype mode. See [Prototype Strategies](#prototype-strategies-prototype-mode-only) below. |
 | `prototype_top_k` | `int` | `3` | Number of top cosine similarities averaged by the `top_k_mean` strategy. Also the default `k` for `softmax_weighted` when used in scoring. |
-| `prototype_tau` | `float` | `0.1` | Temperature for the `softmax_weighted` strategy. Lower values sharpen the distribution toward the maximum; higher values flatten it toward the mean. |
+| `prototype_tau` | `float` | `0.1` | Temperature for the `softmax_weighted` strategy. Lower values sharpen the distribution toward the maximum. Higher values flatten it toward the mean. |
 | `conf_high` | `float` | `0.7` | Minimum score for a `match_high` result. |
 | `conf_medium` | `float` | `0.5` | Minimum score for a `match_medium` result. |
 | `conf_low` | `float` | `0.15` | Minimum score for a `match_low` result. |
@@ -73,26 +73,26 @@ Any bare `StaticModel` on Hugging Face (or a local path) can be used as the embe
 | Value | Storage | Scoring | Notes |
 |-------|---------|---------|-------|
 | `max_over_all` | Every sample per label (random subsample when `prototype_k` is set) | Max cosine over stored anchors | Default. |
-| `mean_centroid` | 1 anchor = mean of all samples | Cosine to centroid | Cheapest storage and inference; classic prototype baseline. |
-| `medoid` | 1 anchor = sample closest to centroid | Cosine to medoid | Robust to outliers; avoids averaging blur. |
+| `mean_centroid` | 1 anchor = mean of all samples | Cosine to centroid | Cheapest storage and inference. A classic prototype baseline. |
+| `medoid` | 1 anchor = sample closest to centroid | Cosine to medoid | Not sensitive to outliers. Avoids averaging blur. |
 | `top_k_mean` | All samples kept | Mean of top-`prototype_top_k` cosines | Combines sharpness of max with smoothing. |
-| `farthest_point` | Up to `prototype_k` samples via maximin sampling | Max cosine | Anchors span the example space; good for diverse phrasings. |
+| `farthest_point` | Up to `prototype_k` samples via maximin sampling | Max cosine | Anchors span the example space. Good for diverse phrasings. |
 | `kmeans_centers` | Up to `prototype_k` spherical k-means centroids | Max cosine | Useful when a label has multi-modal phrasings. |
 | `softmax_weighted` | All samples kept | Softmax-weighted average of cosines | `prototype_tau` controls sharpness. |
 
-The default `max_over_all` produces byte-identical results to the store behaviour before strategies were introduced — existing `.npz` files and tuned thresholds remain valid.
+The default `max_over_all` produces byte-identical results to the store behavior before strategies were introduced. Existing `.npz` files and tuned thresholds remain valid.
 
 ## Confidence Thresholds
 
 Each `conf_*` key sets the minimum score required for the corresponding tier method to return a match:
 
-- **`conf_high`** — threshold for `match_high()`, called when `ovos-m2v-pipeline-high` appears in the pipeline list.
-- **`conf_medium`** — threshold for `match_medium()`, called when `ovos-m2v-pipeline-medium` appears.
-- **`conf_low`** — threshold for `match_low()`, called when `ovos-m2v-pipeline-low` appears.
+- **`conf_high`**: threshold for `match_high()`, called when `ovos-m2v-pipeline-high` appears in the pipeline list.
+- **`conf_medium`**: threshold for `match_medium()`, called when `ovos-m2v-pipeline-medium` appears.
+- **`conf_low`**: threshold for `match_low()`, called when `ovos-m2v-pipeline-low` appears.
 
-OVOS evaluates the pipeline list top-to-bottom and stops at the first match. Only the tiers you add to the pipeline list are ever invoked — unused tiers consume no resources.
+OVOS evaluates the pipeline list top-to-bottom and stops at the first match. Only the tiers you add to the pipeline list are ever invoked. Unused tiers consume no resources.
 
-In classifier mode the scores are softmax probabilities (sum to 1 across all labels). In prototype mode the scores are cosine similarities (typically 0–1); you may need to tune thresholds downward.
+In classifier mode the scores are softmax probabilities (sum to 1 across all labels). In prototype mode the scores are cosine similarities (typically 0-1). You may need to tune thresholds downward.
 
 Only the top-ranked valid intent is returned at each tier. If its score is below the threshold, `None` is returned and the OVOS pipeline moves to the next entry.
 
@@ -121,3 +121,6 @@ Set `model` to an absolute path to use a locally saved model:
 ```
 
 See [Models](models.md) for available pre-trained models and [Training](training.md) to produce your own.
+
+---
+[← OVOS Pipeline Plugin](ovos_pipeline.md) · [Home](README.md) · [Pipeline Internals →](pipeline.md)

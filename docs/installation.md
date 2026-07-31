@@ -38,3 +38,6 @@ After installing, confirm the entry point is registered:
 ```bash
 python -c "from ovos_m2v_pipeline import Model2VecIntentPipeline; print('OK')"
 ```
+
+---
+[Home](README.md) · [OVOS Pipeline Plugin →](ovos_pipeline.md)
