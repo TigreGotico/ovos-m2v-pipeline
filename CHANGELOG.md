@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.5.4a2](https://github.com/OpenVoiceOS/ovos-m2v-pipeline/tree/0.5.4a2) (2026-07-31)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-m2v-pipeline/compare/0.5.4a1...0.5.4a2)
+
+**Merged pull requests:**
+
+- docs: rewrite README in Simplified Technical English [\#59](https://github.com/OpenVoiceOS/ovos-m2v-pipeline/pull/59) ([JarbasAl](https://github.com/JarbasAl))
+
 ## [0.5.4a1](https://github.com/OpenVoiceOS/ovos-m2v-pipeline/tree/0.5.4a1) (2026-07-24)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-m2v-pipeline/compare/0.5.3a1...0.5.4a1)
