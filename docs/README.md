@@ -6,7 +6,7 @@ An intent matching pipeline for [OpenVoiceOS (OVOS)](https://openvoiceos.org), p
 
 This plugin integrates a pre-trained Model2Vec static embedding model with the OVOS intent pipeline system. It classifies natural language utterances into intent labels that have been registered at runtime by loaded skills (via Adapt, Padatious, or plugin-specific registration).
 
-The pipeline is designed as a **fallback or confidence-based matcher** — it is most useful when deterministic engines (Adapt, Padatious) fail to produce a high-confidence match.
+The pipeline works best as a fallback or confidence-based matcher. Use it when deterministic engines (Adapt, Padatious) fail to produce a high-confidence match.
 
 ## How It Works
 
@@ -17,10 +17,10 @@ The pipeline is designed as a **fallback or confidence-based matcher** — it is
 
 ## Key Properties
 
-- **Pretrained, not adaptive** — the model was trained on a fixed corpus of OVOS skill intent examples. It cannot learn new skills at runtime.
-- **Runtime filtering** — even though the model knows hundreds of intent labels, only those from currently loaded skills are considered.
-- **Tiered confidence** — three match levels (`high`, `medium`, `low`) with separate thresholds, integrated into the OVOS pipeline priority system.
-- **Multilingual by default** — the default model covers 11+ languages.
+- **Pretrained, not adaptive.** The model was trained on a fixed corpus of OVOS skill intent examples. It cannot learn new skills at runtime.
+- **Runtime filtering.** Even though the model knows hundreds of intent labels, only those from currently loaded skills are considered.
+- **Tiered confidence.** Three match levels (`high`, `medium`, `low`) use separate thresholds, integrated into the OVOS pipeline priority system.
+- **Multilingual by default.** The default model covers 11+ languages.
 
 ## Documentation
 

@@ -36,7 +36,7 @@ On startup the pipeline:
 2. Loads the model (`StaticModelPipeline` in classifier mode, `StaticModel` in prototype mode).
 3. Registers message bus event handlers.
 
-### Bus Events — Classifier Mode
+### Bus Events: Classifier Mode
 
 | Event | Handler |
 |-------|---------|
@@ -46,7 +46,7 @@ On startup the pipeline:
 | `detach_intent` | `handle_sync_intents` |
 | `detach_skill` | `handle_sync_intents` |
 
-### Bus Events — Prototype Mode
+### Bus Events: Prototype Mode
 
 | Event | Handler |
 |-------|---------|
@@ -58,7 +58,7 @@ On startup the pipeline:
 
 ---
 
-## Intent Synchronisation — Classifier Mode
+## Intent Synchronization: Classifier Mode
 
 `handle_sync_intents` is called whenever skills are loaded or unloaded. It:
 
@@ -69,23 +69,23 @@ On startup the pipeline:
 
 ---
 
-## Prototype Registration — Prototype Mode
+## Prototype Registration: Prototype Mode
 
 ### `_handle_register_padatious`
 
 Called for every `padatious:register_intent` event. Steps:
 
-1. Extract `name` from `message.data`; skip if in `ignore_labels`.
-2. Prefer inline `message.data["samples"]` if present; otherwise read the file at `message.data["file_name"]`.
+1. Extract `name` from `message.data`. Skip it if it is in `ignore_labels`.
+2. Prefer inline `message.data["samples"]` if present. Otherwise read the file at `message.data["file_name"]`.
 3. Apply `ovos_utils.bracket_expansion.expand_template` to every line so that template syntax is expanded into concrete utterances:
    - `(turn on|switch on) the lights` → `["turn on the lights", "switch on the lights"]`
    - `[please] play music` → `["please play music", "play music"]`
-4. Embed all expanded examples; `select_anchors()` (`ovos_m2v_pipeline/strategies.py:131`) reduces them to the subset or aggregation dictated by `prototype_strategy`. All resulting anchors are stored in `PrototypeIntentStore` (capped per label by `prototype_k` when set).
+4. Embed all expanded examples. `select_anchors()` (`ovos_m2v_pipeline/strategies.py:131`) reduces them to the subset or aggregation dictated by `prototype_strategy`. All resulting anchors are stored in `PrototypeIntentStore` (capped per label by `prototype_k` when set).
 5. Add the label to `self.intents`.
 
 ### `_handle_register_adapt`
 
-Adapt intents carry no example sentences — only keyword rules. The label is added to `self.intents` but no prototypes are created. These intents are not matched in prototype mode.
+Adapt intents carry no example sentences, only keyword rules. The label is added to `self.intents` but no prototypes are created. These intents are not matched in prototype mode.
 
 ### `_handle_detach_intent`
 
@@ -116,7 +116,7 @@ store.remove_skill("skill_a")
 scores = store.scores(query_embedding)  # {label: score}
 ```
 
-The scoring algorithm — and therefore what `scores()` returns — is determined by the `strategy` kwarg. The default `MAX_OVER_ALL` returns the maximum cosine similarity across all stored anchors per label, which is byte-compatible with the store's behaviour before strategies were introduced.
+The `strategy` kwarg determines the scoring algorithm, and therefore what `scores()` returns. The default `MAX_OVER_ALL` returns the maximum cosine similarity across all stored anchors per label. This is byte-compatible with the store's behavior before strategies were introduced.
 
 The store can optionally be persisted and reloaded with any strategy:
 
@@ -130,7 +130,7 @@ store = PrototypeIntentStore.load(
 )
 ```
 
-See [Configuration — Prototype Strategies](configuration.md#prototype-strategies-prototype-mode-only) for a full description of each strategy.
+See [Configuration: Prototype Strategies](configuration.md#prototype-strategies-prototype-mode-only) for a full description of each strategy.
 
 ---
 
@@ -156,7 +156,7 @@ After remapping, a label is skipped unless `skill_id` is one of the three specia
 
 ### Prototype mode filter
 
-The `PrototypeIntentStore` only ever contains labels that were explicitly registered via `_handle_register_padatious`; no additional `self.intents` filter is applied. Labels in `ignore_labels` are skipped.
+The `PrototypeIntentStore` only ever contains labels that were explicitly registered via `_handle_register_padatious`. No additional `self.intents` filter is applied. Labels in `ignore_labels` are skipped.
 
 ---
 
@@ -189,3 +189,6 @@ If the utterance list is empty, or the top result's score is below the threshold
 - **Prototype mode**: only Padatious intents with example utterances produce prototypes. Adapt intents (keyword-based) are tracked but never matched.
 - **Intent sync debounce** (classifier mode): a fixed 3-second sleep may leave `self.intents` empty briefly after startup.
 - Only the **first utterance** in the input list is evaluated (`utterances[0]`).
+
+---
+[← Configuration](configuration.md) · [Home](README.md) · [Prototype Strategies →](strategies.md)

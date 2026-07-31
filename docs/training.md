@@ -22,7 +22,7 @@ train/
 
 ---
 
-## Step 1 — Gather the Dataset
+## Step 1: Gather the Dataset
 
 ### Multilingual
 
@@ -64,9 +64,9 @@ Each row in the CSV represents one training example:
 
 Labels follow the format `<skill_id>:<intent_name>`.
 
-### Normalisation
+### Normalization
 
-`gather_dataset.py` applies the following normalisation before saving:
+`gather_dataset.py` applies the following normalization before saving:
 
 - **`sentence`**: lowercased, commas removed, multi-word separators collapsed, leading/trailing quotes stripped.
 - **`domain`** (skill ID): `skill-ovos` prefix replaced with `ovos-skill`.
@@ -76,7 +76,7 @@ Blacklists (`BLACKLIST_SKILLS`, `BLACKLIST_INTENTS`) allow excluding specific sk
 
 ---
 
-## Step 2 — Train the Model
+## Step 2: Train the Model
 
 ### Multilingual
 
@@ -105,13 +105,13 @@ Trains five separate classifiers, one per Potion base model:
 - `minishlab/potion-retrieval-32M`
 
 Each is trained for 25 epochs. Outputs:
-- `m2v_intents_<base_model_name>/` — saved pipeline
-- `metrics_en_<base_model_name>.md` — per-model metrics
-- `model_comparison_en.md` — comparison table across all English models
+- `m2v_intents_<base_model_name>/`: the saved pipeline
+- `metrics_en_<base_model_name>.md`: per-model metrics
+- `model_comparison_en.md`: a comparison table across all English models
 
 ---
 
-## Step 3 — (Optional) Distill a New Base Model
+## Step 3 (Optional): Distill a New Base Model
 
 If you want to start from a Sentence Transformer that is not yet available as a Model2Vec distillate:
 
@@ -123,7 +123,7 @@ Edit the model list at the top of `distill.py`, then run the script. It calls `m
 
 ---
 
-## Step 4 — Test the Trained Model
+## Step 4: Test the Trained Model
 
 Use `predict.py` as a quick smoke test:
 
@@ -165,3 +165,6 @@ m.push_to_hub('YourOrg/your-model-name')
 ```
 
 Then update the `model` key in your OVOS configuration to point at the new repo.
+
+---
+[← Models](models.md) · [Home](README.md)
