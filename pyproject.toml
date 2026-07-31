@@ -39,6 +39,15 @@ test = [
     "ovos-bus-client>=2.5.1a1,<3.0.0",
     "ovos-spec-tools>=1.4.0a1",
 ]
+benchmark = [
+    "padaos",
+    "padatious",
+    "fann2==1.0.7",
+    "nebulento",
+    "datasets",
+    "scikit-learn",
+    "joblib",
+]
 
 [project.urls]
 Homepage = "https://openvoiceos.org"
@@ -48,6 +57,9 @@ Funding = "https://nlnet.nl/project/OpenVoiceOS"
 [project.entry-points."opm.pipeline"]
 ovos-m2v-pipeline = "ovos_m2v_pipeline:Model2VecIntentPipeline"
 ovos-m2v-prototype-pipeline = "ovos_m2v_pipeline:Model2VecPrototypePipeline"
+ovos-m2v-hierarchical-prototype-pipeline = "ovos_m2v_pipeline:Model2VecHierarchicalPrototypePipeline"
+ovos-m2v-hierarchical-intent-pipeline = "ovos_m2v_pipeline:Model2VecHierarchicalIntentPipeline"
+ovos-m2v-domain-intent-pipeline = "ovos_m2v_pipeline:Model2VecDomainIntentPipeline"
 
 [tool.setuptools]
 packages = ["ovos_m2v_pipeline"]

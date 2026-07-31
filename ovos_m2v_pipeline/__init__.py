@@ -368,11 +368,7 @@ class Model2VecIntentPipeline(ConfidenceMatcherPipeline):
             )
             self._prototype_top_k: int = self.config.get("prototype_top_k", 3)
             self._prototype_tau: float = self.config.get("prototype_tau", 0.1)
-            self.prototype_store: Optional[PrototypeIntentStore] = PrototypeIntentStore(
-                strategy=self._prototype_strategy,
-                top_k=self._prototype_top_k,
-                tau=self._prototype_tau,
-            )
+            self.prototype_store: Optional[PrototypeIntentStore] = self._build_prototype_store()
 
             self.bus.on("mycroft.ready", self._handle_ready_prototype)
             # Legacy registration topics (kept alongside OVOS-INTENT-4).
@@ -583,17 +579,41 @@ class Model2VecIntentPipeline(ConfidenceMatcherPipeline):
 
     def _handle_detach_intent(self, message: Message) -> None:
         name: str = message.data.get("intent_name", "")
-        if name:
-            self.prototype_store.remove(name)
-            self.intents.discard(name)
-            LOG.debug(f"Prototype store: removed prototypes for '{name}'")
+        if not name:
+            return
+        self._remove_intent(name)
+        self.intents.discard(name)
+        LOG.debug(f"Prototype store: removed prototypes for '{name}'")
 
     def _handle_detach_skill(self, message: Message) -> None:
         skill_id: str = message.data.get("skill_id") or message.context.get("skill_id", "")
-        if skill_id:
-            self.prototype_store.remove_skill(skill_id)
-            self.intents = {i for i in self.intents if not i.startswith(skill_id + ":")}
-            LOG.debug(f"Prototype store: removed prototypes for skill '{skill_id}'")
+        if not skill_id:
+            return
+        self._remove_skill(skill_id)
+        self.intents = {i for i in self.intents if not i.startswith(skill_id + ":")}
+        LOG.debug(f"Prototype store: removed prototypes for skill '{skill_id}'")
+
+    # ------------------------------------------------------------------
+    # Store-shape hooks — overridden by Model2VecHierarchicalPrototypePipeline
+    # ------------------------------------------------------------------
+
+    def _build_prototype_store(self):
+        return PrototypeIntentStore(
+            strategy=self._prototype_strategy,
+            top_k=self._prototype_top_k,
+            tau=self._prototype_tau,
+        )
+
+    def _add_intent(self, name: str, sentences: List[str]) -> int:
+        return self.prototype_store.add(
+            self.model, name, sentences, k=self._prototype_k
+        )
+
+    def _remove_intent(self, name: str) -> None:
+        self.prototype_store.remove(name)
+
+    def _remove_skill(self, skill_id: str) -> None:
+        self.prototype_store.remove_skill(skill_id)
 
     # ------------------------------------------------------------------
     # OVOS-INTENT-4 registration (template method) — consumed in addition
@@ -715,7 +735,7 @@ class Model2VecIntentPipeline(ConfidenceMatcherPipeline):
         if not expanded:  # zero non-empty expansions -> malformed (§6.3)
             self._intent4_warn(topic, message, "samples expand to zero non-empty templates")
             return
-        n = self.prototype_store.add(self.model, label, expanded, k=self._prototype_k)
+        n = self._add_intent(label, expanded)
         self.intents.add(label)
         self._store_context_gate(label, message)
         LOG.debug(f"Prototype store: added {n} prototype(s) for INTENT-4 template '{label}'")
@@ -770,7 +790,7 @@ class Model2VecIntentPipeline(ConfidenceMatcherPipeline):
         if not label:
             return
         if self.prototype_store is not None:
-            self.prototype_store.remove(label)
+            self._remove_intent(label)
         self.intents.discard(label)
         self._context_gates.pop(label, None)
         self.excluded_keywords.pop(label, None)
@@ -789,7 +809,7 @@ class Model2VecIntentPipeline(ConfidenceMatcherPipeline):
         if not skill_id:
             return
         if self.prototype_store is not None:
-            self.prototype_store.remove_skill(skill_id)
+            self._remove_skill(skill_id)
         self.intents = {i for i in self.intents if not i.startswith(skill_id + ":")}
         self._context_gates = {l: g for l, g in self._context_gates.items()
                                if not l.startswith(skill_id + ":")}
@@ -809,7 +829,7 @@ class Model2VecIntentPipeline(ConfidenceMatcherPipeline):
         if not label:
             return
         if self.prototype_store is not None:
-            self.prototype_store.remove(label)
+            self._remove_intent(label)
         self.intents.discard(label)
         self._context_gates.pop(label, None)
         self.excluded_keywords.pop(label, None)
@@ -1097,3 +1117,277 @@ class Model2VecPrototypePipeline(Model2VecIntentPipeline):
             )
         config["mode"] = "prototype"
         super().__init__(bus, config)
+
+
+# Re-export HierarchicalPrototypeIntentStore at the package root for parity
+# with the other OVOS intent plugins (nebulento, ovos-padatious, palavreado,
+# padacioso, linha_fina, ovos-markov-pipeline).
+from ovos_m2v_pipeline.hierarchical_store import (  # noqa: E402
+    HierarchicalPrototypeIntentStore,
+)
+
+
+class Model2VecHierarchicalPrototypePipeline(Model2VecPrototypePipeline):
+    """Two-stage (hierarchical) domain-routed prototype pipeline.
+
+    Same behaviour and bus surface as :class:`Model2VecPrototypePipeline`
+    except the underlying store is a
+    :class:`HierarchicalPrototypeIntentStore`. Each Padatious intent is
+    grouped into a domain == skill_id (taken from the intent label's
+    ``<skill_id>:<intent>`` prefix). At inference time a top-level
+    router picks the single best domain by per-domain fingerprint
+    similarity, then only that domain's sub-store resolves the intent.
+    Queries that match no domain above ``domain_threshold`` are rejected
+    before any sub-store runs.
+
+    Configuration is read from
+    ``intents.ovos_m2v_hierarchical_prototype_pipeline`` so this
+    pipeline can coexist with the flat prototype plugin in the same
+    OVOS instance. Accepts every key the flat plugin does, plus:
+
+    ``intent_strategy`` : str
+        ``PrototypeStrategy`` for the per-domain sub-stores. Defaults to
+        ``prototype_strategy``.
+    ``intent_top_k`` : int
+        ``top_k`` for per-domain sub-stores. Defaults to ``prototype_top_k``.
+    ``intent_tau`` : float
+        ``tau`` for per-domain sub-stores. Defaults to ``prototype_tau``.
+    ``domain_threshold`` : float, optional
+        Minimum router fingerprint score required to route a query.
+        Below it the query is rejected. Defaults to ``0.0`` (no gate).
+
+    Example ``mycroft.conf``::
+
+        "intents": {
+            "ovos-m2v-hierarchical-prototype-pipeline": {
+                "model": "minishlab/potion-multilingual-128M",
+                "intent_strategy":   "softmax_weighted",
+                "intent_tau":         0.1,
+                "domain_threshold":   0.2
+            }
+        }
+    """
+
+    def __init__(
+        self,
+        bus: Optional[Union[MessageBusClient, FakeBus]] = None,
+        config: Optional[Dict] = None,
+    ) -> None:
+        if config is None:
+            config = (
+                Configuration().get("intents", {})
+                .get("ovos_m2v_hierarchical_prototype_pipeline") or {}
+            )
+        super().__init__(bus, config)
+
+    # ------------------------------------------------------------------
+    # Overrides — swap the store and route adds/removes through (domain, label)
+    # ------------------------------------------------------------------
+
+    def _build_prototype_store(self):
+        return HierarchicalPrototypeIntentStore(
+            intent_strategy=PrototypeStrategy(
+                self.config.get("intent_strategy",
+                                self._prototype_strategy.value)
+            ),
+            intent_top_k=self.config.get("intent_top_k", self._prototype_top_k),
+            intent_tau=self.config.get("intent_tau", self._prototype_tau),
+            domain_strategy=self._prototype_strategy,
+            domain_tau=self._prototype_tau,
+            domain_threshold=self.config.get("domain_threshold", 0.0),
+        )
+
+    @staticmethod
+    def _domain_of(name: str) -> str:
+        """Extract the domain (skill_id) from a ``skill_id:intent`` label."""
+        return name.split(":", 1)[0] if ":" in name else name
+
+    def _add_intent(self, name: str, sentences: List[str]) -> int:
+        return self.prototype_store.add(
+            self.model, self._domain_of(name), name, sentences,
+            k=self._prototype_k,
+        )
+
+    def _remove_intent(self, name: str) -> None:
+        self.prototype_store.remove(self._domain_of(name), name)
+
+    def _remove_skill(self, skill_id: str) -> None:
+        # In hierarchical mode the skill_id IS the domain.
+        self.prototype_store.remove_domain(skill_id)
+
+
+from ovos_m2v_pipeline.hierarchical_classifier import (  # noqa: E402
+    HierarchicalIntentClassifier,
+)
+
+
+class Model2VecHierarchicalIntentPipeline(Model2VecIntentPipeline):
+    """Two-stage (hierarchical) **trained** classifier pipeline.
+
+    Counterpart to :class:`Model2VecHierarchicalPrototypePipeline` for the
+    classifier (supervised) family. Loads a
+    :class:`HierarchicalIntentClassifier` bundle from disk (or HF) — a
+    domain classifier plus one intent classifier per domain — and routes
+    the embedding through both stages at inference time.
+
+    Configuration is read from
+    ``intents.ovos_m2v_hierarchical_intent_pipeline``. Required keys:
+
+    ``model_path`` : str
+        Path or HF repo containing the saved
+        :class:`HierarchicalIntentClassifier` bundle (a directory with
+        ``manifest.json`` and ``domain/`` + ``intent/`` subfolders).
+    ``model`` : str
+        Embedding model loaded as a bare ``StaticModel`` — the same encoder
+        used at training time.
+    ``domain_threshold`` : float, optional
+        Override the saved bundle's domain rejection gate.
+
+    Example ``mycroft.conf``::
+
+        "intents": {
+            "ovos-m2v-hierarchical-intent-pipeline": {
+                "model": "minishlab/potion-multilingual-128M",
+                "model_path": "/path/to/bundle",
+                "domain_threshold": 0.2
+            }
+        }
+    """
+
+    def __init__(
+        self,
+        bus: Optional[Union[MessageBusClient, FakeBus]] = None,
+        config: Optional[Dict] = None,
+    ) -> None:
+        if config is None:
+            config = (
+                Configuration().get("intents", {})
+                .get("ovos_m2v_hierarchical_intent_pipeline") or {}
+            )
+        # Force prototype-style init so we get the bare StaticModel encoder
+        # plus the bus wiring used to discover registered intents — then we
+        # swap the prototype store out for the trained hierarchical
+        # classifier below.
+        config = dict(config)
+        config["mode"] = "prototype"
+        super().__init__(bus, config)
+
+        bundle_path = self.config.get("model_path") or self.config.get("classifier_path")
+        if not bundle_path:
+            raise FileNotFoundError(
+                "'model_path' (HierarchicalIntentClassifier bundle) not set "
+                "in configuration for ovos_m2v_hierarchical_intent_pipeline"
+            )
+        self.classifier: HierarchicalIntentClassifier = HierarchicalIntentClassifier.load(bundle_path)
+        if "domain_threshold" in self.config:
+            self.classifier.domain_threshold = float(self.config["domain_threshold"])
+        # Discard the prototype store — the trained classifier owns matching.
+        self.prototype_store = None
+
+        LOG.info(
+            f"Loaded Model2VecHierarchicalIntent pipeline with "
+            f"{len(self.classifier.intent_classifiers)} domains, "
+            f"{len(self.classifier)} intents, bundle='{bundle_path}'"
+        )
+
+    # ------------------------------------------------------------------
+    # Matching — override to use the trained two-stage classifier
+    # ------------------------------------------------------------------
+
+    def _match(self, utterance: str,
+               message: Optional[Message] = None) -> Iterable[Tuple[str, str, float]]:
+        emb = self.model.encode([utterance])[0]
+        label_scores = self.classifier.predict_proba(emb)
+        special = self._allowed_special_labels(message)
+        for label, score in sorted(label_scores.items(), key=lambda x: x[1], reverse=True):
+            LOG.debug(f"Match candidate: {label} - score: {score:.4f}")
+            if label in self.ignore_labels:
+                continue
+            if label in _SPECIAL_LABELS and label not in special:
+                continue
+            skill_id, label = self._apply_special_label_map(label)
+            yield skill_id, label, float(score)
+
+
+from ovos_m2v_pipeline.domain_classifier import (  # noqa: E402
+    DomainIntentClassifier,
+)
+
+
+class Model2VecDomainIntentPipeline(Model2VecIntentPipeline):
+    """Domain (parallel-argmax) **trained** classifier pipeline.
+
+    One trained classifier per domain (skill_id), with no top-level router.
+    At inference time every per-domain classifier scores the query and a
+    single global argmax over their softmax outputs picks the winner.
+
+    Configuration is read from
+    ``intents.ovos_m2v_domain_intent_pipeline``. Required keys:
+
+    ``model_path`` : str
+        Path or HF repo containing the saved
+        :class:`DomainIntentClassifier` bundle (a directory with
+        ``manifest.json`` and an ``intent/<domain>/`` subfolder per domain).
+    ``model`` : str
+        Embedding model loaded as a bare ``StaticModel`` — the same encoder
+        used at training time.
+
+    Example ``mycroft.conf``::
+
+        "intents": {
+            "ovos-m2v-domain-intent-pipeline": {
+                "model": "minishlab/potion-multilingual-128M",
+                "model_path": "/path/to/bundle"
+            }
+        }
+    """
+
+    def __init__(
+        self,
+        bus: Optional[Union[MessageBusClient, FakeBus]] = None,
+        config: Optional[Dict] = None,
+    ) -> None:
+        if config is None:
+            config = (
+                Configuration().get("intents", {})
+                .get("ovos_m2v_domain_intent_pipeline") or {}
+            )
+        # Force prototype-style init so we get the bare StaticModel encoder
+        # plus the bus wiring used to discover registered intents — then we
+        # swap the prototype store out for the trained domain classifier.
+        config = dict(config)
+        config["mode"] = "prototype"
+        super().__init__(bus, config)
+
+        bundle_path = self.config.get("model_path") or self.config.get("classifier_path")
+        if not bundle_path:
+            raise FileNotFoundError(
+                "'model_path' (DomainIntentClassifier bundle) not set "
+                "in configuration for ovos_m2v_domain_intent_pipeline"
+            )
+        self.classifier: DomainIntentClassifier = DomainIntentClassifier.load(bundle_path)
+        self.prototype_store = None
+
+        LOG.info(
+            f"Loaded Model2VecDomainIntent pipeline with "
+            f"{len(self.classifier.intent_classifiers)} domains, "
+            f"{len(self.classifier)} intents, bundle='{bundle_path}'"
+        )
+
+    # ------------------------------------------------------------------
+    # Matching — override to use the trained parallel-argmax classifier
+    # ------------------------------------------------------------------
+
+    def _match(self, utterance: str,
+               message: Optional[Message] = None) -> Iterable[Tuple[str, str, float]]:
+        emb = self.model.encode([utterance])[0]
+        label_scores = self.classifier.predict_proba(emb)
+        special = self._allowed_special_labels(message)
+        for label, score in sorted(label_scores.items(), key=lambda x: x[1], reverse=True):
+            LOG.debug(f"Match candidate: {label} - score: {score:.4f}")
+            if label in self.ignore_labels:
+                continue
+            if label in _SPECIAL_LABELS and label not in special:
+                continue
+            skill_id, label = self._apply_special_label_map(label)
+            yield skill_id, label, float(score)

@@ -111,6 +111,54 @@ Each is trained for 25 epochs. Outputs:
 
 ---
 
+### Hierarchical trained classifier
+
+`train_hierarchical.py` trains the two-stage counterpart of `train_en.py` — one domain classifier (predicts `<domain>` from the sentence embedding) plus one intent classifier per domain (predicts `<domain>.<intent>` within that domain). It consumes the same CSV.
+
+```bash
+python train_hierarchical.py \
+    --csv merged_intents_dataset_en.csv \
+    --output m2v_hier_intents_potion-base-8M \
+    --base-model minishlab/potion-base-8M \
+    --domain-threshold 0.0
+```
+
+Output bundle layout:
+
+```
+<output>/
+    manifest.json
+    domain/classifier.joblib
+    intent/<domain>/classifier.joblib
+```
+
+Point a pipeline at the bundle via `intents.ovos-m2v-hierarchical-intent-pipeline.model_path` — see [Hierarchical Trained Classifier](hierarchical_classifier.md).
+
+---
+
+### Domain (parallel-argmax) trained classifier
+
+`train_domain.py` trains the parallel-argmax counterpart of `train_hierarchical.py` — one intent classifier per domain, with no top-level domain router. Each per-domain classifier is fit on the subset of samples belonging to that domain. At inference time every head scores the query and a single global argmax picks the winner.
+
+```bash
+python train_domain.py \
+    --csv merged_intents_dataset_en.csv \
+    --output m2v_domain_intents_potion-base-8M \
+    --base-model minishlab/potion-base-8M
+```
+
+Output bundle layout:
+
+```
+<output>/
+    manifest.json
+    intent/<domain>/classifier.joblib
+```
+
+Point a pipeline at the bundle via `intents.ovos-m2v-domain-intent-pipeline.model_path` — see [Domain Trained Classifier](domain_classifier.md).
+
+---
+
 ## Step 3 — (Optional) Distill a New Base Model
 
 If you want to start from a Sentence Transformer that is not yet available as a Model2Vec distillate:
