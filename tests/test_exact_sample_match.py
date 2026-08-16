@@ -12,7 +12,7 @@ from ovos_bus_client.message import Message
 from tests.test_pipeline import _make_prototype_pipeline
 
 
-def _hash_encode(sentences):
+def _hash_encode(sentences, **kwargs):
     """Deterministic bag-of-words hashing encoder.
 
     Identical sentences map to identical vectors (cosine 1.0); sentences

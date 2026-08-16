@@ -120,7 +120,7 @@ class TestPrototypeIntentStore(unittest.TestCase):
     def test_build_samples_k_per_label(self):
         from ovos_m2v_pipeline import PrototypeIntentStore
         mock_model = MagicMock()
-        mock_model.encode.side_effect = lambda sents: np.eye(len(sents), 4, dtype=np.float32)
+        mock_model.encode.side_effect = lambda sents, **kw: np.eye(len(sents), 4, dtype=np.float32)
 
         sentences = [f"sent_{i}" for i in range(20)]
         labels = ["a"] * 10 + ["b"] * 10
@@ -132,7 +132,7 @@ class TestPrototypeIntentStore(unittest.TestCase):
     def test_build_keeps_all_when_fewer_than_k(self):
         from ovos_m2v_pipeline import PrototypeIntentStore
         mock_model = MagicMock()
-        mock_model.encode.side_effect = lambda sents: np.eye(len(sents), 4, dtype=np.float32)
+        mock_model.encode.side_effect = lambda sents, **kw: np.eye(len(sents), 4, dtype=np.float32)
 
         sentences = ["only one"]
         labels = ["a"]
@@ -533,7 +533,7 @@ class TestMatchConfidence(unittest.TestCase):
 class TestPrototypeIntentStoreMutable(unittest.TestCase):
     def _mock_model(self, dim=4):
         m = MagicMock()
-        m.encode.side_effect = lambda sents: np.eye(len(sents), dim, dtype=np.float32)
+        m.encode.side_effect = lambda sents, **kw: np.eye(len(sents), dim, dtype=np.float32)
         return m
 
     def test_add_populates_empty_store(self):
@@ -662,7 +662,7 @@ class TestPrototypeBusHandlers(unittest.TestCase):
     def test_handle_register_padatious_adds_prototypes(self):
         p = self._pipeline()
         with patch("ovos_m2v_pipeline._parse_intent_file", return_value=["hello", "hi"]):
-            p.model.encode.side_effect = lambda sents: np.eye(len(sents), 4, dtype=np.float32)
+            p.model.encode.side_effect = lambda sents, **kw: np.eye(len(sents), 4, dtype=np.float32)
             p._handle_register_padatious(Message("padatious:register_intent", data={
                 "name": "skill_a:greet.intent",
                 "file_name": "/fake/greet.intent",
@@ -673,13 +673,13 @@ class TestPrototypeBusHandlers(unittest.TestCase):
     def test_handle_register_padatious_updates_existing_label(self):
         p = self._pipeline()
         with patch("ovos_m2v_pipeline._parse_intent_file", return_value=["v1"]):
-            p.model.encode.side_effect = lambda sents: np.eye(len(sents), 4, dtype=np.float32)
+            p.model.encode.side_effect = lambda sents, **kw: np.eye(len(sents), 4, dtype=np.float32)
             p._handle_register_padatious(Message("padatious:register_intent", data={
                 "name": "skill_a:greet.intent",
                 "file_name": "/fake/greet.intent",
             }))
         with patch("ovos_m2v_pipeline._parse_intent_file", return_value=["v2"]):
-            p.model.encode.side_effect = lambda sents: np.eye(len(sents), 4, dtype=np.float32)
+            p.model.encode.side_effect = lambda sents, **kw: np.eye(len(sents), 4, dtype=np.float32)
             p._handle_register_padatious(Message("padatious:register_intent", data={
                 "name": "skill_a:greet.intent",
                 "file_name": "/fake/greet.intent",
@@ -688,7 +688,7 @@ class TestPrototypeBusHandlers(unittest.TestCase):
 
     def test_handle_register_padatious_inline_samples(self):
         p = self._pipeline()
-        p.model.encode.side_effect = lambda sents: np.eye(len(sents), 4, dtype=np.float32)
+        p.model.encode.side_effect = lambda sents, **kw: np.eye(len(sents), 4, dtype=np.float32)
         p._handle_register_padatious(Message("padatious:register_intent", data={
             "name": "skill_a:greet.intent",
             "samples": ["hello", "hi"],
@@ -699,7 +699,7 @@ class TestPrototypeBusHandlers(unittest.TestCase):
     def test_handle_register_padatious_inline_samples_expand_template(self):
         """Inline samples with template syntax are expanded."""
         p = self._pipeline()
-        p.model.encode.side_effect = lambda sents: np.eye(len(sents), 4, dtype=np.float32)
+        p.model.encode.side_effect = lambda sents, **kw: np.eye(len(sents), 4, dtype=np.float32)
         p._handle_register_padatious(Message("padatious:register_intent", data={
             "name": "skill_a:lights.intent",
             "samples": ["(turn on|switch on) the lights"],
@@ -743,7 +743,7 @@ class TestPrototypeBusHandlers(unittest.TestCase):
     def test_handle_detach_intent_removes_prototypes_and_intents(self):
         p = self._pipeline()
         with patch("ovos_m2v_pipeline._parse_intent_file", return_value=["hello"]):
-            p.model.encode.side_effect = lambda sents: np.eye(len(sents), 4, dtype=np.float32)
+            p.model.encode.side_effect = lambda sents, **kw: np.eye(len(sents), 4, dtype=np.float32)
             p._handle_register_padatious(Message("padatious:register_intent", data={
                 "name": "skill_a:greet.intent",
                 "file_name": "/fake/greet.intent",
@@ -754,7 +754,7 @@ class TestPrototypeBusHandlers(unittest.TestCase):
 
     def test_handle_detach_skill_uses_context_skill_id(self):
         p = self._pipeline()
-        p.model.encode.side_effect = lambda sents: np.eye(len(sents), 4, dtype=np.float32)
+        p.model.encode.side_effect = lambda sents, **kw: np.eye(len(sents), 4, dtype=np.float32)
         with patch("ovos_m2v_pipeline._parse_intent_file", return_value=["hello"]):
             p._handle_register_padatious(Message("padatious:register_intent",
                                                  data={"name": "skill_a:intent", "file_name": "/fake/x.intent"}))
@@ -764,7 +764,7 @@ class TestPrototypeBusHandlers(unittest.TestCase):
 
     def test_handle_detach_skill_removes_all_skill_labels(self):
         p = self._pipeline()
-        p.model.encode.side_effect = lambda sents: np.eye(len(sents), 4, dtype=np.float32)
+        p.model.encode.side_effect = lambda sents, **kw: np.eye(len(sents), 4, dtype=np.float32)
         for name in ("skill_a:intent_x", "skill_a:intent_y"):
             with patch("ovos_m2v_pipeline._parse_intent_file", return_value=["example"]):
                 p._handle_register_padatious(Message("padatious:register_intent",

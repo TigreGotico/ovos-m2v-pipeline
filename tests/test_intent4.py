@@ -22,7 +22,7 @@ def _make_prototype_pipeline(config=None):
 
     mock_embed_model = MagicMock()
     # identity rows so each sample becomes a distinct unit prototype
-    mock_embed_model.encode.side_effect = lambda sents: np.eye(len(sents), 4, dtype=np.float32)
+    mock_embed_model.encode.side_effect = lambda sents, **kw: np.eye(len(sents), 4, dtype=np.float32)
 
     fake_m2v = MagicMock()
     fake_m2v.StaticModel.from_pretrained.return_value = mock_embed_model
