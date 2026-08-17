@@ -3,6 +3,15 @@
 Behavior changes since the last stable release, newest first. This file is
 reset at each stable release.
 
+## 0.5.8a1
+
+- Template expansion in every registration path is lazy and bounded:
+  `islice(iter_expand(...))` (ovos-spec-tools 1.8.0a1) replaces
+  materializing `expand` calls, so a combinatorial template costs what the
+  bound takes — registration-time expansion previously materialized full
+  cartesian products transiently (~3GB and ~20 minutes measured on a real
+  deployment) even though the store then kept at most 2000 samples.
+
 ## 0.5.7a1
 
 - Prototype-store growth is amortized: registrations buffer into pending

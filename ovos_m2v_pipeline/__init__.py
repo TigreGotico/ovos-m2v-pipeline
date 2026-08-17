@@ -13,7 +13,9 @@ from ovos_config.config import Configuration
 from ovos_plugin_manager.templates.pipeline import IntentHandlerMatch, ConfidenceMatcherPipeline
 from ovos_spec_tools import SpecMessage
 from ovos_spec_tools.context import gate_satisfied
-from ovos_spec_tools.expansion import expand as expand_template
+from itertools import islice
+
+from ovos_spec_tools.expansion import iter_expand
 from ovos_utils.fakebus import FakeBus
 from ovos_utils.log import LOG
 
@@ -339,7 +341,11 @@ def _parse_intent_file(path: str, ctx: str = "") -> List[str]:
                 line = line.strip()
                 if line and not line.lstrip().startswith("#"):
                     try:
-                        sentences.extend(expand_template(line))
+                        # lazy + bounded: a combinatorial template must
+                        # not materialize its full product just to be
+                        # sampled down at store ingest
+                        sentences.extend(islice(iter_expand(line),
+                                                MAX_ENTITY_EXPANSIONS))
                     except Exception as exc:
                         LOG.warning(f"skipping malformed template {line!r}: "
                                     f"{exc} {ctx}")
@@ -600,7 +606,7 @@ class Model2VecIntentPipeline(ConfidenceMatcherPipeline):
 
         ``message.data["samples"]`` (pre-expanded list) is preferred when
         present; otherwise the file at ``message.data["file_name"]`` is read
-        and its template syntax is expanded via ``expand_template``.
+        and its template syntax is expanded lazily via ``iter_expand``.
         """
         name: str = message.data.get("name", "")
         if name.endswith(".intent"):
@@ -621,7 +627,8 @@ class Model2VecIntentPipeline(ConfidenceMatcherPipeline):
             sentences: List[str] = []
             for s in inline:
                 try:
-                    sentences.extend(expand_template(s))
+                    sentences.extend(islice(iter_expand(s),
+                                            MAX_ENTITY_EXPANSIONS))
                 except Exception as exc:
                     LOG.warning(f"skipping malformed template {s!r}: {exc} {ctx}")
         else:
@@ -800,8 +807,12 @@ class Model2VecIntentPipeline(ConfidenceMatcherPipeline):
 
         expanded: List[str] = []
         for s in self._expand_entities(list(samples)):
+            if len(expanded) >= MAX_ENTITY_EXPANSIONS:
+                break
             try:
-                expanded.extend(expand_template(s))
+                expanded.extend(islice(
+                    iter_expand(s),
+                    MAX_ENTITY_EXPANSIONS - len(expanded)))
             except Exception as exc:
                 # skip the unparsable template, keep the valid ones (§6.3)
                 LOG.warning(
@@ -844,8 +855,10 @@ class Model2VecIntentPipeline(ConfidenceMatcherPipeline):
             return  # classifier model is frozen; no slot-fill to perform
         values: set = set()
         for s in samples:
+            if len(values) >= MAX_ENTITY_EXPANSIONS:
+                break
             try:
-                for v in expand_template(s):
+                for v in islice(iter_expand(s), MAX_ENTITY_EXPANSIONS):
                     v = v.strip()
                     if v:
                         values.add(v)
