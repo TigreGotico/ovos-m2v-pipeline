@@ -41,3 +41,49 @@ def test_small_expansion_untouched():
     p.entities = {"city": ["porto", "lisbon"]}
     out = p._expand_entities(["weather in {city}"])
     assert sorted(out) == ["weather in lisbon", "weather in porto"]
+
+
+def test_store_ingest_is_bounded_regardless_of_source():
+    """The cap must hold at the store, not one expansion path: real
+    deployments feed pre-expanded padatious samples straight to add()."""
+    import numpy as np
+    from ovos_m2v_pipeline import (MAX_ENTITY_EXPANSIONS,
+                                   PrototypeIntentStore)
+    store = PrototypeIntentStore()
+    model = mock.Mock()
+    model.encode.side_effect = \
+        lambda sents, **kw: np.ones((len(sents), 4), dtype=np.float32)
+    n = store.add(model, "big", [f"sentence {i}" for i in range(50000)])
+    assert n <= MAX_ENTITY_EXPANSIONS
+    sents_passed = model.encode.call_args[0][0]
+    assert len(sents_passed) == MAX_ENTITY_EXPANSIONS
+    assert sents_passed[0] == "sentence 0"
+    assert sents_passed[-1] == "sentence 49999"
+
+
+def test_padatious_labels_dealias_to_canonical():
+    """Dual-contract registration must collapse to ONE label, or the store
+    holds every prototype twice (observed live: 83 -> 116 labels, ~1.1M
+    prototypes)."""
+    import numpy as np
+    from ovos_utils.fakebus import FakeBus
+    from ovos_bus_client.message import Message
+    from ovos_m2v_pipeline import Model2VecPrototypePipeline
+    p = Model2VecPrototypePipeline.__new__(Model2VecPrototypePipeline)
+    p.ignore_labels = set()
+    p.intents = set()
+    p.model = mock.Mock()
+    p.model.encode.side_effect = \
+        lambda sents, **kw: np.ones((len(sents), 4), dtype=np.float32)
+    from ovos_m2v_pipeline import PrototypeIntentStore
+    p.prototype_store = PrototypeIntentStore()
+    p._prototype_k = None
+    p._handle_register_padatious(Message(
+        "padatious:register_intent",
+        {"name": "skill.test:go.intent", "samples": ["go to work"]}))
+    assert "skill.test:go" in p.intents
+    assert "skill.test:go.intent" not in p.intents
+    # detach with the suffixed name removes the canonical entry
+    p._handle_detach_intent(Message(
+        "detach_intent", {"intent_name": "skill.test:go.intent"}))
+    assert len(p.prototype_store) == 0

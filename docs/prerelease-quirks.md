@@ -3,6 +3,20 @@
 Behavior changes since the last stable release, newest first. This file is
 reset at each stable release.
 
+## 0.5.6a1
+
+- The sample bound applies at store ingest, whatever path materialized the
+  samples: the 2000-cap previously applied only to entity slot-filling, so
+  pre-expanded padatious registrations flowed in unbounded — a real
+  deployment still built a ~1.1M-prototype store on 0.5.5a1 and swapped its
+  cgroup to death. `PrototypeIntentStore.add` now evenly samples any batch
+  over the bound.
+- Padatious-contract labels are dealiased: the legacy `.intent`-suffixed
+  name folds onto the canonical suffixless label (registration, detach and
+  ignore_labels accept both forms), so the dual-emit from ovos-workshop no
+  longer stores every prototype twice, and matches dispatch on the same
+  canonical id padatious itself uses.
+
 ## 0.5.5a1
 
 - Embedding runs strictly in-process: every `model.encode` call passes

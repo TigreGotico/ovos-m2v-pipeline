@@ -59,7 +59,7 @@ class TestExactSampleHighTierMatch(unittest.TestCase):
         self.assertIsNotNone(match)
         self.assertEqual(
             match.match_type,
-            "ovos-skill-date-time.openvoiceos:what.time.is.it.intent")
+            "ovos-skill-date-time.openvoiceos:what.time.is.it")
         self.assertGreaterEqual(match.match_data["confidence"], 0.99)
 
     def test_every_sample_kept_by_default(self):

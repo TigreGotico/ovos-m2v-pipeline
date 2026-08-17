@@ -142,6 +142,19 @@ class PrototypeIntentStore:
         """
         if not sentences:
             return 0
+        if len(sentences) > MAX_ENTITY_EXPANSIONS:
+            # single choke point: whatever path materialized the samples
+            # (entity slot-filling, padatious template expansion, inline
+            # payloads), the store never ingests an unbounded batch — the
+            # 2000-cap applied only on one expansion path let a real
+            # deployment build a million-prototype store and OOM its cgroup
+            LOG.warning(f"label {label!r}: {len(sentences)} samples exceed "
+                        f"the ingest bound; sampling {MAX_ENTITY_EXPANSIONS} "
+                        f"evenly")
+            step = (len(sentences) - 1) / (MAX_ENTITY_EXPANSIONS - 1)
+            keep = sorted({round(i * step)
+                           for i in range(MAX_ENTITY_EXPANSIONS)})
+            sentences = [sentences[i] for i in keep]
         # Embed every sample first; the strategy decides which / how many
         # to keep as anchors at storage time. Embedding happens outside the
         # lock: it is the expensive step and touches no shared state.
@@ -556,7 +569,13 @@ class Model2VecIntentPipeline(ConfidenceMatcherPipeline):
         and its template syntax is expanded via ``expand_template``.
         """
         name: str = message.data.get("name", "")
-        if not name or name in self.ignore_labels:
+        if name.endswith(".intent"):
+            # ovos-workshop dual-registers one intent on both wire contracts
+            # (legacy name suffixed ".intent", spec name suffixless); fold to
+            # one canonical label or the store holds every prototype twice
+            name = name[:-len(".intent")]
+        # ignore_labels entries may be written in either wire form
+        if not name or name in self.ignore_labels                 or f"{name}.intent" in self.ignore_labels:
             return
 
         skill_id = message.data.get("skill_id") or message.context.get("skill_id")
@@ -598,6 +617,9 @@ class Model2VecIntentPipeline(ConfidenceMatcherPipeline):
 
     def _handle_detach_intent(self, message: Message) -> None:
         name: str = message.data.get("intent_name", "")
+        if name.endswith(".intent"):
+            # mirror the registration-side dealiasing
+            name = name[:-len(".intent")]
         if name:
             self.prototype_store.remove(name)
             self.intents.discard(name)

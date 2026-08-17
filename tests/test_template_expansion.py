@@ -92,7 +92,7 @@ class TestRegisterPadatious(unittest.TestCase):
         with patch("ovos_m2v_pipeline.LOG.warning") as warn:
             pipeline._handle_register_padatious(
                 _padatious_msg(MALFORMED + VALID))
-        self.assertIn("test_skill:demo.intent", pipeline.intents)
+        self.assertIn("test_skill:demo", pipeline.intents)
         pipeline.prototype_store.add.assert_called_once()
         sentences = pipeline.prototype_store.add.call_args[0][2]
         self.assertIn("play {media}", sentences)
@@ -101,7 +101,7 @@ class TestRegisterPadatious(unittest.TestCase):
         for call in warn.call_args_list:
             log = call[0][0]
             self.assertIn("skipping malformed template", log)
-            for field in FIELDS + ["test_skill:demo.intent",
+            for field in FIELDS + ["test_skill:demo",
                                    "padatious:register_intent"]:
                 self.assertIn(field, log)
 
@@ -109,7 +109,7 @@ class TestRegisterPadatious(unittest.TestCase):
         pipeline = _make_prototype_pipeline()
         with patch("ovos_m2v_pipeline.LOG.warning") as warn:
             pipeline._handle_register_padatious(_padatious_msg(list(MALFORMED)))
-        self.assertNotIn("test_skill:demo.intent", pipeline.intents)
+        self.assertNotIn("test_skill:demo", pipeline.intents)
         pipeline.prototype_store.add.assert_not_called()
         rejection = warn.call_args_list[-1][0][0]
         self.assertIn("rejecting registration", rejection)
@@ -124,12 +124,12 @@ class TestRegisterPadatious(unittest.TestCase):
             with open(path, "w", encoding="utf-8") as fh:
                 fh.write("\n".join(MALFORMED + VALID))
             msg = Message("padatious:register_intent",
-                          data={"name": "test_skill:demo.intent",
+                          data={"name": "test_skill:demo",
                                 "skill_id": "test_skill", "lang": "en-US",
                                 "file_name": path})
             with patch("ovos_m2v_pipeline.LOG.warning") as warn:
                 pipeline._handle_register_padatious(msg)
-        self.assertIn("test_skill:demo.intent", pipeline.intents)
+        self.assertIn("test_skill:demo", pipeline.intents)
         pipeline.prototype_store.add.assert_called_once()
         for call in warn.call_args_list:
             for field in FIELDS:
@@ -145,7 +145,7 @@ class TestRegisterPadatious(unittest.TestCase):
         pipeline.prototype_store.add.assert_not_called()
         pipeline._handle_register_padatious(
             _padatious_msg(list(VALID), lang="en-US"))
-        self.assertIn("test_skill:demo.intent", pipeline.intents)
+        self.assertIn("test_skill:demo", pipeline.intents)
         pipeline.prototype_store.add.assert_called_once()
 
 
