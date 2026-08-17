@@ -87,3 +87,26 @@ def test_padatious_labels_dealias_to_canonical():
     p._handle_detach_intent(Message(
         "detach_intent", {"intent_name": "skill.test:go.intent"}))
     assert len(p.prototype_store) == 0
+
+
+def test_store_add_is_amortized_no_per_add_vstack():
+    """Each add must not copy the whole store (O(n^2) build churn: a 1.2GB
+    array reallocated per registration on real installs). Adds buffer into
+    pending chunks; consolidation happens once on read."""
+    import numpy as np
+    from ovos_m2v_pipeline import PrototypeIntentStore
+    store = PrototypeIntentStore()
+    model = mock.Mock()
+    model.encode.side_effect = \
+        lambda sents, **kw: np.ones((len(sents), 4), dtype=np.float32)
+    for i in range(50):
+        store.add(model, f"label{i}", [f"s{i}a", f"s{i}b"])
+        assert len(store._pending) == i + 1  # no consolidation during adds
+    assert len(store) == 100
+    labels = store.labels  # first read consolidates, once
+    assert len(labels) == 100
+    assert len(store._pending) == 0
+    # re-registration replaces, through the consolidation path
+    store.add(model, "label0", ["new"])
+    assert (store.labels == "label0").sum() == 1
+    assert len(store) == 99

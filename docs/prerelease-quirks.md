@@ -3,6 +3,17 @@
 Behavior changes since the last stable release, newest first. This file is
 reset at each stable release.
 
+## 0.5.7a1
+
+- Prototype-store growth is amortized: registrations buffer into pending
+  chunks and consolidate once on first read (match, save, or property
+  access). Previously every registration re-stacked the entire embedding
+  array — quadratic build cost, measured as a 1.2GB array reallocated per
+  skill on a real install, which is why store construction took tens of
+  minutes with one core pegged. Each registration also logs an INFO
+  progress line (prototypes added, running totals) so long builds are
+  visible instead of looking like an idle hang.
+
 ## 0.5.6a1
 
 - The sample bound applies at store ingest, whatever path materialized the
