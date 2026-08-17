@@ -100,6 +100,26 @@ class PrototypeIntentStore:
         else:
             self._embeddings = np.empty((0, 0), dtype=np.float32)
             self._labels = np.array([], dtype=object)
+        #: chunks appended by add() and stacked lazily: one vstack per add
+        #: copies the whole store every registration (quadratic build cost,
+        #: measured as a 1.2GB array reallocated per skill on real installs)
+        self._pending: List[tuple] = []
+        self._label_set = set(np.unique(self._labels)) if len(self._labels) else set()
+
+    def _consolidate(self) -> None:
+        """Stack pending chunks into the contiguous arrays, once."""
+        if not self._pending:
+            return
+        chunks = [c for c, _ in self._pending]
+        label_chunks = [l for _, l in self._pending]
+        if len(self._labels):
+            self._embeddings = np.vstack([self._embeddings] + chunks)
+            self._labels = np.concatenate([self._labels] + label_chunks)
+        else:
+            self._embeddings = np.vstack(chunks) if len(chunks) > 1 else chunks[0]
+            self._labels = (np.concatenate(label_chunks)
+                            if len(label_chunks) > 1 else label_chunks[0])
+        self._pending.clear()
 
     # ------------------------------------------------------------------
     # Public read-only views
@@ -107,18 +127,22 @@ class PrototypeIntentStore:
 
     @property
     def embeddings(self) -> np.ndarray:
-        return self._embeddings
+        with self._lock:
+            self._consolidate()
+            return self._embeddings
 
     @property
     def labels(self) -> np.ndarray:
-        return self._labels
+        with self._lock:
+            self._consolidate()
+            return self._labels
 
     @property
     def unique_labels(self) -> np.ndarray:
-        return np.unique(self._labels)
+        return np.unique(self.labels)
 
     def __len__(self) -> int:
-        return len(self._labels)
+        return len(self._labels) + sum(len(l) for _, l in self._pending)
 
     # ------------------------------------------------------------------
     # Mutation
@@ -173,37 +197,45 @@ class PrototypeIntentStore:
         ).astype(np.float32)
         n_added = len(anchors)
         with self._lock:
-            self.remove(label)
+            if label in self._label_set:
+                # re-registration: fold pending in, then drop the old rows
+                self._consolidate()
+                mask = self._labels != label
+                self._embeddings = self._embeddings[mask]
+                self._labels = self._labels[mask]
+                self._label_set.discard(label)
             if n_added == 0:
                 return 0
-            if not len(self):
-                self._embeddings = anchors
-                self._labels = np.array([label] * n_added, dtype=object)
-            else:
-                self._embeddings = np.vstack([self._embeddings, anchors])
-                self._labels = np.concatenate(
-                    [self._labels, np.array([label] * n_added, dtype=object)]
-                )
+            self._pending.append(
+                (anchors, np.array([label] * n_added, dtype=object)))
+            self._label_set.add(label)
+            LOG.info(f"prototype store: +{n_added} prototypes for "
+                     f"{label!r} ({len(self)} total, "
+                     f"{len(self._label_set)} labels)")
         return n_added
 
     def remove(self, label: str) -> None:
         """Remove all prototypes for *label*."""
         with self._lock:
-            if not len(self):
+            if label not in self._label_set:
                 return
+            self._consolidate()
             mask = self._labels != label
             self._embeddings = self._embeddings[mask]
             self._labels = self._labels[mask]
+            self._label_set.discard(label)
 
     def remove_skill(self, skill_id: str) -> None:
         """Remove all prototypes whose label starts with ``<skill_id>:``."""
         with self._lock:
             if not len(self):
                 return
+            self._consolidate()
             prefix = skill_id + ":"
             mask = np.array([not str(lbl).startswith(prefix) for lbl in self._labels])
             self._embeddings = self._embeddings[mask]
             self._labels = self._labels[mask]
+            self._label_set = set(np.unique(self._labels)) if len(self._labels) else set()
 
     # ------------------------------------------------------------------
     # Inference
@@ -220,6 +252,7 @@ class PrototypeIntentStore:
         with self._lock:
             if not len(self):
                 return {}
+            self._consolidate()
             embeddings, labels = self._embeddings, self._labels
         q = query_embedding.astype(np.float32)
         norm = np.linalg.norm(q)
@@ -263,6 +296,7 @@ class PrototypeIntentStore:
     def save(self, path: str) -> None:
         """Save to a NumPy ``.npz`` archive."""
         with self._lock:
+            self._consolidate()
             np.savez(path, embeddings=self._embeddings, labels=self._labels.astype(str))
         LOG.info(
             f"Saved {len(self)} prototypes "
