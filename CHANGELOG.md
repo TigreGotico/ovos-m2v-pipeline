@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.5.6a1](https://github.com/OpenVoiceOS/ovos-m2v-pipeline/tree/0.5.6a1) (2026-08-17)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-m2v-pipeline/compare/0.5.5a1...0.5.6a1)
+
+**Merged pull requests:**
+
+- fix: bound store ingest and dealias padatious labels [\#63](https://github.com/OpenVoiceOS/ovos-m2v-pipeline/pull/63) ([JarbasAl](https://github.com/JarbasAl))
+
 ## [0.5.5a1](https://github.com/OpenVoiceOS/ovos-m2v-pipeline/tree/0.5.5a1) (2026-08-17)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-m2v-pipeline/compare/0.5.4a2...0.5.5a1)
