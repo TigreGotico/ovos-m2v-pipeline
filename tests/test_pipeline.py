@@ -667,8 +667,8 @@ class TestPrototypeBusHandlers(unittest.TestCase):
                 "name": "skill_a:greet.intent",
                 "file_name": "/fake/greet.intent",
             }))
-        self.assertIn("skill_a:greet.intent", p.prototype_store.unique_labels)
-        self.assertIn("skill_a:greet.intent", p.intents)
+        self.assertIn("skill_a:greet", p.prototype_store.unique_labels)
+        self.assertIn("skill_a:greet", p.intents)
 
     def test_handle_register_padatious_updates_existing_label(self):
         p = self._pipeline()
@@ -684,7 +684,7 @@ class TestPrototypeBusHandlers(unittest.TestCase):
                 "name": "skill_a:greet.intent",
                 "file_name": "/fake/greet.intent",
             }))
-        self.assertEqual((p.prototype_store.labels == "skill_a:greet.intent").sum(), 1)
+        self.assertEqual((p.prototype_store.labels == "skill_a:greet").sum(), 1)
 
     def test_handle_register_padatious_inline_samples(self):
         p = self._pipeline()
@@ -693,8 +693,8 @@ class TestPrototypeBusHandlers(unittest.TestCase):
             "name": "skill_a:greet.intent",
             "samples": ["hello", "hi"],
         }))
-        self.assertIn("skill_a:greet.intent", p.prototype_store.unique_labels)
-        self.assertIn("skill_a:greet.intent", p.intents)
+        self.assertIn("skill_a:greet", p.prototype_store.unique_labels)
+        self.assertIn("skill_a:greet", p.intents)
 
     def test_handle_register_padatious_inline_samples_expand_template(self):
         """Inline samples with template syntax are expanded."""
@@ -705,7 +705,7 @@ class TestPrototypeBusHandlers(unittest.TestCase):
             "samples": ["(turn on|switch on) the lights"],
         }))
         # Two expanded variants should both be embedded
-        n_protos = (p.prototype_store.labels == "skill_a:lights.intent").sum()
+        n_protos = (p.prototype_store.labels == "skill_a:lights").sum()
         self.assertEqual(n_protos, 2)
 
     def test_handle_register_padatious_skips_missing_file(self):
