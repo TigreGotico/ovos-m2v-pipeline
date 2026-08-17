@@ -39,6 +39,14 @@ _SPECIAL_LABEL_PIPELINES = {
 }
 
 
+#: Upper bound on entity-filled samples generated per template. The
+#: cartesian product over registered entity values is unbounded input
+#: (auto-registered .entity files can carry thousands of values each);
+#: everything past this bound is a deterministic evenly-strided sample of
+#: the combination space.
+MAX_ENTITY_EXPANSIONS = 2000
+
+
 class PrototypeIntentStore:
     """Mutable store of L2-normalised prototype embeddings per intent label.
 
@@ -137,7 +145,14 @@ class PrototypeIntentStore:
         # Embed every sample first; the strategy decides which / how many
         # to keep as anchors at storage time. Embedding happens outside the
         # lock: it is the expensive step and touches no shared state.
-        embs = np.atleast_2d(model.encode(list(sentences))).astype(np.float32)
+        # use_multiprocessing=False: model2vec otherwise spawns
+        # os.cpu_count() loky workers for batches over its threshold —
+        # observed as 24 subprocesses inside a 2G service cgroup, deep swap
+        # and an OOM-kill during skill loading. Static-model encoding is
+        # in-process numpy; a long-lived service never wants that fan-out.
+        embs = np.atleast_2d(
+            model.encode(list(sentences),
+                         use_multiprocessing=False)).astype(np.float32)
         norms = np.linalg.norm(embs, axis=1, keepdims=True)
         embs = np.where(norms > 0, embs / norms, embs)
         anchors = select_anchors(
@@ -657,7 +672,34 @@ class Model2VecIntentPipeline(ConfidenceMatcherPipeline):
             for slot in slots:
                 vals = self.entities.get(slot.lower())
                 slot_values.append(vals if vals else ["{" + slot + "}"])
-            for combo in itertools.product(*slot_values):
+            # the cartesian product over large value sets explodes: two
+            # ~2000-value entities in one template is ~4M strings, all
+            # materialized and embedded on every registration — enough to
+            # swap out and OOM-kill a capped service. Engines own bounding
+            # unbounded entity data: take a deterministic, evenly-strided
+            # sample of the combination space instead.
+            sizes = [len(v) for v in slot_values]
+            total = 1
+            for n in sizes:
+                total *= n
+            if total > MAX_ENTITY_EXPANSIONS:
+                LOG.warning(
+                    f"template {tmpl!r} expands to {total} combinations; "
+                    f"sampling {MAX_ENTITY_EXPANSIONS} evenly")
+                step = (total - 1) / (MAX_ENTITY_EXPANSIONS - 1)
+                indices = {round(i * step) for i in range(MAX_ENTITY_EXPANSIONS)}
+                combos = []
+                for idx in sorted(indices):
+                    combo = []
+                    rem = idx
+                    for n in reversed(sizes):
+                        combo.append(rem % n)
+                        rem //= n
+                    combos.append(tuple(slot_values[d][c] for d, c in
+                                        enumerate(reversed(combo))))
+            else:
+                combos = itertools.product(*slot_values)
+            for combo in combos:
                 filled = tmpl
                 for slot, val in zip(slots, combo):
                     filled = filled.replace("{" + slot + "}", val, 1)
@@ -956,7 +998,7 @@ class Model2VecIntentPipeline(ConfidenceMatcherPipeline):
         only forwarded when the matching downstream pipeline is present in the
         caller's session, consistent with classifier mode.
         """
-        emb = self.model.encode([utterance])[0]
+        emb = self.model.encode([utterance], use_multiprocessing=False)[0]
         label_scores = self.prototype_store.scores(emb)
         special = self._allowed_special_labels(message)
         for label, score in sorted(label_scores.items(), key=lambda x: x[1], reverse=True):

@@ -20,7 +20,7 @@ class _FakeModel:
     def __init__(self, dim: int = 16):
         self.dim = dim
 
-    def encode(self, sentences):
+    def encode(self, sentences, **kwargs):
         import hashlib
         out = []
         for s in sentences:
