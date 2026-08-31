@@ -970,6 +970,7 @@ class Model2VecIntentPipeline(ConfidenceMatcherPipeline):
                       f"'{name}': {exc}")
             return
         self.intents.add(name)
+        self._store_context_gate(name, message)
         LOG.debug(f"Prototype store: added {n} prototype(s) for '{name}'")
 
     def _handle_register_adapt(self, message: Message) -> None:
@@ -986,6 +987,8 @@ class Model2VecIntentPipeline(ConfidenceMatcherPipeline):
         if name:
             self.prototype_store.remove(name)
             self.intents.discard(name)
+            self._context_gates.pop(name, None)
+            self._intent_slots.pop(name, None)
             LOG.debug(f"Prototype store: removed prototypes for '{name}'")
 
     def _handle_detach_skill(self, message: Message) -> None:
@@ -993,6 +996,10 @@ class Model2VecIntentPipeline(ConfidenceMatcherPipeline):
         if skill_id:
             self.prototype_store.remove_skill(skill_id)
             self.intents = {i for i in self.intents if not i.startswith(skill_id + ":")}
+            self._context_gates = {l: g for l, g in self._context_gates.items()
+                                   if not l.startswith(skill_id + ":")}
+            self._intent_slots = {l: s for l, s in self._intent_slots.items()
+                                  if not l.startswith(skill_id + ":")}
             LOG.debug(f"Prototype store: removed prototypes for skill '{skill_id}'")
 
     # ------------------------------------------------------------------

@@ -72,6 +72,8 @@ def test_padatious_labels_dealias_to_canonical():
     p = Model2VecPrototypePipeline.__new__(Model2VecPrototypePipeline)
     p.ignore_labels = set()
     p.intents = set()
+    p._context_gates = {}
+    p._intent_slots = {}
     p.model = mock.Mock()
     p.model.encode.side_effect = \
         lambda sents, **kw: np.ones((len(sents), 4), dtype=np.float32)

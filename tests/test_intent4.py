@@ -570,6 +570,129 @@ class TestIntent4Blacklist(unittest.TestCase):
         self.assertNotIn("music.skill:play_music", p.excluded_keywords)
 
 
+class TestPadatiousContextGating(unittest.TestCase):
+    """OVOS-CONTEXT-1 §6/§6.1 gating for the legacy ``padatious:register_intent``
+    wire contract, mirroring ``TestIntent4ContextGating``. §6's tolerated
+    ``requires_context`` / ``excludes_context`` extra fields on the padatious
+    payload must be honoured the same as on the INTENT-4 template payload."""
+
+    def _register(self, p, requires=None, excludes=None,
+                  skill_id="music.skill", intent_name="play_music"):
+        data = {"name": f"{skill_id}:{intent_name}.intent",
+                "samples": ["play music"]}
+        if requires is not None:
+            data["requires_context"] = requires
+        if excludes is not None:
+            data["excludes_context"] = excludes
+        p.model.encode.side_effect = None
+        p.model.encode.return_value = np.array([[1.0, 0.0, 0.0, 0.0]], dtype=np.float32)
+        p._handle_register_padatious(Message("padatious:register_intent", data=data))
+
+    def _match_with_context(self, p, intent_context):
+        p.model.encode.side_effect = None
+        p.model.encode.return_value = np.array([[1.0, 0.0, 0.0, 0.0]], dtype=np.float32)
+        sess = MagicMock()
+        sess.intent_context = intent_context
+        with patch("ovos_m2v_pipeline.SessionManager.get", return_value=sess):
+            return list(p._match("play music"))
+
+    def test_gate_stored_on_register(self):
+        p = _make_prototype_pipeline()
+        self._register(p, requires=["mode"], excludes=[{"key": "busy", "scope": "shared"}])
+        self.assertIn("music.skill:play_music", p._context_gates)
+        requires, excludes = p._context_gates["music.skill:play_music"]
+        self.assertEqual(requires, ["mode"])
+        self.assertEqual(excludes, [{"key": "busy", "scope": "shared"}])
+
+    def test_requires_context_absent_dropped(self):
+        p = _make_prototype_pipeline()
+        self._register(p, requires=["confirming_milk"])
+        results = self._match_with_context(p, {})
+        self.assertEqual(results, [])
+
+    def test_requires_context_flag_present_matches(self):
+        # OVOS-CONTEXT-1 §3.2 confirmation-branch flag shape, verbatim:
+        # `{ "value": null, "turns_remaining": 1 }` under the private key
+        # `<skill_id>:confirming_milk`.
+        p = _make_prototype_pipeline()
+        self._register(p, requires=["confirming_milk"])
+        results = self._match_with_context(
+            p, {"music.skill:confirming_milk": {"value": None, "turns_remaining": 1}})
+        self.assertEqual(len(results), 1)
+        self.assertEqual(results[0][1], "music.skill:play_music")
+
+    def test_requires_context_flag_dead_when_turns_exhausted(self):
+        # Same flag shape but `turns_remaining: 0` -> not live per §2 -> gate fails.
+        p = _make_prototype_pipeline()
+        self._register(p, requires=["confirming_milk"])
+        results = self._match_with_context(
+            p, {"music.skill:confirming_milk": {"value": None, "turns_remaining": 0}})
+        self.assertEqual(results, [])
+
+    def test_excludes_context_present_dropped(self):
+        p = _make_prototype_pipeline()
+        self._register(p, excludes=["busy"])
+        results = self._match_with_context(p, {"music.skill:busy": {"value": None}})
+        self.assertEqual(results, [])
+
+    def test_excludes_context_absent_matches(self):
+        p = _make_prototype_pipeline()
+        self._register(p, excludes=["busy"])
+        results = self._match_with_context(p, {})
+        self.assertEqual(len(results), 1)
+
+    def test_ungated_sibling_matches_while_gated_excluded(self):
+        p = _make_prototype_pipeline()
+        self._register(p, requires=["mode"], intent_name="play_music")
+        self._register(p, intent_name="stop_music")
+        results = self._match_with_context(p, {})
+        labels = [r[1] for r in results]
+        self.assertNotIn("music.skill:play_music", labels)
+        self.assertIn("music.skill:stop_music", labels)
+
+    def test_reregistration_replaces_gate(self):
+        p = _make_prototype_pipeline()
+        self._register(p, requires=["mode"])
+        self._register(p, requires=None, excludes=["busy"])
+        requires, excludes = p._context_gates["music.skill:play_music"]
+        self.assertEqual(requires, [])
+        self.assertEqual(excludes, ["busy"])
+
+    def test_gate_cleared_on_detach(self):
+        p = _make_prototype_pipeline()
+        self._register(p, requires=["mode"])
+        p._handle_detach_intent(Message(
+            "detach_intent", data={"intent_name": "music.skill:play_music.intent"}))
+        self.assertNotIn("music.skill:play_music", p._context_gates)
+
+    def test_gate_cleared_on_detach_skill(self):
+        p = _make_prototype_pipeline()
+        self._register(p, requires=["mode"])
+        p._handle_detach_skill(Message(
+            "detach_skill", data={"skill_id": "music.skill"}))
+        self.assertNotIn("music.skill:play_music", p._context_gates)
+
+    def test_context_gate_not_part_of_cache_key(self):
+        """The gate is enforced at match time and does not change the
+        embeddings, so changing requires_context alone must not re-encode
+        (re-hit the prototype cache instead)."""
+        cache = MagicMock()
+        cache.load.return_value = None
+        p = _make_prototype_pipeline()
+        p.cache = cache
+        p._prototype_cache_enabled = True
+        p.prototype_store.cache = cache
+
+        self._register(p, requires=None)
+        self.assertEqual(cache.load.call_count, 1)
+        key_without_gate = cache.load.call_args[0][1]
+
+        self._register(p, requires=["mode"])
+        self.assertEqual(cache.load.call_count, 2)
+        key_with_gate = cache.load.call_args[0][1]
+
+        self.assertEqual(key_without_gate, key_with_gate)
+
 
 if __name__ == "__main__":
     unittest.main()
