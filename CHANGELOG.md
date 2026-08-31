@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.7.0a2](https://github.com/OpenVoiceOS/ovos-m2v-pipeline/tree/0.7.0a2) (2026-08-31)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-m2v-pipeline/compare/0.7.0a1...0.7.0a2)
+
+**Merged pull requests:**
+
+- Wire boot-time prototype cache to registration inputs [\#75](https://github.com/OpenVoiceOS/ovos-m2v-pipeline/pull/75) ([JarbasAl](https://github.com/JarbasAl))
+
 ## [0.7.0a1](https://github.com/OpenVoiceOS/ovos-m2v-pipeline/tree/0.7.0a1) (2026-08-31)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-m2v-pipeline/compare/0.6.1a1...0.7.0a1)
