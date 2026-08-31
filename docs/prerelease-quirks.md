@@ -17,6 +17,13 @@ reset at each stable release.
   (`prototype_cache: false` disables it); see the README's "Prototype
   cache" section for the on-disk layout and the `prototype_cache_dir`
   override.
+- OVOS-CONTEXT-1 `requires_context` / `excludes_context` gating now also
+  applies to the legacy `padatious:register_intent` wire contract, not only
+  OVOS-INTENT-4 template registrations: a Padatious `.intent` registration
+  carrying either field is gated the same way at match time, and the gate
+  is cleared on `detach_intent`/`detach_skill` and replaced on
+  re-registration. Previously `requires_context`/`excludes_context` on that
+  path were silently ignored.
 
 ## 0.7.0a1
 
