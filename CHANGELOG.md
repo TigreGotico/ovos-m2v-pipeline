@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.7.0a1](https://github.com/OpenVoiceOS/ovos-m2v-pipeline/tree/0.7.0a1) (2026-08-31)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-m2v-pipeline/compare/0.6.1a1...0.7.0a1)
+
+**Merged pull requests:**
+
+- feat: configurable label map and valid-label filtering [\#73](https://github.com/OpenVoiceOS/ovos-m2v-pipeline/pull/73) ([JarbasAl](https://github.com/JarbasAl))
+
 ## [0.6.1a1](https://github.com/OpenVoiceOS/ovos-m2v-pipeline/tree/0.6.1a1) (2026-08-31)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-m2v-pipeline/compare/0.6.0a1...0.6.1a1)
