@@ -52,7 +52,9 @@ In your `mycroft.conf`:
 
 * `model`: Path to your pretrained Model2Vec model or huggingface repo.
 * `conf_xxx`: Minimum confidence threshold for intent matching.
-* `ignore_intents`: List of intents to ignore during matching.
+* `ignore_intents`: List of canonical labels to exclude from matching (deny-list, applied after `label_map`).
+* `valid_labels`: List of canonical labels eligible to match (allow-list, applied after `label_map`). When unset, every mapped label is eligible.
+* `label_map`: Maps a raw model label to its canonical `skill_id:intent` label. Merges over (and can override) the built-in OCP/common-query/stop remaps and any labels the model itself declares in `labels.json`; see [Trained models document their labels](#trained-models-document-their-labels).
 * `prototype_strategy`: Scoring strategy for prototype mode (default `"max_over_all"`, back-compatible). See [docs/strategies.md](docs/strategies.md).
 * `prototype_top_k`: Top-k cosines averaged by the `top_k_mean` strategy (default `3`).
 * `prototype_tau`: Softmax temperature for the `softmax_weighted` strategy (default `0.1`).
@@ -87,6 +89,50 @@ its own `intents.<entrypoint-name>` key (see the `Model2VecPrototypePipeline`
 docstring for an example), so a deployment can keep the fast frozen
 classifier for its core trained intents while the prototype matcher picks up
 everything else.
+
+---
+
+## Trained models document their labels
+
+In classifier mode the label head is frozen at training time, so which bus
+intent each label denotes (`ocp:play` -> `ovos.common_play:ovos.common_play.play_search`,
+for example) is a property of that particular trained model, not of the
+plugin code. A model can ship this mapping alongside its weights as a
+`labels.json` file in its repo/directory:
+
+```json
+{
+  "my_domain:book_flight": "travel_skill:book.flight.intent",
+  "my_domain:cancel_flight": "travel_skill:cancel.flight.intent",
+  "valid_labels": ["travel_skill:book.flight.intent", "travel_skill:cancel.flight.intent"]
+}
+```
+
+`labels.json` has the same shape as the `label_map` config option, plus an
+optional `valid_labels` list. When present, list the labels a model was
+trained on on its model card too, so users know what to expect without
+downloading it first.
+
+Three layers combine, each overriding the previous on a per-key basis:
+
+1. Built-in defaults (the OCP / common-query / stop remaps that predate this
+   mechanism).
+2. The loaded model's own `labels.json`, if it ships one.
+3. The deployment's `label_map` / `valid_labels` config.
+
+For a Hugging Face hub model id, `labels.json` rides the same local cache
+as the model's own weights: the plugin never fetches it over the network at
+construction time, and only ever consults the cache entry already populated
+by whatever downloaded the model. If the model has not been cached yet, or
+the cached copy has no `labels.json`, the manifest layer is treated as empty
+- it is never a reason for plugin construction to touch the network or block
+on one.
+
+A missing or corrupt `labels.json` is logged and ignored; the plugin falls
+back to the layers below it rather than failing to load. A `label_map` target
+that is not a `skill_id:intent` string (no colon) is logged as a warning
+(once per label) and used as-is - the plugin never invents a bus topic
+from it.
 
 ---
 
