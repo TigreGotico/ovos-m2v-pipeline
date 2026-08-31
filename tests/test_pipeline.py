@@ -273,7 +273,7 @@ class TestMatchClassifier(unittest.TestCase):
         _setup_classifier(p, ["skill_a:my.intent"], [0.9])
         results = list(p._match("turn on the lights"))
         self.assertEqual(len(results), 1)
-        skill_id, label, prob = results[0]
+        skill_id, label, prob, slots = results[0]
         self.assertEqual(label, "skill_a:my.intent")
         self.assertEqual(skill_id, "skill_a")
         self.assertAlmostEqual(prob, 0.9)
@@ -288,7 +288,7 @@ class TestMatchClassifier(unittest.TestCase):
         _setup_classifier(p, ["ocp:play"], [0.95])
         results = list(p._match("play some music"))
         self.assertEqual(len(results), 1)
-        skill_id, label, _ = results[0]
+        skill_id, label, _, _ = results[0]
         self.assertEqual(skill_id, "ovos.common_play")
         self.assertEqual(label, "ovos.common_play.play_search")
 
@@ -297,7 +297,7 @@ class TestMatchClassifier(unittest.TestCase):
         _setup_classifier(p, ["common_query:common_query"], [0.8])
         results = list(p._match("what is the capital of France"))
         self.assertEqual(len(results), 1)
-        skill_id, label, _ = results[0]
+        skill_id, label, _, _ = results[0]
         self.assertEqual(skill_id, "common_query.openvoiceos")
         self.assertEqual(label, "common_query.question")
 
@@ -306,7 +306,7 @@ class TestMatchClassifier(unittest.TestCase):
         _setup_classifier(p, ["stop:stop"], [0.85])
         results = list(p._match("stop"))
         self.assertEqual(len(results), 1)
-        skill_id, label, _ = results[0]
+        skill_id, label, _, _ = results[0]
         self.assertEqual(skill_id, "stop.openvoiceos")
         self.assertEqual(label, "mycroft.stop")
 
@@ -339,7 +339,7 @@ class TestMatch(unittest.TestCase):
         _setup_model(p, ["skill_a:a.intent", "skill_b:b.intent", "skill_c:c.intent"],
                      [0.6, 0.2, 0.2])
         results = list(p._match("test"))
-        total = sum(prob for _, _, prob in results)
+        total = sum(prob for _, _, prob, _ in results)
         self.assertAlmostEqual(total, 1.0, places=6)
 
     def test_renormalize_false_preserves_raw_probs(self):
@@ -347,7 +347,7 @@ class TestMatch(unittest.TestCase):
         _setup_model(p, ["skill_a:a.intent", "skill_b:b.intent", "skill_c:c.intent"],
                      [0.6, 0.2, 0.2])
         results = list(p._match("test"))
-        probs = [prob for _, _, prob in results]
+        probs = [prob for _, _, prob, _ in results]
         # Only the 2 registered intents survive; probs are raw (0.6 and 0.2)
         self.assertAlmostEqual(sorted(probs, reverse=True)[0], 0.6, places=6)
         self.assertAlmostEqual(sorted(probs, reverse=True)[1], 0.2, places=6)
@@ -358,7 +358,7 @@ class TestMatch(unittest.TestCase):
         p = _make_pipeline(intents=["skill_a:a.intent"], renormalize=True)
         _setup_model(p, ["skill_a:a.intent", "skill_b:b.intent"], [0.3, 0.7])
         results = list(p._match("test"))
-        _, _, prob = results[0]
+        _, _, prob, _ = results[0]
         self.assertAlmostEqual(prob, 1.0, places=6)
 
     def test_renormalize_no_division_by_zero(self):
@@ -366,7 +366,7 @@ class TestMatch(unittest.TestCase):
         p = _make_pipeline(intents=["skill_a:a.intent"], renormalize=True)
         _setup_model(p, ["skill_a:a.intent"], [0.0])
         results = list(p._match("test"))
-        _, _, prob = results[0]
+        _, _, prob, _ = results[0]
         self.assertFalse(np.isnan(prob))
         self.assertAlmostEqual(prob, 0.0)
 
@@ -376,10 +376,10 @@ class TestMatch(unittest.TestCase):
         _setup_model(p, ["skill_a:a.intent", "ocp:play", "skill_b:b.intent"],
                      [0.3, 0.4, 0.3])
         results = list(p._match("test"))
-        total = sum(prob for _, _, prob in results)
+        total = sum(prob for _, _, prob, _ in results)
         self.assertAlmostEqual(total, 1.0, places=6)
         # ocp:play (0.4) + skill_a (0.3) -> renorm sum = 0.7
-        labels = {label for _, label, _ in results}
+        labels = {label for _, label, _, _ in results}
         self.assertIn("ovos.common_play.play_search", labels)
         self.assertIn("skill_a:a.intent", labels)
 
@@ -406,7 +406,7 @@ class TestMatchPrototype(unittest.TestCase):
         p.model.encode.return_value = np.array([[1.0, 0.0, 0.0, 0.0]], dtype=np.float32)
         results = list(p._match("turn on lights"))
         self.assertEqual(len(results), 1)
-        skill_id, label, score = results[0]
+        skill_id, label, score, slots = results[0]
         self.assertEqual(label, "skill_a:my.intent")
         self.assertAlmostEqual(score, 1.0, places=4)
 
@@ -431,7 +431,7 @@ class TestMatchPrototype(unittest.TestCase):
         p.model.encode.return_value = np.array([[1.0, 0.0, 0.0, 0.0]], dtype=np.float32)
         results = list(p._match("play some music"))
         self.assertEqual(len(results), 1)
-        skill_id, label, _ = results[0]
+        skill_id, label, _, _ = results[0]
         self.assertEqual(skill_id, "ovos.common_play")
         self.assertEqual(label, "ovos.common_play.play_search")
 
