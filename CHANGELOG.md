@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.5.8a1](https://github.com/OpenVoiceOS/ovos-m2v-pipeline/tree/0.5.8a1) (2026-08-31)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-m2v-pipeline/compare/0.5.7a1...0.5.8a1)
+
+**Merged pull requests:**
+
+- fix: lazy bounded template expansion in all registration paths [\#67](https://github.com/OpenVoiceOS/ovos-m2v-pipeline/pull/67) ([JarbasAl](https://github.com/JarbasAl))
+
 ## [0.5.7a1](https://github.com/OpenVoiceOS/ovos-m2v-pipeline/tree/0.5.7a1) (2026-08-17)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-m2v-pipeline/compare/0.5.6a1...0.5.7a1)
