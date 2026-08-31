@@ -3,6 +3,21 @@
 Behavior changes since the last stable release, newest first. This file is
 reset at each stable release.
 
+## 0.8.0a1
+
+- Prototype mode caches each label's encoded prototypes to disk, keyed on
+  the registration's inputs (model id, `model2vec` version,
+  anchor-selection parameters, raw pre-expansion template lines, referenced
+  entity values). A registration whose inputs are unchanged since the last
+  boot loads its embeddings from the cache instead of re-encoding through
+  the embedding model; any other input change is a plain cache miss.
+  `detach_intent`/`detach_skill` (and their OVOS-INTENT-4 equivalents)
+  delete the corresponding cache entry so a removed skill's intents are not
+  resurrected from a stale cache on the next boot. Enabled by default
+  (`prototype_cache: false` disables it); see the README's "Prototype
+  cache" section for the on-disk layout and the `prototype_cache_dir`
+  override.
+
 ## 0.7.0a1
 
 - Classifier-mode label remapping is configurable instead of a hardcoded OCP
