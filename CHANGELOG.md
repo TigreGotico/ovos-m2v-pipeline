@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.6.0a1](https://github.com/OpenVoiceOS/ovos-m2v-pipeline/tree/0.6.0a1) (2026-08-31)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-m2v-pipeline/compare/0.5.8a1...0.6.0a1)
+
+**Merged pull requests:**
+
+- feat: OVOS-CONTEXT-1 §7 context-supplied slot fill [\#49](https://github.com/OpenVoiceOS/ovos-m2v-pipeline/pull/49) ([JarbasAl](https://github.com/JarbasAl))
+
 ## [0.5.8a1](https://github.com/OpenVoiceOS/ovos-m2v-pipeline/tree/0.5.8a1) (2026-08-31)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-m2v-pipeline/compare/0.5.7a1...0.5.8a1)
