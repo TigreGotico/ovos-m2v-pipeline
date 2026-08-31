@@ -1,7 +1,10 @@
 import itertools
+import json
 import re
 import threading
 import time
+from pathlib import Path
+
 import numpy as np
 from typing import Any, List, Optional, Union, Dict, Iterable, Tuple
 
@@ -39,6 +42,83 @@ _SPECIAL_LABEL_PIPELINES = {
     "common_query:common_query": "ovos-common-query-pipeline-plugin",
     "stop:stop": "ovos-stop-pipeline-plugin",
 }
+
+# Default ``label_map`` layer: model label -> (skill_id, canonical_label).
+# These are the built-in OCP / common-query / stop remaps that predate the
+# `label_map` config option; they stay wired unconditionally unless a model
+# manifest or user config overrides the same key. Values are ``(skill_id,
+# canonical_label)`` tuples (rather than a single ``skill_id:label`` string)
+# because the canonical labels here do not live in the `skill_id:intent`
+# namespace themselves.
+_SPECIAL_LABEL_MAP: Dict[str, Tuple[str, str]] = {
+    "ocp:play": ("ovos.common_play", "ovos.common_play.play_search"),
+    "common_query:common_query": ("common_query.openvoiceos", "common_query.question"),
+    "stop:stop": ("stop.openvoiceos", "mycroft.stop"),
+}
+
+
+def _load_labels_manifest(model_path: str) -> Dict[str, Any]:
+    """Load the optional ``labels.json`` a trained model ships alongside it.
+
+    A classifier's label head is frozen at train time, so which bus intents
+    its labels denote is a property of the model, not the plugin. When a
+    model directory (local path or the local HF hub cache) carries a
+    ``labels.json`` manifest, it is used as the *model* layer of the
+    ``label_map`` / ``valid_labels`` config, between the built-in defaults
+    and the user's own config.
+
+    ``labels.json`` has the same shape as the ``label_map`` config value
+    (model label -> ``skill_id:intent`` string), plus an optional
+    ``"valid_labels"`` list key.
+
+    This is called from ``__init__``, on the critical path of constructing
+    the pipeline, so it must never touch the network: for a hub id it only
+    consults the local HF cache (``local_files_only=True``), riding the
+    same cache the model's own weights were already fetched into. A model
+    not yet cached locally, or one with no manifest, is silently treated as
+    having none - it is not a reason to fetch anything here.
+
+    Never raises: a missing, corrupt, or unreadable manifest is logged
+    (debug for "not present locally", warning for "present but unreadable")
+    and ignored, and matching falls back to the built-in defaults / user
+    config.
+    """
+    try:
+        local_dir = Path(model_path)
+        if local_dir.exists():
+            manifest_path = local_dir / "labels.json"
+            if not manifest_path.exists():
+                return {}
+            raw = manifest_path.read_text(encoding="utf-8")
+        else:
+            import huggingface_hub
+
+            try:
+                cached = huggingface_hub.hf_hub_download(
+                    model_path, "labels.json", local_files_only=True
+                )
+            except (huggingface_hub.errors.LocalEntryNotFoundError,
+                     huggingface_hub.errors.EntryNotFoundError,
+                     OSError, ValueError):
+                # No manifest in the local cache (model not yet cached, no
+                # labels.json shipped, or repo id unknown offline) - never
+                # reach out to the network to find out; the manifest is
+                # optional and, once the model itself is fetched by whatever
+                # downloads it, labels.json rides the same cache entry.
+                LOG.debug(f"Model2Vec: no local labels.json cached for "
+                          f"'{model_path}'")
+                return {}
+            raw = Path(cached).read_text(encoding="utf-8")
+        data = json.loads(raw)
+    except (OSError, ValueError) as e:
+        LOG.warning(f"Model2Vec: failed to load labels.json manifest for "
+                    f"'{model_path}': {e}")
+        return {}
+    if not isinstance(data, dict):
+        LOG.warning(f"Model2Vec: labels.json manifest for '{model_path}' is "
+                    f"not a JSON object, ignoring")
+        return {}
+    return data
 
 
 #: Upper bound on entity-filled samples generated per template. The
@@ -489,6 +569,22 @@ class Model2VecIntentPipeline(ConfidenceMatcherPipeline):
 
         self.intents: set = set()
         self.ignore_labels: List[str] = self.config.get("ignore_intents") or []
+        #: Merged `label_map` layers: built-in defaults < model manifest
+        #: (`labels.json`, when the loaded model ships one) < user config.
+        #: Consumed by `_apply_special_label_map` to turn a raw model label
+        #: into `(skill_id, canonical_label)`.
+        manifest = _load_labels_manifest(model_path)
+        manifest_map = {k: v for k, v in manifest.items() if k != "valid_labels"}
+        user_map = self.config.get("label_map") or {}
+        self.label_map: Dict[str, Any] = {**_SPECIAL_LABEL_MAP, **manifest_map, **user_map}
+        #: Allow-list of canonical labels eligible to match, applied after
+        #: `label_map` resolution (post-mapping), alongside the pre-existing
+        #: `ignore_intents` deny-list. `None` disables the allow-list check.
+        self.valid_labels: Optional[List[str]] = self.config.get("valid_labels")
+        if self.valid_labels is None:
+            manifest_valid = manifest.get("valid_labels")
+            if isinstance(manifest_valid, list):
+                self.valid_labels = manifest_valid
         self._syncing = False
         #: Registered entity value-sets (OVOS-INTENT-4 §7), keyed by entity
         #: name (lowercase). Used to fill ``{slot}`` placeholders in template
@@ -514,6 +610,10 @@ class Model2VecIntentPipeline(ConfidenceMatcherPipeline):
         #: warning (see ``_handle_intent4_register_template``), so the
         #: warning logs once per skill rather than once per template.
         self._intent4_frozen_warned: set = set()
+        #: model labels for which the colon-less `label_map` target warning
+        #: has already been logged, so it logs once per label rather than
+        #: once per match (mirrors `_intent4_frozen_warned`).
+        self._label_map_warned: set = set()
 
         mode = self.config.get("mode", "classifier")
 
@@ -1052,15 +1152,34 @@ class Model2VecIntentPipeline(ConfidenceMatcherPipeline):
     # Matching
     # ------------------------------------------------------------------
 
-    @staticmethod
-    def _apply_special_label_map(label: str) -> Tuple[str, str]:
-        """Return ``(skill_id, canonical_label)`` after OCP / stop / query remaps."""
-        if label == "ocp:play":
-            return "ovos.common_play", "ovos.common_play.play_search"
-        if label == "common_query:common_query":
-            return "common_query.openvoiceos", "common_query.question"
-        if label == "stop:stop":
-            return "stop.openvoiceos", "mycroft.stop"
+    def _apply_special_label_map(self, label: str) -> Tuple[str, str]:
+        """Return ``(skill_id, canonical_label)`` after applying ``self.label_map``.
+
+        ``self.label_map`` entries are either the built-in ``(skill_id,
+        canonical_label)`` tuples, or a ``skill_id:intent`` string (from a
+        model manifest or user config). A string target that does not
+        contain a colon does not name a `skill_id:intent` topic; it is used
+        as-is (with a warning) rather than inventing one.
+        """
+        target = self.label_map.get(label)
+        if target is None:
+            return label.split(":")[0], label
+        if isinstance(target, (list, tuple)) and len(target) == 2:
+            skill_id, canonical_label = target
+            return skill_id, canonical_label
+        if isinstance(target, str):
+            if ":" not in target:
+                if label not in self._label_map_warned:
+                    self._label_map_warned.add(label)
+                    LOG.warning(f"Model2Vec: label_map target '{target}' for "
+                                f"'{label}' is not in 'skill_id:intent' form; "
+                                f"using as-is")
+                return target, target
+            return target.split(":")[0], target
+        if label not in self._label_map_warned:
+            self._label_map_warned.add(label)
+            LOG.warning(f"Model2Vec: unsupported label_map target for "
+                        f"'{label}': {target!r}; using as-is")
         return label.split(":")[0], label
 
     def _excluded_labels(self, utterance: str) -> List[str]:
@@ -1140,6 +1259,16 @@ class Model2VecIntentPipeline(ConfidenceMatcherPipeline):
         excluded = self._excluded_labels(utterance)
         blacklisted_intents, blacklisted_skills = self._session_blacklists(message)
         for skill_id, label, score in candidates:
+            # `ignore_intents` (deny-list) / `valid_labels` (allow-list),
+            # applied post-mapping against the canonical label so both work
+            # uniformly across classifier and prototype mode, and cover
+            # special (OCP/stop/query) labels once mapped.
+            if label in self.ignore_labels:
+                LOG.debug(f"discarding match: {label} - in ignore_intents")
+                continue
+            if self.valid_labels is not None and label not in self.valid_labels:
+                LOG.debug(f"discarding match: {label} - not in valid_labels")
+                continue
             gate = self._context_gates.get(label)
             if gate is not None:
                 requires, excludes = gate

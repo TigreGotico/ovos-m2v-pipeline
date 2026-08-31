@@ -3,6 +3,30 @@
 Behavior changes since the last stable release, newest first. This file is
 reset at each stable release.
 
+## 0.7.0a1
+
+- Classifier-mode label remapping is configurable instead of a hardcoded OCP
+  / common-query / stop table: `label_map` (config) maps a raw model label to
+  its canonical `skill_id:intent` label, merged over the built-in defaults
+  and over any `labels.json` the loaded model ships alongside it (defaults <
+  model manifest < user config). A trained model's frozen label head is model
+  metadata, not plugin code, so the model itself is now the natural place to
+  document what its labels mean.
+- `valid_labels` (config) is the allow-list counterpart of `ignore_intents`:
+  when set, only the listed canonical labels are eligible to match. Both
+  filters apply after `label_map` resolution. With no `label_map` /
+  `valid_labels` config and no `labels.json` on the model, behavior is
+  unchanged.
+- A `label_map` target that is not a `skill_id:intent` string (no colon) is
+  logged as a warning (once per label) and used as-is; the plugin never
+  invents a bus topic.
+- `labels.json` lookup for a hub-id model never touches the network:
+  construction only consults the local HF cache (`local_files_only=True`),
+  riding whatever cache entry the model's own weights were already fetched
+  into. A model not yet cached, or with no manifest, is silently treated as
+  having none - the manifest is never a reason for pipeline construction to
+  block on a network round trip.
+
 ## 0.6.1a1
 
 - `PrototypeIntentStore` consolidation no longer needs a transient copy of
