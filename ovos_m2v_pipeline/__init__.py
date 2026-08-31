@@ -3,7 +3,7 @@ import re
 import threading
 import time
 import numpy as np
-from typing import List, Optional, Union, Dict, Iterable, Tuple
+from typing import Any, List, Optional, Union, Dict, Iterable, Tuple
 
 from model2vec.inference import StaticModelPipeline
 from ovos_bus_client.client import MessageBusClient
@@ -12,7 +12,7 @@ from ovos_bus_client.session import SessionManager
 from ovos_config.config import Configuration
 from ovos_plugin_manager.templates.pipeline import IntentHandlerMatch, ConfidenceMatcherPipeline
 from ovos_spec_tools import SpecMessage
-from ovos_spec_tools.context import gate_satisfied
+from ovos_spec_tools.context import gate_satisfied, context_slot_candidates
 from itertools import islice
 
 from ovos_spec_tools.expansion import iter_expand
@@ -418,6 +418,12 @@ class Model2VecIntentPipeline(ConfidenceMatcherPipeline):
         #: utterance contains one of its label's blacklisted phrases. Named and
         #: matched consistently with the padacioso engine's ``excluded_keywords``.
         self.excluded_keywords: Dict[str, List[str]] = {}
+        #: Declared slot names per registered label (OVOS-CONTEXT-1 §7),
+        #: parsed from the label's original template samples before entity
+        #: expansion rewrites ``{slot}`` placeholders into concrete values.
+        #: Used to fill declared slots from live intent context independently
+        #: of ``requires_context`` (which gates the match, not the fill).
+        self._intent_slots: Dict[str, List[str]] = {}
         #: skill_ids that already triggered the frozen-classifier INTENT-4
         #: warning (see ``_handle_intent4_register_template``), so the
         #: warning logs once per skill rather than once per template.
@@ -832,13 +838,27 @@ class Model2VecIntentPipeline(ConfidenceMatcherPipeline):
     def _store_context_gate(self, label: str, message: Message) -> None:
         """Record OVOS-CONTEXT-1 §6/§6.1 ``requires_context`` /
         ``excludes_context`` declarations for ``label`` (if any) so they can be
-        enforced at match time. Absent declarations clear any stale entry."""
+        enforced at match time, plus the label's declared slot names so
+        OVOS-CONTEXT-1 §7 can fill them from live context. Absent declarations
+        clear any stale entry."""
         requires = message.data.get("requires_context")
         excludes = message.data.get("excludes_context")
         if requires or excludes:
             self._context_gates[label] = (requires or [], excludes or [])
         else:
             self._context_gates.pop(label, None)
+
+        # Parse declared slot names from the ORIGINAL samples, before entity
+        # expansion rewrites the ``{slot}`` placeholders into concrete values.
+        slot_names: List[str] = []
+        for sample in message.data.get("samples") or []:
+            for slot in _SLOT_RE.findall(sample):
+                if slot not in slot_names:
+                    slot_names.append(slot)
+        if slot_names:
+            self._intent_slots[label] = slot_names
+        else:
+            self._intent_slots.pop(label, None)
 
     def _handle_intent4_register_entity(self, message: Message) -> None:
         """Register an entity value-set hint (§7). No-op in classifier mode."""
@@ -884,6 +904,7 @@ class Model2VecIntentPipeline(ConfidenceMatcherPipeline):
             self.prototype_store.remove(label)
         self.intents.discard(label)
         self._context_gates.pop(label, None)
+        self._intent_slots.pop(label, None)
         self.excluded_keywords.pop(label, None)
         LOG.debug(f"Model2Vec: deregistered INTENT-4 intent '{label}'")
 
@@ -904,6 +925,8 @@ class Model2VecIntentPipeline(ConfidenceMatcherPipeline):
         self.intents = {i for i in self.intents if not i.startswith(skill_id + ":")}
         self._context_gates = {l: g for l, g in self._context_gates.items()
                                if not l.startswith(skill_id + ":")}
+        self._intent_slots = {l: s for l, s in self._intent_slots.items()
+                              if not l.startswith(skill_id + ":")}
         self.excluded_keywords = {i: kw for i, kw in self.excluded_keywords.items()
                                   if not i.startswith(skill_id + ":")}
         LOG.debug(f"Model2Vec: deregistered all INTENT-4 registrations for skill '{skill_id}'")
@@ -923,6 +946,7 @@ class Model2VecIntentPipeline(ConfidenceMatcherPipeline):
             self.prototype_store.remove(label)
         self.intents.discard(label)
         self._context_gates.pop(label, None)
+        self._intent_slots.pop(label, None)
         self.excluded_keywords.pop(label, None)
         LOG.debug(f"Model2Vec: disabled INTENT-4 intent '{label}'")
 
@@ -991,8 +1015,10 @@ class Model2VecIntentPipeline(ConfidenceMatcherPipeline):
                 frozenset(sess.blacklisted_skills or []))
 
     def _match(self, utterance: str,
-               message: Optional[Message] = None) -> Iterable[Tuple[str, str, float]]:
-        """Yield ``(skill_id, label, score)`` tuples sorted by score descending.
+               message: Optional[Message] = None) -> Iterable[Tuple[str, str, float, Dict[str, Any]]]:
+        """Yield ``(skill_id, label, score, slots)`` tuples sorted by score
+        descending, where ``slots`` carries the OVOS-CONTEXT-1 §7
+        context-supplied slot values for the label (empty when none apply).
 
         Candidates suppressed by a §6.1 template ``blacklist`` phrase, or by the
         session's ``blacklisted_intents`` / ``blacklisted_skills``, are dropped.
@@ -1008,8 +1034,23 @@ class Model2VecIntentPipeline(ConfidenceMatcherPipeline):
             candidates = self._match_classifier(utterance, message)
         # OVOS-CONTEXT-1 §6/§6.1 context gate + OVOS-INTENT-4 §6.1 blacklist +
         # session blacklists — applied together so a candidate must survive all
-        # three to be yielded.
-        intent_context = (SessionManager.get(message).intent_context or {}) if self._context_gates else {}
+        # three to be yielded. Surviving candidates additionally receive their
+        # OVOS-CONTEXT-1 §7 context-supplied slots.
+        #
+        # The OVOS-INTENT-4 per-slot entity `.blacklist` remains a no-op for
+        # m2v: this is a semantic *label* classifier and never extracts a slot
+        # value from the utterance, so there is no utterance-supplied value to
+        # exclude. Registered entities feed `_expand_entities` at registration
+        # time to widen a label's prototypes; they are not extracted at match.
+        #
+        # §7 does apply: an m2v template may DECLARE a `{slot}`. Because the
+        # utterance never fills that slot, live intent context is the only
+        # source — so any declared slot with a live non-null context entry fills
+        # directly (there is no utterance-produced value to override, §7). The
+        # fill is independent of `requires_context`: the gate flags gate the
+        # match, they do not scope the fill.
+        intent_context = (SessionManager.get(message).intent_context or {}) \
+            if (self._context_gates or self._intent_slots) else {}
         excluded = self._excluded_labels(utterance)
         blacklisted_intents, blacklisted_skills = self._session_blacklists(message)
         for skill_id, label, score in candidates:
@@ -1025,7 +1066,12 @@ class Model2VecIntentPipeline(ConfidenceMatcherPipeline):
             if label in blacklisted_intents or skill_id in blacklisted_skills:
                 LOG.debug(f"discarding match: {label} - blacklisted in session")
                 continue
-            yield skill_id, label, score
+            slots: Dict[str, Any] = {}
+            slot_names = self._intent_slots.get(label)
+            if slot_names:
+                slots = context_slot_candidates(intent_context, slot_names,
+                                                owner_id=skill_id)
+            yield skill_id, label, score, slots
 
     def _match_classifier(self, utterance: str,
                            message: Optional[Message] = None) -> Iterable[Tuple[str, str, float]]:
@@ -1101,13 +1147,13 @@ class Model2VecIntentPipeline(ConfidenceMatcherPipeline):
             return None
         min_conf = self.config.get("conf_high", 0.7)
         LOG.debug(f"Matching intents via Model2Vec (min_conf: {min_conf}) - {utterances[0]}")
-        for skill_id, label, prob in self._match(utterances[0], message):
+        for skill_id, label, prob, slots in self._match(utterances[0], message):
             if prob < min_conf:
                 LOG.debug(f"discarding match: {label} - confidence < {min_conf}")
                 return None
             match = IntentHandlerMatch(
                 match_type=label,
-                match_data={"utterance": utterances[0], "confidence": prob},
+                match_data={"utterance": utterances[0], "confidence": prob, **slots},
                 skill_id=skill_id or "ovos-m2v-pipeline",
                 utterance=utterances[0]
             )
@@ -1131,13 +1177,13 @@ class Model2VecIntentPipeline(ConfidenceMatcherPipeline):
             return None
         min_conf = self.config.get("conf_medium", 0.5)
         LOG.debug(f"Matching intents via Model2Vec (min_conf: {min_conf}) - {utterances[0]}")
-        for skill_id, label, prob in self._match(utterances[0], message):
+        for skill_id, label, prob, slots in self._match(utterances[0], message):
             if prob < min_conf:
                 LOG.debug(f"discarding match: {label} - confidence < {min_conf}")
                 return None
             match = IntentHandlerMatch(
                 match_type=label,
-                match_data={"utterance": utterances[0], "confidence": prob},
+                match_data={"utterance": utterances[0], "confidence": prob, **slots},
                 skill_id=skill_id or "ovos-m2v-pipeline",
                 utterance=utterances[0]
             )
@@ -1161,13 +1207,13 @@ class Model2VecIntentPipeline(ConfidenceMatcherPipeline):
             return None
         min_conf = self.config.get("conf_low", 0.15)
         LOG.debug(f"Matching intents via Model2Vec (min_conf: {min_conf}) - {utterances[0]}")
-        for skill_id, label, prob in self._match(utterances[0], message):
+        for skill_id, label, prob, slots in self._match(utterances[0], message):
             if prob < min_conf:
                 LOG.debug(f"discarding match: {label} - confidence < {min_conf}")
                 return None
             match = IntentHandlerMatch(
                 match_type=label,
-                match_data={"utterance": utterances[0], "confidence": prob},
+                match_data={"utterance": utterances[0], "confidence": prob, **slots},
                 skill_id=skill_id or "ovos-m2v-pipeline",
                 utterance=utterances[0]
             )

@@ -3,6 +3,19 @@
 Behavior changes since the last stable release, newest first. This file is
 reset at each stable release.
 
+## 0.5.8a2
+
+- Declared template slots fill from live intent context (OVOS-CONTEXT-1
+  §7, `ovos-spec-tools` `context_slot_candidates`): a registered template's
+  `{slot}` placeholders are recorded at registration time, and any slot with
+  a live non-null context entry fills `match_data[slot]` when the utterance
+  itself never produces a value for it, independently of any
+  `requires_context` declaration on the same intent. m2v never extracts a
+  slot value from the utterance (it is a label classifier), so context is
+  the only source of a filled value and the OVOS-INTENT-4 per-slot entity
+  `.blacklist` remains a no-op here — there is nothing utterance-supplied to
+  exclude.
+
 ## 0.5.8a1
 
 - Template expansion in every registration path is lazy and bounded:

@@ -124,10 +124,11 @@ class TestIntent4TemplateRegistration(unittest.TestCase):
         p.model.encode.return_value = np.array([[1.0, 0.0, 0.0, 0.0]], dtype=np.float32)
         results = list(p._match("play music"))
         self.assertEqual(len(results), 1)
-        skill_id, label, score = results[0]
+        skill_id, label, score, slots = results[0]
         self.assertEqual(label, "music.skill:play_music")
         self.assertEqual(skill_id, "music.skill")
         self.assertAlmostEqual(score, 1.0, places=4)
+        self.assertEqual(slots, {})
 
     def test_bracket_templates_expanded(self):
         p = _make_prototype_pipeline()
@@ -379,6 +380,113 @@ class TestIntent4ContextGating(unittest.TestCase):
         p._handle_intent4_deregister_skill(Message(
             SpecMessage.SKILL_DEREGISTER.value, data={"skill_id": "music.skill"}))
         self.assertNotIn("music.skill:play_music", p._context_gates)
+
+
+class TestContext1SlotFill(unittest.TestCase):
+    """OVOS-CONTEXT-1 §7 context-supplied slots.
+
+    m2v is a label classifier and never extracts a slot value from the
+    utterance, so any declared template slot is filled solely from live intent
+    context (the "how tall is he" -> ``{person}`` = "Bob" continuous-
+    conversation case of spec §3.2). Per the uniform §7 model the fill is
+    independent of ``requires_context`` — a declared slot fills from a live
+    entry regardless of any gate declaration.
+    """
+
+    def _register(self, p, requires=None, samples=None,
+                  skill_id="bio.skill", intent_name="height_query"):
+        data = {"skill_id": skill_id, "intent_name": intent_name,
+                "lang": "en-US",
+                "samples": samples if samples is not None else ["how tall is {person}"]}
+        if requires is not None:
+            data["requires_context"] = requires
+        p._handle_intent4_register_template(Message(
+            SpecMessage.INTENT_REGISTER_TEMPLATE.value, data=data,
+            context={"skill_id": skill_id}))
+
+    def _match_with_context(self, p, intent_context, utterance="how tall is he"):
+        p.model.encode.side_effect = None
+        p.model.encode.return_value = np.array([[1.0, 0.0, 0.0, 0.0]], dtype=np.float32)
+        sess = MagicMock()
+        sess.intent_context = intent_context
+        sess.blacklisted_intents = []
+        sess.blacklisted_skills = []
+        with patch("ovos_m2v_pipeline.SessionManager.get", return_value=sess):
+            return p.match_high([utterance], "en-US", Message("recognizer_loop:utterance"))
+
+    def test_declared_slot_names_stored_on_register(self):
+        p = _make_prototype_pipeline()
+        self._register(p, requires=[{"key": "person", "scope": "shared"}])
+        self.assertEqual(p._intent_slots.get("bio.skill:height_query"), ["person"])
+
+    def test_slot_names_parsed_before_entity_expansion(self):
+        # entity registered for {person}; the stored slot name is still the
+        # placeholder, parsed from the original sample, not an expanded value.
+        p = _make_prototype_pipeline()
+        p._handle_intent4_register_entity(Message(
+            SpecMessage.ENTITY_REGISTER.value,
+            data={"skill_id": "bio.skill", "entity_name": "person",
+                  "lang": "en-US", "samples": ["Alice"]}))
+        self._register(p, requires=[{"key": "person", "scope": "shared"}])
+        self.assertEqual(p._intent_slots.get("bio.skill:height_query"), ["person"])
+
+    def test_no_slot_no_entry(self):
+        p = _make_prototype_pipeline()
+        self._register(p, samples=["what time is it"],
+                       requires=[{"key": "person", "scope": "shared"}])
+        self.assertNotIn("bio.skill:height_query", p._intent_slots)
+
+    def test_context_value_fills_slot_without_requires_context(self):
+        # uniform §7: no requires_context declared, yet the declared {person}
+        # slot fills from the live shared context entry.
+        p = _make_prototype_pipeline()
+        self._register(p)  # {person} slot declared, no gate
+        self.assertNotIn("bio.skill:height_query", p._context_gates)
+        match = self._match_with_context(p, {"person": {"value": "Bob"}})
+        self.assertIsNotNone(match)
+        self.assertEqual(match.match_data.get("person"), "Bob")
+
+    def test_context_value_fills_slot_with_gate(self):
+        # the fill also applies when a requires_context gate is present and
+        # satisfied — gate and fill are independent.
+        p = _make_prototype_pipeline()
+        self._register(p, requires=[{"key": "person", "scope": "shared"}])
+        match = self._match_with_context(p, {"person": {"value": "Bob"}})
+        self.assertIsNotNone(match)
+        self.assertEqual(match.match_data.get("person"), "Bob")
+
+    def test_absent_context_slot_absent(self):
+        p = _make_prototype_pipeline()
+        self._register(p)  # {person} slot declared, no context entry
+        match = self._match_with_context(p, {})
+        self.assertIsNotNone(match)
+        self.assertNotIn("person", match.match_data)
+
+    def test_flag_only_context_does_not_fill(self):
+        p = _make_prototype_pipeline()
+        self._register(p)
+        match = self._match_with_context(p, {"person": {"value": None}})
+        # a null-valued (flag) entry supplies no value to fill the slot
+        self.assertIsNotNone(match)
+        self.assertNotIn("person", match.match_data)
+
+    def test_slots_cleared_on_deregister(self):
+        p = _make_prototype_pipeline()
+        self._register(p, requires=[{"key": "person", "scope": "shared"}])
+        p._handle_intent4_deregister_intent(Message(
+            SpecMessage.INTENT_DEREGISTER.value,
+            data={"skill_id": "bio.skill", "intent_name": "height_query",
+                  "lang": "en-US"}))
+        self.assertNotIn("bio.skill:height_query", p._intent_slots)
+
+    def test_slots_cleared_on_skill_deregister(self):
+        p = _make_prototype_pipeline()
+        self._register(p, requires=[{"key": "person", "scope": "shared"}])
+        p._handle_intent4_deregister_skill(Message(
+            SpecMessage.SKILL_DEREGISTER.value, data={"skill_id": "bio.skill"}))
+        self.assertNotIn("bio.skill:height_query", p._intent_slots)
+
+
 class TestIntent4Blacklist(unittest.TestCase):
     """OVOS-INTENT-4 §6.1 template blacklist + session-level blacklists.
 
