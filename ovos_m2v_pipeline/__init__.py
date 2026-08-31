@@ -109,19 +109,65 @@ class PrototypeIntentStore:
         self._label_set = set(np.unique(self._labels)) if len(self._labels) else set()
 
     def _consolidate(self) -> None:
-        """Stack pending chunks into the contiguous arrays, once."""
+        """Fold pending chunks into the contiguous arrays.
+
+        ``np.vstack([self._embeddings] + chunks)`` (the previous
+        implementation) allocates one brand-new array the size of the
+        *entire* resulting store while every existing chunk is still
+        alive -- a transient ~2x peak over the final store size. On a
+        capped service that single allocation is what stalls: live
+        registrations finish (they only append to ``_pending``), and the
+        first read afterwards -- ``scores()``, on the bus dispatch thread
+        handling the next utterance -- is the one that needs the doubled
+        memory and never gets it, wedging dispatch (observed: an ovos-core
+        install pinned at its 2G cgroup cap, 100% CPU, no further intents
+        matched, 25+ minutes after the last registration completed).
+
+        Instead, allocate the final-size array exactly once and copy each
+        source (the old store, then each pending chunk) into it in turn,
+        dropping every source as soon as it is copied. Peak transient
+        overhead is then bounded by the final array itself plus at most
+        one still-alive source (<= ``MAX_ENTITY_EXPANSIONS`` rows), not by
+        the size of the whole backlog.
+
+        A ``MemoryError`` here is a hard failure, not something to retry:
+        it is logged and the store is left exactly as it was (nothing
+        pending is dropped), so a live install keeps matching whatever it
+        already consolidated instead of spinning.
+        """
         if not self._pending:
             return
-        chunks = [c for c, _ in self._pending]
-        label_chunks = [l for _, l in self._pending]
-        if len(self._labels):
-            self._embeddings = np.vstack([self._embeddings] + chunks)
-            self._labels = np.concatenate([self._labels] + label_chunks)
-        else:
-            self._embeddings = np.vstack(chunks) if len(chunks) > 1 else chunks[0]
-            self._labels = (np.concatenate(label_chunks)
-                            if len(label_chunks) > 1 else label_chunks[0])
-        self._pending.clear()
+        total_new = sum(len(lbls) for _, lbls in self._pending)
+        dim = self._pending[0][0].shape[1]
+        old_n = len(self._labels)
+        try:
+            target_emb = np.empty((old_n + total_new, dim), dtype=np.float32)
+            target_lbl = np.empty(old_n + total_new, dtype=object)
+        except MemoryError:
+            LOG.error(
+                f"prototype store: out of memory consolidating {total_new} "
+                f"pending prototype(s) onto {old_n} existing; keeping the "
+                f"store as-is and leaving the batch pending"
+            )
+            return
+        if old_n:
+            target_emb[:old_n] = self._embeddings
+            target_lbl[:old_n] = self._labels
+        self._embeddings = None  # drop the old array before copying chunks in
+        self._labels = None
+        offset = old_n
+        pending, self._pending = self._pending, []
+        while pending:
+            # pop (not iterate): each source chunk is dereferenced right
+            # after its data is copied in, so at most one chunk plus the
+            # target array is resident at a time -- never the whole backlog
+            chunk, chunk_labels = pending.pop()
+            n = len(chunk_labels)
+            target_emb[offset:offset + n] = chunk
+            target_lbl[offset:offset + n] = chunk_labels
+            offset += n
+        self._embeddings = target_emb
+        self._labels = target_lbl
 
     # ------------------------------------------------------------------
     # Public read-only views
@@ -200,11 +246,22 @@ class PrototypeIntentStore:
         n_added = len(anchors)
         with self._lock:
             if label in self._label_set:
-                # re-registration: fold pending in, then drop the old rows
+                # re-registration: drop the label's rows from BOTH the
+                # consolidated store and any not-yet-folded pending
+                # chunk(s), independently of each other. _consolidate()
+                # can fail (MemoryError) and leave _pending untouched --
+                # if this branch relied on it to clear a label's old
+                # pending chunk, a re-registration during/after a failed
+                # consolidate would leave the OLD chunk sitting alongside
+                # the new one, and scores() (which reads consolidated +
+                # pending) would keep matching retired phrasing forever.
                 self._consolidate()
-                mask = self._labels != label
-                self._embeddings = self._embeddings[mask]
-                self._labels = self._labels[mask]
+                if len(self._labels):
+                    mask = self._labels != label
+                    self._embeddings = self._embeddings[mask]
+                    self._labels = self._labels[mask]
+                self._pending = [(c, l) for c, l in self._pending
+                                  if not len(l) or l[0] != label]
                 self._label_set.discard(label)
             if n_added == 0:
                 return 0
@@ -222,9 +279,14 @@ class PrototypeIntentStore:
             if label not in self._label_set:
                 return
             self._consolidate()
-            mask = self._labels != label
-            self._embeddings = self._embeddings[mask]
-            self._labels = self._labels[mask]
+            if len(self._labels):
+                mask = self._labels != label
+                self._embeddings = self._embeddings[mask]
+                self._labels = self._labels[mask]
+            # strip any not-yet-folded pending chunk(s) too: _consolidate()
+            # may have failed (MemoryError) and left _pending untouched
+            self._pending = [(c, l) for c, l in self._pending
+                              if not len(l) or l[0] != label]
             self._label_set.discard(label)
 
     def remove_skill(self, skill_id: str) -> None:
@@ -234,10 +296,17 @@ class PrototypeIntentStore:
                 return
             self._consolidate()
             prefix = skill_id + ":"
-            mask = np.array([not str(lbl).startswith(prefix) for lbl in self._labels])
-            self._embeddings = self._embeddings[mask]
-            self._labels = self._labels[mask]
-            self._label_set = set(np.unique(self._labels)) if len(self._labels) else set()
+            if len(self._labels):
+                mask = np.array([not str(lbl).startswith(prefix) for lbl in self._labels])
+                self._embeddings = self._embeddings[mask]
+                self._labels = self._labels[mask]
+            # strip any not-yet-folded pending chunk(s) too: _consolidate()
+            # may have failed (MemoryError) and left _pending untouched
+            self._pending = [(c, l) for c, l in self._pending
+                              if not len(l) or not str(l[0]).startswith(prefix)]
+            remaining = (set(np.unique(self._labels)) if len(self._labels) else set())
+            remaining |= {l[0] for _, l in self._pending if len(l)}
+            self._label_set = remaining
 
     # ------------------------------------------------------------------
     # Inference
@@ -245,6 +314,18 @@ class PrototypeIntentStore:
 
     def scores(self, query_embedding: np.ndarray) -> Dict[str, float]:
         """Return the max cosine similarity per label.
+
+        Deliberately does *not* call ``_consolidate()``: this runs on the
+        bus dispatch thread for every live utterance, and a label's
+        prototypes are always fully contained in either the consolidated
+        store or exactly one pending chunk (``add()``/``remove()`` fold a
+        label's old rows away before a re-registration appends its new
+        ones), so scoring each pending chunk separately and merging the
+        per-label results is equivalent to scoring the consolidated whole
+        -- without ever needing the consolidation copy. Forcing that copy
+        here is what wedged live matching behind a registration burst: the
+        first utterance after a burst paid for the whole backlog's
+        transient allocation on the dispatch thread.
 
         Parameters
         ----------
@@ -254,16 +335,21 @@ class PrototypeIntentStore:
         with self._lock:
             if not len(self):
                 return {}
-            self._consolidate()
-            embeddings, labels = self._embeddings, self._labels
+            sources = [(self._embeddings, self._labels)] if len(self._labels) else []
+            sources += list(self._pending)
         q = query_embedding.astype(np.float32)
         norm = np.linalg.norm(q)
         if norm > 0:
             q = q / norm
-        return score_labels(
-            q, embeddings, labels,
-            self.strategy, top_k=self.top_k, tau=self.tau,
-        )
+        out: Dict[str, float] = {}
+        for embeddings, labels in sources:
+            for lbl, score in score_labels(
+                q, embeddings, labels,
+                self.strategy, top_k=self.top_k, tau=self.tau,
+            ).items():
+                if lbl not in out or score > out[lbl]:
+                    out[lbl] = score
+        return out
 
     # ------------------------------------------------------------------
     # Bulk construction helpers (offline / testing)

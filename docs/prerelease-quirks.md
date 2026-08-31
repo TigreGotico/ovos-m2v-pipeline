@@ -3,6 +3,24 @@
 Behavior changes since the last stable release, newest first. This file is
 reset at each stable release.
 
+## 0.6.1a1
+
+- `PrototypeIntentStore` consolidation no longer needs a transient copy of
+  the whole store: it pre-allocates the final-size array once and copies
+  the existing store plus each pending chunk into it in turn, dropping
+  every source as soon as it is copied, instead of `np.vstack`-ing the old
+  array and every pending chunk at once (~2x peak over the final store
+  size). A `MemoryError` while doing so is logged and the pending batch is
+  left untouched rather than raised or silently dropped, so the store stays
+  usable with whatever it already consolidated. On a real deployment this
+  transient doubling, hit on the bus dispatch thread handling the first
+  utterance after a registration burst, pinned a 2G-capped service at 100%
+  CPU for 25+ minutes with no further intents matched. `scores()` (called
+  on every live utterance) also no longer consolidates at all: it scores
+  the already-consolidated store and each pending chunk separately and
+  merges the per-label results, since a label's prototypes are always
+  fully contained in exactly one of them.
+
 ## 0.5.8a2
 
 - Declared template slots fill from live intent context (OVOS-CONTEXT-1
