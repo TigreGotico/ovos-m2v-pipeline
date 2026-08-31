@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.6.1a1](https://github.com/OpenVoiceOS/ovos-m2v-pipeline/tree/0.6.1a1) (2026-08-31)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-m2v-pipeline/compare/0.6.0a1...0.6.1a1)
+
+**Merged pull requests:**
+
+- fix: bounded-memory store consolidation and off-dispatch scoring [\#71](https://github.com/OpenVoiceOS/ovos-m2v-pipeline/pull/71) ([JarbasAl](https://github.com/JarbasAl))
+
 ## [0.6.0a1](https://github.com/OpenVoiceOS/ovos-m2v-pipeline/tree/0.6.0a1) (2026-08-31)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-m2v-pipeline/compare/0.5.8a1...0.6.0a1)
