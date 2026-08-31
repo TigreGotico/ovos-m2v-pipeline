@@ -110,3 +110,80 @@ def test_store_add_is_amortized_no_per_add_vstack():
     store.add(model, "label0", ["new"])
     assert (store.labels == "label0").sum() == 1
     assert len(store) == 99
+
+
+def test_scores_does_not_consolidate():
+    """scores() runs on the bus dispatch thread for every live utterance; it
+    must never trigger _consolidate()'s full-backlog copy, or a live
+    registration burst wedges utterance matching behind it (observed:
+    add-lines complete, then a 2G-cgroup install pins at 100% CPU for 25+
+    minutes with zero further intents matched)."""
+    store = PrototypeIntentStore()
+    model = mock.Mock()
+    model.encode.side_effect = \
+        lambda sents, **kw: np.ones((len(sents), 4), dtype=np.float32)
+    for i in range(50):
+        store.add(model, f"label{i}", [f"s{i}a", f"s{i}b"])
+    assert len(store._pending) == 50
+    scores = store.scores(np.ones(4, dtype=np.float32))
+    assert len(scores) == 50
+    assert len(store._pending) == 50  # untouched: no consolidation happened
+
+
+def test_consolidate_out_of_memory_is_a_hard_failure_not_a_retry_loop():
+    """A MemoryError while folding pending chunks into the contiguous store
+    must be logged and left as-is, not retried -- a live install kept
+    spinning at 100% CPU for 25+ minutes on the same allocation instead of
+    failing fast and staying usable with whatever it had already stored."""
+    store = PrototypeIntentStore()
+    model = mock.Mock()
+    model.encode.side_effect = \
+        lambda sents, **kw: np.ones((len(sents), 4), dtype=np.float32)
+    store.add(model, "label0", ["a", "b"])
+    assert len(store._pending) == 1
+    with mock.patch("numpy.empty", side_effect=MemoryError("simulated OOM")):
+        store._consolidate()  # must return, not raise or loop
+    # nothing pending was dropped: the batch is still there to retry later
+    assert len(store._pending) == 1
+    assert len(store._labels) == 0
+
+    # once memory is available again, a normal call still succeeds
+    store._consolidate()
+    assert len(store._pending) == 0
+    assert len(store._labels) == 2
+
+
+def test_reregistration_drops_stale_pending_chunk_after_failed_consolidate():
+    """A re-registration must retire the label's OLD phrasing even when the
+    consolidation attempt it triggers fails with MemoryError: relying on
+    _consolidate() to fold (and thus filter) the old rows leaves a stale
+    pending chunk sitting next to the fresh one, and scores() (which reads
+    consolidated + pending) keeps matching retired phrasing forever."""
+    store = PrototypeIntentStore()
+    old_vec = np.array([[1.0, 0.0, 0.0, 0.0]], dtype=np.float32)
+    new_vec = np.array([[0.0, 1.0, 0.0, 0.0]], dtype=np.float32)
+    model = mock.Mock()
+    model.encode.side_effect = lambda sents, **kw: (
+        old_vec if sents == ["turn on the lights"] else new_vec
+    )
+
+    store.add(model, "L", ["turn on the lights"])
+    assert len(store._pending) == 1
+
+    with mock.patch("numpy.empty", side_effect=MemoryError("simulated OOM")):
+        n = store.add(model, "L", ["completely different phrase"])
+    assert n == 1
+
+    # exactly one pending chunk for L must survive: the new one
+    label_chunks = [l[0] for _, l in store._pending if len(l)]
+    assert label_chunks.count("L") == 1
+
+    # the retired phrasing must no longer match L at all
+    stale_scores = store.scores(old_vec[0])
+    assert stale_scores.get("L", 0.0) < 0.5, (
+        "stale pending chunk from before the re-registration still "
+        f"matches: {stale_scores}"
+    )
+    # the new phrasing does match
+    fresh_scores = store.scores(new_vec[0])
+    assert fresh_scores["L"] == 1.0
