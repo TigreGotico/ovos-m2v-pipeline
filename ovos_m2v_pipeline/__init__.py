@@ -14,6 +14,7 @@ from ovos_bus_client.message import Message
 from ovos_bus_client.session import SessionManager
 from ovos_config.config import Configuration
 from ovos_plugin_manager.templates.pipeline import IntentHandlerMatch, ConfidenceMatcherPipeline
+from ovos_config.locations import get_xdg_data_save_path
 from ovos_spec_tools import SpecMessage
 from ovos_spec_tools.context import gate_satisfied, context_slot_candidates
 from itertools import islice
@@ -22,6 +23,7 @@ from ovos_spec_tools.expansion import iter_expand
 from ovos_utils.fakebus import FakeBus
 from ovos_utils.log import LOG
 
+from ovos_m2v_pipeline.cache import PrototypeCache, compute_cache_key
 from ovos_m2v_pipeline.strategies import (
     PrototypeStrategy,
     select_anchors,
@@ -159,6 +161,7 @@ class PrototypeIntentStore:
         strategy: PrototypeStrategy = PrototypeStrategy.MAX_OVER_ALL,
         top_k: int = 3,
         tau: float = 0.1,
+        cache: Optional[PrototypeCache] = None,
     ) -> None:
         # Bus registration handlers run concurrently on an executor thread
         # pool; this lock keeps the parallel embeddings/labels arrays in sync.
@@ -166,6 +169,9 @@ class PrototypeIntentStore:
         self.strategy: PrototypeStrategy = PrototypeStrategy(strategy)
         self.top_k: int = top_k
         self.tau: float = tau
+        #: optional boot-time persistence for add()'s encode step; see
+        #: ``ovos_m2v_pipeline.cache.PrototypeCache``. ``None`` disables it.
+        self.cache: Optional[PrototypeCache] = cache
         if embeddings is not None and len(embeddings):
             embeddings = np.atleast_2d(embeddings)
             labels_arr = np.asarray(labels, dtype=object)
@@ -276,53 +282,14 @@ class PrototypeIntentStore:
     # Mutation
     # ------------------------------------------------------------------
 
-    def add(
-        self,
-        model,
-        label: str,
-        sentences: List[str],
-        k: Optional[int] = None,
-        random_state: int = 42,
-    ) -> int:
-        """Embed *sentences* and add/replace prototypes for *label*.
+    def _add_anchors(self, label: str, anchors: np.ndarray) -> int:
+        """Insert already-computed, already-normalised anchor embeddings for
+        *label*, replacing any existing prototypes for that label.
 
-        ``k`` caps how many anchors the subsampling / clustering strategies
-        keep; ``None`` (the default) keeps every sample so exact training
-        samples always score a perfect match.
-
-        Returns the number of prototypes actually added.
+        Shared by ``add()``'s normal encode path and its cache-hit path: both
+        end up with a set of anchors to store, they only differ in how those
+        anchors were obtained (encode + select_anchors vs. a disk read).
         """
-        if not sentences:
-            return 0
-        if len(sentences) > MAX_ENTITY_EXPANSIONS:
-            # single choke point: whatever path materialized the samples
-            # (entity slot-filling, padatious template expansion, inline
-            # payloads), the store never ingests an unbounded batch — the
-            # 2000-cap applied only on one expansion path let a real
-            # deployment build a million-prototype store and OOM its cgroup
-            LOG.warning(f"label {label!r}: {len(sentences)} samples exceed "
-                        f"the ingest bound; sampling {MAX_ENTITY_EXPANSIONS} "
-                        f"evenly")
-            step = (len(sentences) - 1) / (MAX_ENTITY_EXPANSIONS - 1)
-            keep = sorted({round(i * step)
-                           for i in range(MAX_ENTITY_EXPANSIONS)})
-            sentences = [sentences[i] for i in keep]
-        # Embed every sample first; the strategy decides which / how many
-        # to keep as anchors at storage time. Embedding happens outside the
-        # lock: it is the expensive step and touches no shared state.
-        # use_multiprocessing=False: model2vec otherwise spawns
-        # os.cpu_count() loky workers for batches over its threshold —
-        # observed as 24 subprocesses inside a 2G service cgroup, deep swap
-        # and an OOM-kill during skill loading. Static-model encoding is
-        # in-process numpy; a long-lived service never wants that fan-out.
-        embs = np.atleast_2d(
-            model.encode(list(sentences),
-                         use_multiprocessing=False)).astype(np.float32)
-        norms = np.linalg.norm(embs, axis=1, keepdims=True)
-        embs = np.where(norms > 0, embs / norms, embs)
-        anchors = select_anchors(
-            embs, self.strategy, k=k, random_state=random_state,
-        ).astype(np.float32)
         n_added = len(anchors)
         with self._lock:
             if label in self._label_set:
@@ -353,8 +320,101 @@ class PrototypeIntentStore:
                      f"{len(self._label_set)} labels)")
         return n_added
 
+    def add(
+        self,
+        model,
+        label: str,
+        sentences: List[str],
+        k: Optional[int] = None,
+        random_state: int = 42,
+        *,
+        cache_key: Optional[str] = None,
+    ) -> int:
+        """Embed *sentences* and add/replace prototypes for *label*.
+
+        ``k`` caps how many anchors the subsampling / clustering strategies
+        keep; ``None`` (the default) keeps every sample so exact training
+        samples always score a perfect match.
+
+        ``cache_key`` is a hash of this registration's inputs (model id,
+        model2vec version, anchor-selection parameters, raw pre-expansion
+        samples -- see ``ovos_m2v_pipeline.cache.compute_cache_key``). When
+        given and ``self.cache`` is set: a matching cached entry is loaded
+        from disk and used in place of encoding (``model.encode()`` is never
+        called); a miss falls through to the normal encode path and the
+        result is persisted under *cache_key* afterwards. Callers that don't
+        care about persistence (tests, offline ``build()``) simply omit it.
+
+        Returns the number of prototypes actually added.
+        """
+        if not sentences:
+            return 0
+        if self.cache is not None and cache_key is not None:
+            # Prefer the live model's declared output dimension (e.g.
+            # model2vec.StaticModel.dim); fall back to whatever dimension
+            # the store itself already holds (existing labels or a pending
+            # chunk) when the model doesn't expose one. Either way, a
+            # cached entry whose dimension disagrees with what is actually
+            # in play is a stale entry (e.g. the artifact behind an
+            # unchanged model id was retrained in place at a different
+            # dimension) -- loading it as a hit would poison the live
+            # store with wrong-shape vectors that later crash
+            # _consolidate()/scores() for every label, not just this one.
+            expected_dim = getattr(model, "dim", None)
+            if not isinstance(expected_dim, int):
+                expected_dim = None
+            if expected_dim is None:
+                if len(self._labels):
+                    expected_dim = self._embeddings.shape[1]
+                elif self._pending:
+                    expected_dim = self._pending[-1][0].shape[1]
+            cached = self.cache.load(label, cache_key, expected_dim=expected_dim)
+            if cached is not None:
+                embeddings, _labels = cached
+                return self._add_anchors(label, embeddings)
+        if len(sentences) > MAX_ENTITY_EXPANSIONS:
+            # single choke point: whatever path materialized the samples
+            # (entity slot-filling, padatious template expansion, inline
+            # payloads), the store never ingests an unbounded batch — the
+            # 2000-cap applied only on one expansion path let a real
+            # deployment build a million-prototype store and OOM its cgroup
+            LOG.warning(f"label {label!r}: {len(sentences)} samples exceed "
+                        f"the ingest bound; sampling {MAX_ENTITY_EXPANSIONS} "
+                        f"evenly")
+            step = (len(sentences) - 1) / (MAX_ENTITY_EXPANSIONS - 1)
+            keep = sorted({round(i * step)
+                           for i in range(MAX_ENTITY_EXPANSIONS)})
+            sentences = [sentences[i] for i in keep]
+        # Embed every sample first; the strategy decides which / how many
+        # to keep as anchors at storage time. Embedding happens outside the
+        # lock: it is the expensive step and touches no shared state.
+        # use_multiprocessing=False: model2vec otherwise spawns
+        # os.cpu_count() loky workers for batches over its threshold —
+        # observed as 24 subprocesses inside a 2G service cgroup, deep swap
+        # and an OOM-kill during skill loading. Static-model encoding is
+        # in-process numpy; a long-lived service never wants that fan-out.
+        embs = np.atleast_2d(
+            model.encode(list(sentences),
+                         use_multiprocessing=False)).astype(np.float32)
+        norms = np.linalg.norm(embs, axis=1, keepdims=True)
+        embs = np.where(norms > 0, embs / norms, embs)
+        anchors = select_anchors(
+            embs, self.strategy, k=k, random_state=random_state,
+        ).astype(np.float32)
+        n_added = self._add_anchors(label, anchors)
+        if self.cache is not None and cache_key is not None and n_added:
+            self.cache.save(
+                label, cache_key, anchors,
+                np.array([label] * n_added, dtype=object),
+            )
+        return n_added
+
     def remove(self, label: str) -> None:
-        """Remove all prototypes for *label*."""
+        """Remove all prototypes for *label* (and its on-disk cache entry,
+        if caching is enabled -- otherwise a later restart would resurrect
+        it from the stale cache)."""
+        if self.cache is not None:
+            self.cache.remove(label)
         with self._lock:
             if label not in self._label_set:
                 return
@@ -370,7 +430,10 @@ class PrototypeIntentStore:
             self._label_set.discard(label)
 
     def remove_skill(self, skill_id: str) -> None:
-        """Remove all prototypes whose label starts with ``<skill_id>:``."""
+        """Remove all prototypes whose label starts with ``<skill_id>:``
+        (and their on-disk cache entries, if caching is enabled)."""
+        if self.cache is not None:
+            self.cache.remove_skill(skill_id)
         with self._lock:
             if not len(self):
                 return
@@ -521,6 +584,24 @@ def _parse_intent_file(path: str, ctx: str = "") -> List[str]:
         return []
 
 
+def _raw_intent_lines(path: str) -> List[str]:
+    """Return the raw, pre-expansion non-comment lines of a Padatious
+    ``.intent`` file, for prototype-cache key hashing (see
+    ``ovos_m2v_pipeline.cache.compute_cache_key``).
+
+    Unlike ``_parse_intent_file`` this never expands OVOS-INTENT-1 template
+    syntax: the cache key is over the raw templates, not their expansion. A
+    read failure yields an empty list -- callers treat that as "skip caching
+    for this registration", never as a reason to reject it.
+    """
+    try:
+        with open(path, encoding="utf-8") as fh:
+            return [line.strip() for line in fh
+                    if line.strip() and not line.strip().startswith("#")]
+    except OSError:
+        return []
+
+
 class Model2VecIntentPipeline(ConfidenceMatcherPipeline):
     """A pipeline that integrates Model2Vec with OVOS for intent matching.
 
@@ -628,10 +709,29 @@ class Model2VecIntentPipeline(ConfidenceMatcherPipeline):
             )
             self._prototype_top_k: int = self.config.get("prototype_top_k", 3)
             self._prototype_tau: float = self.config.get("prototype_tau", 0.1)
+
+            #: boot-time persistence for add()'s encode step (see
+            #: ovos_m2v_pipeline.cache): each registration's inputs (model
+            #: id, model2vec version, anchor-selection params, raw samples)
+            #: hash to a cache key, so an unchanged registration across
+            #: restarts loads its embeddings from disk instead of
+            #: re-encoding. `prototype_cache: false` disables it outright.
+            self._model_id = model_path
+            import model2vec
+            self._model2vec_version = getattr(model2vec, "__version__", "")
+            self._prototype_cache_enabled: bool = bool(
+                self.config.get("prototype_cache", True))
+            cache = None
+            if self._prototype_cache_enabled:
+                cache_dir = self.config.get("prototype_cache_dir") or str(
+                    Path(get_xdg_data_save_path()) / "m2v_prototypes")
+                cache = PrototypeCache(Path(cache_dir))
+
             self.prototype_store: Optional[PrototypeIntentStore] = PrototypeIntentStore(
                 strategy=self._prototype_strategy,
                 top_k=self._prototype_top_k,
                 tau=self._prototype_tau,
+                cache=cache,
             )
 
             self.bus.on("mycroft.ready", self._handle_ready_prototype)
@@ -787,6 +887,32 @@ class Model2VecIntentPipeline(ConfidenceMatcherPipeline):
     # Prototype-mode intent registration
     # ------------------------------------------------------------------
 
+    def _prototype_cache_key(
+        self, raw_samples: List[str],
+        entity_values: Optional[Dict[str, List[str]]] = None,
+    ) -> Optional[str]:
+        """Hash a registration's inputs into a prototype-cache key, or
+        ``None`` when caching is disabled / there is nothing to hash.
+
+        Never raises: a hashing failure just disables caching for this one
+        registration (``add()`` still runs the normal encode path), it is
+        never a reason to reject the registration itself.
+        """
+        if not getattr(self, "_prototype_cache_enabled", False) or not raw_samples:
+            return None
+        try:
+            return compute_cache_key(
+                self._model_id, self._model2vec_version,
+                {"k": self._prototype_k,
+                 "strategy": self._prototype_strategy.value,
+                 "max_expansions": MAX_ENTITY_EXPANSIONS},
+                raw_samples, entity_values,
+            )
+        except Exception as exc:
+            LOG.warning(f"prototype cache: failed to compute cache key, "
+                        f"registration will re-encode: {exc}")
+            return None
+
     def _handle_ready_prototype(self, message: Message) -> None:
         LOG.info(
             f"Model2Vec prototype store ready: {len(self.prototype_store)} prototypes "
@@ -816,6 +942,7 @@ class Model2VecIntentPipeline(ConfidenceMatcherPipeline):
 
         inline = message.data.get("samples") or []
         if inline:
+            raw_samples: List[str] = list(inline)
             sentences: List[str] = []
             for s in inline:
                 try:
@@ -825,15 +952,18 @@ class Model2VecIntentPipeline(ConfidenceMatcherPipeline):
                     LOG.warning(f"skipping malformed template {s!r}: {exc} {ctx}")
         else:
             file_name: str = message.data.get("file_name", "")
+            raw_samples = _raw_intent_lines(file_name) if file_name else []
             sentences = _parse_intent_file(file_name, ctx) if file_name else []
 
         if not sentences:
             # zero valid templates -> the whole registration is malformed
             LOG.warning(f"rejecting registration: no valid template remains {ctx}")
             return
+        cache_key = self._prototype_cache_key(raw_samples)
         try:
             n = self.prototype_store.add(
-                self.model, name, sentences, k=self._prototype_k
+                self.model, name, sentences, k=self._prototype_k,
+                cache_key=cache_key,
             )
         except Exception as exc:
             LOG.error(f"Failed to add prototypes for Padatious intent "
@@ -1016,7 +1146,17 @@ class Model2VecIntentPipeline(ConfidenceMatcherPipeline):
         if not expanded:  # zero non-empty expansions -> malformed (§6.3)
             self._intent4_warn(topic, message, "samples expand to zero non-empty templates")
             return
-        n = self.prototype_store.add(self.model, label, expanded, k=self._prototype_k)
+        # entity values referenced by this template's slots: part of the
+        # cache key because they feed `_expand_entities` above, but they
+        # come from a `set` upstream (`_handle_intent4_register_entity`) so
+        # their list order is unstable across runs -- compute_cache_key()
+        # sorts them before hashing.
+        slots = {slot for s in samples for slot in _SLOT_RE.findall(s)}
+        entity_values = {slot: self.entities[slot.lower()]
+                          for slot in slots if slot.lower() in self.entities}
+        cache_key = self._prototype_cache_key(list(samples), entity_values)
+        n = self.prototype_store.add(self.model, label, expanded,
+                                      k=self._prototype_k, cache_key=cache_key)
         self.intents.add(label)
         self._store_context_gate(label, message)
         LOG.debug(f"Prototype store: added {n} prototype(s) for INTENT-4 template '{label}'")

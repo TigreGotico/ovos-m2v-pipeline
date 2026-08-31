@@ -63,6 +63,43 @@ In your `mycroft.conf`:
 
 ---
 
+## Prototype cache (prototype mode)
+
+Prototype mode rebuilds its label set from scratch on every boot: each
+registered skill's example utterances are re-encoded through the embedding
+model as `padatious:register_intent` / OVOS-INTENT-4 template registrations
+arrive. On an install with many skills, re-encoding the same, unchanged
+templates on every restart is pure repeated work.
+
+To avoid that, each label's encoded prototypes are cached to disk, keyed on
+the *inputs* of its registration: the model id, the installed `model2vec`
+version, the anchor-selection parameters (`prototype_k`, `prototype_strategy`,
+the entity-expansion cap), the registration's raw (pre-expansion) template
+lines, and any registered entity values its `{slot}` placeholders reference.
+When a label's next registration hashes to the same key, its embeddings are
+loaded from the cache instead of being re-encoded; any other change to those
+inputs is a plain cache miss, so nothing needs to be told explicitly to
+invalidate a stale entry when a skill updates its templates or the model is
+swapped.
+
+Removal (`detach_intent`, `detach_skill`, and their OVOS-INTENT-4
+equivalents) is the one case that *does* need explicit invalidation: nothing
+about a removed skill's registration inputs changes when it unloads, so its
+cache entry is deleted immediately rather than left to resurrect the skill's
+intents on the next boot.
+
+Cache files live under `{XDG_DATA_HOME}/mycroft/m2v_prototypes/` by default
+(one small `.npz` file per label) and are local-disk-only: nothing here ever
+touches the network. A corrupt or unreadable entry is logged and treated as a
+miss, never as a fatal error.
+
+Configuration (under the same `intents.<entrypoint-name>` block as above):
+
+* `prototype_cache`: Enable/disable the cache (default `true`).
+* `prototype_cache_dir`: Override the cache directory.
+
+---
+
 ## Which entrypoint do I want?
 
 This plugin ships two `opm.pipeline` entrypoints. Both use the same
