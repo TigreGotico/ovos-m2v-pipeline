@@ -53,7 +53,7 @@ In your `mycroft.conf`:
 * `model`: Path to your pretrained Model2Vec model or huggingface repo.
 * `conf_xxx`: Minimum confidence threshold for intent matching.
 * `ignore_intents`: List of canonical labels to exclude from matching (deny-list, applied after `label_map`).
-* `valid_labels`: List of canonical labels eligible to match (allow-list, applied after `label_map`). When unset, every mapped label is eligible.
+* `valid_labels`: List of raw model labels eligible to match (allow-list, checked before `label_map` is applied). When unset, every label is eligible.
 * `label_map`: Maps a raw model label to its canonical `skill_id:intent` label. Merges over (and can override) the built-in OCP/common-query/stop remaps and any labels the model itself declares in `labels.json`; see [Trained models document their labels](#trained-models-document-their-labels).
 * `prototype_strategy`: Scoring strategy for prototype mode (default `"max_over_all"`, back-compatible). See [docs/strategies.md](docs/strategies.md).
 * `prototype_top_k`: Top-k cosines averaged by the `top_k_mean` strategy (default `3`).
@@ -139,14 +139,18 @@ plugin code. A model can ship this mapping alongside its weights as a
 
 ```json
 {
-  "my_domain:book_flight": "travel_skill:book.flight.intent",
-  "my_domain:cancel_flight": "travel_skill:cancel.flight.intent",
-  "valid_labels": ["travel_skill:book.flight.intent", "travel_skill:cancel.flight.intent"]
+  "my_domain:book_flight": "travel_skill:book_flight",
+  "my_domain:cancel_flight": "travel_skill:cancel_flight",
+  "valid_labels": ["my_domain:book_flight", "my_domain:cancel_flight"]
 }
 ```
 
 `labels.json` has the same shape as the `label_map` config option, plus an
-optional `valid_labels` list. When present, list the labels a model was
+optional `valid_labels` list. `valid_labels` lists the model's raw labels -
+the ones it was actually trained on - not the `label_map` targets; the
+allow-list check happens before `label_map` resolution, so it also covers
+`ocp:play` / `stop:stop` / `common_query:common_query` before those get
+rewritten to their bus topics. When present, list the labels a model was
 trained on on its model card too, so users know what to expect without
 downloading it first.
 

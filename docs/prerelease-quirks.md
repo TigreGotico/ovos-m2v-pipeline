@@ -5,6 +5,14 @@ reset at each stable release.
 
 ## 0.8.0a1
 
+- `valid_labels` is now checked against the raw model label, before
+  `label_map` resolution, instead of after. A `labels.json` listing the raw
+  training label vocabulary (as `ocp:play`, `stop:stop`, and
+  `common_query:common_query` are stored) previously had every OCP-play,
+  stop and common-query match silently discarded, because the allow-list
+  check ran against the already-remapped canonical labels
+  (`ovos.common_play.play_search`, `mycroft.stop`,
+  `common_query.question`), which never appeared in that list.
 - Prototype mode caches each label's encoded prototypes to disk, keyed on
   the registration's inputs (model id, `model2vec` version,
   anchor-selection parameters, raw pre-expansion template lines, referenced
