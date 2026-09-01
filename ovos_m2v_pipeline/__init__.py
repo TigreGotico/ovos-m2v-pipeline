@@ -658,9 +658,10 @@ class Model2VecIntentPipeline(ConfidenceMatcherPipeline):
         manifest_map = {k: v for k, v in manifest.items() if k != "valid_labels"}
         user_map = self.config.get("label_map") or {}
         self.label_map: Dict[str, Any] = {**_SPECIAL_LABEL_MAP, **manifest_map, **user_map}
-        #: Allow-list of canonical labels eligible to match, applied after
-        #: `label_map` resolution (post-mapping), alongside the pre-existing
-        #: `ignore_intents` deny-list. `None` disables the allow-list check.
+        #: Allow-list of raw model labels eligible to match, checked BEFORE
+        #: `label_map` resolution (pre-mapping): a manifest's `valid_labels`
+        #: describes the model's label vocabulary, not the post-map bus
+        #: topics. `None` disables the allow-list check.
         self.valid_labels: Optional[List[str]] = self.config.get("valid_labels")
         if self.valid_labels is None:
             manifest_valid = manifest.get("valid_labels")
@@ -1406,15 +1407,14 @@ class Model2VecIntentPipeline(ConfidenceMatcherPipeline):
         excluded = self._excluded_labels(utterance)
         blacklisted_intents, blacklisted_skills = self._session_blacklists(message)
         for skill_id, label, score in candidates:
-            # `ignore_intents` (deny-list) / `valid_labels` (allow-list),
-            # applied post-mapping against the canonical label so both work
-            # uniformly across classifier and prototype mode, and cover
-            # special (OCP/stop/query) labels once mapped.
+            # `ignore_intents` (deny-list) applied post-mapping against the
+            # canonical label so it works uniformly across classifier and
+            # prototype mode, and covers special (OCP/stop/query) labels once
+            # mapped. `valid_labels` is checked earlier, against the raw model
+            # label, in `_match_classifier`/`_match_prototype` (see there for
+            # why).
             if label in self.ignore_labels:
                 LOG.debug(f"discarding match: {label} - in ignore_intents")
-                continue
-            if self.valid_labels is not None and label not in self.valid_labels:
-                LOG.debug(f"discarding match: {label} - not in valid_labels")
                 continue
             gate = self._context_gates.get(label)
             if gate is not None:
@@ -1462,6 +1462,15 @@ class Model2VecIntentPipeline(ConfidenceMatcherPipeline):
             for label, prob in class_probs:
                 LOG.debug(f"Match candidate: {label} - prob: {prob}")
 
+                # `valid_labels` describes the model's raw label vocabulary
+                # (labels.json), so it is checked BEFORE the special-label map
+                # below rewrites e.g. "ocp:play" to "ovos.common_play.play_search"
+                # — otherwise a manifest listing the raw training labels would
+                # silently discard every OCP/stop/common_query match.
+                if self.valid_labels is not None and label not in self.valid_labels:
+                    LOG.debug(f"discarding match: {label} - not in valid_labels")
+                    continue
+
                 # HACK: special case for OCP, it isnt a regular intent
                 skill_id, label = self._apply_special_label_map(label)
 
@@ -1485,6 +1494,11 @@ class Model2VecIntentPipeline(ConfidenceMatcherPipeline):
             # Gate special labels the same way as classifier mode
             if label in _SPECIAL_LABELS and label not in special:
                 LOG.debug(f"discarding special label: {label} - not in session pipeline")
+                continue
+            # See `_match_classifier`: check against the raw label, before the
+            # special-label map rewrites it to a canonical bus topic.
+            if self.valid_labels is not None and label not in self.valid_labels:
+                LOG.debug(f"discarding match: {label} - not in valid_labels")
                 continue
             skill_id, label = self._apply_special_label_map(label)
             yield skill_id, label, score

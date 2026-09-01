@@ -94,6 +94,38 @@ class TestValidLabels(unittest.TestCase):
         self.assertEqual(labels, ["skill_b:b.intent"])
 
 
+class TestValidLabelsCheckedBeforeSpecialMap(unittest.TestCase):
+    """`labels.json` manifests built from the raw training-label vocabulary
+    (as `train/build_dataset.py` writes and docs/README prescribe) list
+    labels like `ocp:play`/`stop:stop`/`common_query:common_query` verbatim.
+    `valid_labels` must therefore be checked against the raw label, before
+    `_apply_special_label_map` rewrites it to its canonical bus topic -
+    otherwise a manifest built exactly as documented discards every OCP-play,
+    stop and common-query match."""
+
+    def _manifest_pipeline(self, valid_labels):
+        with tempfile.TemporaryDirectory() as d:
+            with open(os.path.join(d, "labels.json"), "w") as f:
+                json.dump({"valid_labels": valid_labels}, f)
+            p = _make_pipeline(config={"model": d}, intents=[], renormalize=False)
+        return p
+
+    def test_raw_special_label_in_manifest_is_matched_and_mapped(self):
+        p = self._manifest_pipeline(["ocp:play", "stop:stop"])
+        _setup_classifier(p, ["ocp:play"], [0.95])
+        results = list(p._match("play some music"))
+        self.assertEqual(len(results), 1)
+        skill_id, label, _, _ = results[0]
+        self.assertEqual(skill_id, "ovos.common_play")
+        self.assertEqual(label, "ovos.common_play.play_search")
+
+    def test_label_absent_from_manifest_is_still_dropped(self):
+        p = self._manifest_pipeline(["stop:stop"])
+        _setup_classifier(p, ["ocp:play"], [0.95])
+        results = list(p._match("play some music"))
+        self.assertEqual(results, [])
+
+
 class TestModelManifestLayering(unittest.TestCase):
     """`labels.json` next to a local model directory forms the middle layer:
     defaults < manifest < user config."""
