@@ -14,10 +14,6 @@ import pytest
 
 BUILDER = Path(__file__).resolve().parents[1] / "train" / "build_dataset.py"
 
-pytest.importorskip("pandas")
-pytest.importorskip("sklearn")
-pytest.importorskip("yaml")
-
 
 def git_repo(path: Path, files: dict) -> str:
     """Create a repo holding *files* and return its commit sha."""
@@ -51,6 +47,10 @@ PLUGIN_ENTRY_POINT = f"{SKILL_ID}={SKILL_PKG}:{SKILL_CLAZZ}"
 @pytest.fixture
 def built(tmp_path):
     """Run the builder over a fixture workspace; return the output directory."""
+    pytest.importorskip("pandas")
+    pytest.importorskip("sklearn")
+    pytest.importorskip("yaml")
+
     ws = tmp_path / "ws"
 
     ocp = git_repo(ws / "ocp", {
