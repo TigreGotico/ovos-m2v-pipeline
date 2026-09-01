@@ -42,7 +42,7 @@ _DIRECTIONS = {
 _NOISE = np.array([0.0, 0.0, 0.0, 0.0], dtype=np.float32)
 
 
-def _fake_encode(sentences):
+def _fake_encode(sentences, **kwargs):
     """Return deterministic embeddings: pick the first matching keyword."""
     out = []
     for s in sentences:
@@ -196,8 +196,8 @@ class TestPrototypeRegistration(_PrototypeE2EBase):
         )
         # Prototype store should have ≥1 prototype for the new label.
         labels = list(self.pipeline.prototype_store.labels)
-        self.assertIn("skill_a:lights.intent", labels)
-        self.assertIn("skill_a:lights.intent", self.pipeline.intents)
+        self.assertIn("skill_a:lights", labels)
+        self.assertIn("skill_a:lights", self.pipeline.intents)
 
     def test_register_padatious_ignored_label_does_not_build(self):
         self.pipeline.ignore_labels = ["skill_z:blocked.intent"]
@@ -335,7 +335,7 @@ class TestPrototypeStrategyE2E(_PrototypeE2EBase):
             ["lights on", "lights off", "switch the lights"],
         )
         labels = list(self.pipeline.prototype_store.labels)
-        self.assertEqual(labels.count("skill_a:lights.intent"), 1)
+        self.assertEqual(labels.count("skill_a:lights"), 1)
 
     def test_medoid_collapses_samples_to_one_anchor(self):
         from ovos_m2v_pipeline.strategies import PrototypeStrategy
@@ -345,7 +345,7 @@ class TestPrototypeStrategyE2E(_PrototypeE2EBase):
             ["lights on", "lights off", "switch the lights"],
         )
         labels = list(self.pipeline.prototype_store.labels)
-        self.assertEqual(labels.count("skill_a:lights.intent"), 1)
+        self.assertEqual(labels.count("skill_a:lights"), 1)
 
     def test_max_over_all_keeps_all_samples_up_to_k(self):
         from ovos_m2v_pipeline.strategies import PrototypeStrategy
@@ -353,7 +353,7 @@ class TestPrototypeStrategyE2E(_PrototypeE2EBase):
         samples = ["lights on", "lights off", "switch lights"]
         self._register_padatious("skill_a:lights.intent", samples)
         labels = list(self.pipeline.prototype_store.labels)
-        self.assertEqual(labels.count("skill_a:lights.intent"), len(samples))
+        self.assertEqual(labels.count("skill_a:lights"), len(samples))
 
     def test_top_k_mean_keeps_all_samples(self):
         from ovos_m2v_pipeline.strategies import PrototypeStrategy
@@ -362,7 +362,7 @@ class TestPrototypeStrategyE2E(_PrototypeE2EBase):
         self._register_padatious("skill_a:lights.intent", samples)
         labels = list(self.pipeline.prototype_store.labels)
         # All samples kept; aggregation happens at score-time.
-        self.assertEqual(labels.count("skill_a:lights.intent"), len(samples))
+        self.assertEqual(labels.count("skill_a:lights"), len(samples))
 
     def test_softmax_weighted_low_tau_picks_max_intent(self):
         from ovos_m2v_pipeline.strategies import PrototypeStrategy

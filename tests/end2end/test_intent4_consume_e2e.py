@@ -63,7 +63,7 @@ _DIRECTIONS = {
 _NOISE = np.array([0.0, 0.0, 0.0, 0.0], dtype=np.float32)
 
 
-def _fake_encode(sentences):
+def _fake_encode(sentences, **kwargs):
     out = []
     for s in sentences:
         sl = s.lower()
