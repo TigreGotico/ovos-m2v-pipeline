@@ -3,6 +3,27 @@
 Behavior changes since the last stable release, newest first. This file is
 reset at each stable release.
 
+## 0.8.0a2
+
+- The model no longer loads in the constructor. ovos-core builds every
+  installed pipeline plugin at boot regardless of whether it is configured
+  or ever used, so an eager `StaticModel`/`StaticModelPipeline` load there
+  paid full model memory and (in prototype mode) encoded every buffered
+  registration on every boot. The model now loads on first use — first
+  match, or the first registration once no match has happened yet — behind
+  a lock so concurrent callers share a single load. Registrations that
+  arrive before the model exists buffer their raw samples and encode once,
+  when the deferred load completes; `detach_intent`/`detach_skill` (and
+  their OVOS-INTENT-4 equivalents) drop a still-buffered label without ever
+  encoding it. A match that lands during the cold-start load waits up to
+  `model_load_budget` seconds (default 0.5s); past that it returns no match
+  for that one utterance (logging once that the model is warming up) while
+  the load keeps running in the background, and normal matching resumes
+  automatically once it finishes. Set `preload_model: true` to restore the
+  previous eager-load-at-construction behavior for deployments that would
+  rather pay the cost at boot than on first query.
+- A failed deferred load retries on its own instead of leaving the plugin silently dead until restart: a failure clears the load thread and schedules the next attempt no sooner than a backoff window (30s, doubling on each consecutive failure, capped at 15 minutes), logging each failed attempt at ERROR.
+
 ## 0.8.0a1
 
 - `valid_labels` is now checked against the raw model label, before

@@ -58,6 +58,8 @@ In your `mycroft.conf`:
 * `prototype_strategy`: Scoring strategy for prototype mode (default `"max_over_all"`, back-compatible). See [docs/strategies.md](docs/strategies.md).
 * `prototype_top_k`: Top-k cosines averaged by the `top_k_mean` strategy (default `3`).
 * `prototype_tau`: Softmax temperature for the `softmax_weighted` strategy (default `0.1`).
+* `preload_model`: Load the embedding model at construction instead of on first use (default `false`). ovos-core builds every installed pipeline plugin at boot, so the default defers the load to the first registration or match; set this if a deployment would rather pay the load cost once at boot than on the first query. See `model_load_budget` below for what happens to that first query when the model is still loading.
+* `model_load_budget`: Seconds a match call waits for a cold-start model load before giving up on that one utterance (default `0.5`). The load keeps running in the background regardless; matching resumes automatically once it completes. If the load itself fails (bad model id, unreachable host), it retries on its own after a backoff that starts at 30s and doubles on each consecutive failure, capped at 15 minutes.
 
 > The Model2Vec model is pretrained on GitLocalize exports. It **cannot learn new skills** dynamically.
 

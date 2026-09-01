@@ -33,6 +33,14 @@ from ovos_m2v_pipeline.strategies import (
 #: Regex matching ``{slot}`` placeholders in OVOS-INTENT-1 template samples.
 _SLOT_RE = re.compile(r"\{([a-zA-Z_][a-zA-Z0-9_]*)\}")
 
+#: retry backoff for a deferred model load that raised: starts at 30s
+#: and doubles on each consecutive failure, capped at 15 minutes, so a
+#: transient network blip retries soon while a persistently broken
+#: model id (bad repo, no network at all) does not re-attempt the load
+#: on every single utterance.
+_MODEL_LOAD_RETRY_BASE_S = 30.0
+_MODEL_LOAD_RETRY_CAP_S = 15 * 60.0
+
 # Labels that bypass the registered-intent check and are always matched
 _SPECIAL_LABELS = {"ocp:play", "common_query:common_query", "stop:stop"}
 
@@ -698,11 +706,30 @@ class Model2VecIntentPipeline(ConfidenceMatcherPipeline):
         self._label_map_warned: set = set()
 
         mode = self.config.get("mode", "classifier")
+        self._mode = mode
+        self._model_path = model_path
+        #: guards `self.model` (assigned exactly once, by `_load_model_now`)
+        #: and `self._pending_additions` (mutated from bus-handler threads
+        #: before the model exists, and drained once it does).
+        self._model_lock = threading.RLock()
+        self.model = None
+        self._model_load_thread: Optional[threading.Thread] = None
+        self._warmup_logged = False
+        #: consecutive failed load attempts, and the monotonic time (if any)
+        #: before which a new attempt should not be started -- see
+        #: `_MODEL_LOAD_RETRY_BASE_S` / `_MODEL_LOAD_RETRY_CAP_S`.
+        self._model_load_failures: int = 0
+        self._model_load_retry_at: Optional[float] = None
+        #: registrations that arrived before the model finished loading:
+        #: (label, sentences, k, cache_key) tuples, encoded exactly once by
+        #: `_flush_pending_additions` when the deferred load completes.
+        self._pending_additions: List[Tuple[str, List[str], Optional[int], Optional[str]]] = []
+        #: how long a match call waits for a cold-start model load before
+        #: giving up on THIS utterance and warming up in the background.
+        self._model_load_budget: float = float(self.config.get("model_load_budget", 0.5))
+        preload = bool(self.config.get("preload_model", False))
 
         if mode == "prototype":
-            from model2vec import StaticModel
-
-            self.model = StaticModel.from_pretrained(model_path)
             self._prototype_k: Optional[int] = self.config.get("prototype_k")
             self._prototype_strategy: PrototypeStrategy = PrototypeStrategy(
                 self.config.get("prototype_strategy",
@@ -748,12 +775,10 @@ class Model2VecIntentPipeline(ConfidenceMatcherPipeline):
             self._wire_intent4_handlers()
 
             LOG.info(
-                f"Loaded Model2VecIntents pipeline (prototype mode) "
-                f"with model: '{model_path}'"
+                f"Registered Model2VecIntents pipeline (prototype mode) "
+                f"with model: '{model_path}' (model load deferred until first use)"
             )
         else:
-            # Load the model
-            self.model = StaticModelPipeline.from_pretrained(model_path)
             self.prototype_store = None
 
             # Register event handlers for intent synchronization
@@ -767,11 +792,163 @@ class Model2VecIntentPipeline(ConfidenceMatcherPipeline):
             # are eligible — exactly like the legacy manifest sync above.
             self._wire_intent4_handlers()
 
-            LOG.info(f"Loaded Model2VecIntents pipeline with model: '{model_path}'")
+            LOG.info(
+                f"Registered Model2VecIntents pipeline with model: '{model_path}' "
+                f"(model load deferred until first use)"
+            )
 
             # Seed the intent allowlist from skills loaded before this pipeline.
             # Bus events keep it in sync for skills that load/unload later.
             self._initial_intent_sync()
+
+        if preload:
+            self._ensure_model(background_ok=False)
+
+    def _load_model_now(self) -> None:
+        """Load ``self.model`` and drain any buffered prototype registrations.
+
+        Runs either synchronously (``preload_model: true``, or a caller with
+        ``background_ok=False``) or on a background thread kicked off by
+        ``_ensure_model``; either way at most one load is in flight at a
+        time thanks to ``_model_load_thread`` being created/cleared under
+        ``_model_lock``.
+
+        On failure, clears ``_model_load_thread`` so a later ``_ensure_model``
+        call can start a fresh attempt (never retried automatically here --
+        a broken model id must not spin the loader on every utterance) and
+        schedules that retry no sooner than the current backoff window
+        (``_MODEL_LOAD_RETRY_BASE_S``, doubling, capped at
+        ``_MODEL_LOAD_RETRY_CAP_S``). A dev-eager-load-at-construction repo
+        raised loudly at boot and stayed dead until a restart fixed the
+        config; this instead keeps retrying on its own once the underlying
+        cause (e.g. a network blip) clears.
+        """
+        start = time.monotonic()
+        try:
+            if self._mode == "prototype":
+                from model2vec import StaticModel
+                model = StaticModel.from_pretrained(self._model_path)
+            else:
+                model = StaticModelPipeline.from_pretrained(self._model_path)
+        except Exception:
+            with self._model_lock:
+                self._model_load_failures += 1
+                backoff = min(
+                    _MODEL_LOAD_RETRY_BASE_S * (2 ** (self._model_load_failures - 1)),
+                    _MODEL_LOAD_RETRY_CAP_S,
+                )
+                self._model_load_retry_at = time.monotonic() + backoff
+                self._model_load_thread = None
+                self._warmup_logged = False
+            LOG.exception(f"failed to load deferred Model2Vec model "
+                          f"'{self._model_path}' (attempt {self._model_load_failures}); "
+                          f"retrying in {backoff:.0f}s")
+            return
+        with self._model_lock:
+            self.model = model
+            self._model_load_failures = 0
+            self._model_load_retry_at = None
+            if self.prototype_store is not None:
+                self._flush_pending_additions()
+        LOG.info(f"Model2Vec model '{self._model_path}' loaded in "
+                 f"{time.monotonic() - start:.2f}s (deferred load)")
+
+    def _ensure_model(self, background_ok: bool = True) -> bool:
+        """Make sure ``self.model`` is loaded, returning ``True`` once it is.
+
+        The first caller (construction with ``preload_model``, or the first
+        match) starts the load thread; every other caller just waits on it.
+        When ``background_ok`` and the load has not finished within
+        ``model_load_budget`` seconds, returns ``False`` so the caller can
+        skip this one utterance instead of blocking the bus thread
+        indefinitely — the load keeps running in the background and later
+        calls pick up the now-ready model.
+
+        A load that previously failed is not retried on every call: while
+        inside the current backoff window (see ``_load_model_now``) this
+        returns ``False`` immediately without spawning a new thread; once
+        the window elapses, the next caller starts a fresh attempt.
+        """
+        if self.model is not None:
+            return True
+        if not hasattr(self, "_model_lock"):
+            # object built via `__new__`, bypassing `__init__` (white-box
+            # tests): there is nothing to defer, `self.model` is simply unset
+            return False
+        with self._model_lock:
+            if self.model is not None:
+                return True
+            if self._model_load_thread is None:
+                retry_at = self._model_load_retry_at
+                if retry_at is not None and time.monotonic() < retry_at:
+                    # still backing off after a previous failure
+                    return False
+                self._model_load_thread = threading.Thread(
+                    target=self._load_model_now,
+                    name="m2v-deferred-model-load", daemon=True)
+                self._model_load_thread.start()
+            thread = self._model_load_thread
+        if not background_ok:
+            thread.join()
+            return self.model is not None
+        thread.join(timeout=self._model_load_budget)
+        if self.model is None:
+            if not self._warmup_logged:
+                self._warmup_logged = True
+                LOG.info("Model2Vec model is still warming up; skipping this "
+                         "utterance, matching resumes once it is ready")
+            return False
+        return True
+
+    def _flush_pending_additions(self) -> None:
+        """Encode every registration buffered while the model was loading.
+
+        Must be called with ``self._model_lock`` held and ``self.model`` set
+        (see ``_load_model_now``); each entry is encoded exactly once.
+        """
+        pending, self._pending_additions = self._pending_additions, []
+        for label, sentences, k, cache_key in pending:
+            try:
+                self.prototype_store.add(self.model, label, sentences, k=k,
+                                         cache_key=cache_key)
+            except Exception as exc:
+                LOG.error(f"deferred prototype add failed for '{label}': {exc}")
+
+    def _add_prototypes(self, label: str, sentences: List[str],
+                        k: Optional[int], cache_key: Optional[str]) -> int:
+        """Encode *sentences* now if the model is loaded, otherwise buffer
+        the raw registration for ``_flush_pending_additions`` to encode once
+        the deferred load completes."""
+        # `_model_lock` is only absent for objects built via `__new__` that
+        # skip `__init__` entirely (a handful of white-box tests) -- those
+        # already hand-set `self.model`, so fall back to the pre-deferred
+        # encode-now behaviour rather than crash.
+        lock = getattr(self, "_model_lock", None)
+        if lock is None:
+            return self.prototype_store.add(self.model, label, sentences, k=k,
+                                            cache_key=cache_key)
+        with lock:
+            if self.model is None:
+                self._pending_additions.append((label, list(sentences), k, cache_key))
+                return len(sentences)
+            return self.prototype_store.add(self.model, label, sentences, k=k,
+                                            cache_key=cache_key)
+
+    def _forget_pending(self, label: str) -> None:
+        """Drop any buffered-but-unencoded registration for *label* (mirrors
+        ``prototype_store.remove`` for entries that never reached the store)."""
+        pending = getattr(self, "_pending_additions", None)
+        if pending:
+            self._pending_additions = [p for p in pending if p[0] != label]
+
+    def _forget_pending_skill(self, skill_id: str) -> None:
+        """Drop buffered-but-unencoded registrations owned by *skill_id*
+        (mirrors ``prototype_store.remove_skill``)."""
+        pending = getattr(self, "_pending_additions", None)
+        if pending:
+            prefix = skill_id + ":"
+            self._pending_additions = [p for p in pending
+                                       if not p[0].startswith(prefix)]
 
     def _initial_intent_sync(self) -> None:
         """Query adapt + padatious manifests once at startup.
@@ -962,10 +1139,7 @@ class Model2VecIntentPipeline(ConfidenceMatcherPipeline):
             return
         cache_key = self._prototype_cache_key(raw_samples)
         try:
-            n = self.prototype_store.add(
-                self.model, name, sentences, k=self._prototype_k,
-                cache_key=cache_key,
-            )
+            n = self._add_prototypes(name, sentences, self._prototype_k, cache_key)
         except Exception as exc:
             LOG.error(f"Failed to add prototypes for Padatious intent "
                       f"'{name}': {exc}")
@@ -987,6 +1161,7 @@ class Model2VecIntentPipeline(ConfidenceMatcherPipeline):
             name = name[:-len(".intent")]
         if name:
             self.prototype_store.remove(name)
+            self._forget_pending(name)
             self.intents.discard(name)
             self._context_gates.pop(name, None)
             self._intent_slots.pop(name, None)
@@ -996,6 +1171,7 @@ class Model2VecIntentPipeline(ConfidenceMatcherPipeline):
         skill_id: str = message.data.get("skill_id") or message.context.get("skill_id", "")
         if skill_id:
             self.prototype_store.remove_skill(skill_id)
+            self._forget_pending_skill(skill_id)
             self.intents = {i for i in self.intents if not i.startswith(skill_id + ":")}
             self._context_gates = {l: g for l, g in self._context_gates.items()
                                    if not l.startswith(skill_id + ":")}
@@ -1163,8 +1339,7 @@ class Model2VecIntentPipeline(ConfidenceMatcherPipeline):
         entity_values = {slot: self.entities[slot.lower()]
                           for slot in slots if slot.lower() in self.entities}
         cache_key = self._prototype_cache_key(list(samples), entity_values)
-        n = self.prototype_store.add(self.model, label, expanded,
-                                      k=self._prototype_k, cache_key=cache_key)
+        n = self._add_prototypes(label, expanded, self._prototype_k, cache_key)
         self.intents.add(label)
         self._store_context_gate(label, message)
         LOG.debug(f"Prototype store: added {n} prototype(s) for INTENT-4 template '{label}'")
@@ -1236,6 +1411,7 @@ class Model2VecIntentPipeline(ConfidenceMatcherPipeline):
             return
         if self.prototype_store is not None:
             self.prototype_store.remove(label)
+            self._forget_pending(label)
         self.intents.discard(label)
         self._context_gates.pop(label, None)
         self._intent_slots.pop(label, None)
@@ -1256,6 +1432,7 @@ class Model2VecIntentPipeline(ConfidenceMatcherPipeline):
             return
         if self.prototype_store is not None:
             self.prototype_store.remove_skill(skill_id)
+            self._forget_pending_skill(skill_id)
         self.intents = {i for i in self.intents if not i.startswith(skill_id + ":")}
         self._context_gates = {l: g for l, g in self._context_gates.items()
                                if not l.startswith(skill_id + ":")}
@@ -1278,6 +1455,7 @@ class Model2VecIntentPipeline(ConfidenceMatcherPipeline):
             return
         if self.prototype_store is not None:
             self.prototype_store.remove(label)
+            self._forget_pending(label)
         self.intents.discard(label)
         self._context_gates.pop(label, None)
         self._intent_slots.pop(label, None)
@@ -1381,6 +1559,11 @@ class Model2VecIntentPipeline(ConfidenceMatcherPipeline):
             message: The incoming bus message (used to read session.pipeline for
                      special-label gating, plus the session blacklists).
         """
+        if not self._ensure_model():
+            # cold start still warming up in the background (see
+            # `_ensure_model`) -- no match for THIS utterance, matching
+            # resumes automatically once the deferred load completes.
+            return
         if self.prototype_store is not None:
             candidates = self._match_prototype(utterance, message)
         else:
