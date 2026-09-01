@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.8.1a1](https://github.com/OpenVoiceOS/ovos-m2v-pipeline/tree/0.8.1a1) (2026-09-01)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-m2v-pipeline/compare/0.8.0a2...0.8.1a1)
+
+**Merged pull requests:**
+
+- fix: check valid\_labels on the raw label before the special-label map [\#82](https://github.com/OpenVoiceOS/ovos-m2v-pipeline/pull/82) ([JarbasAl](https://github.com/JarbasAl))
+
 ## [0.8.0a2](https://github.com/OpenVoiceOS/ovos-m2v-pipeline/tree/0.8.0a2) (2026-09-01)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-m2v-pipeline/compare/0.8.0a1...0.8.0a2)
