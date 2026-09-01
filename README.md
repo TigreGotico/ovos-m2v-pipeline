@@ -141,20 +141,31 @@ plugin code. A model can ship this mapping alongside its weights as a
 
 ```json
 {
-  "my_domain:book_flight": "travel_skill:book_flight",
-  "my_domain:cancel_flight": "travel_skill:cancel_flight",
-  "valid_labels": ["my_domain:book_flight", "my_domain:cancel_flight"]
+  "valid_labels": ["my_domain:book_flight", "my_domain:cancel_flight"],
+  "families": {
+    "my_domain:book_flight": "skill",
+    "my_domain:cancel_flight": "skill"
+  }
 }
 ```
 
+A canonical label carries no `.intent` suffix: the suffix names the resource a
+skill ships, not the intent, and the legacy Padatious handler strips it before
+the label reaches the bus.
+
 `labels.json` has the same shape as the `label_map` config option, plus an
-optional `valid_labels` list. `valid_labels` lists the model's raw labels -
+optional `valid_labels` list and an optional `families` map. `valid_labels` lists the model's raw labels -
 the ones it was actually trained on - not the `label_map` targets; the
 allow-list check happens before `label_map` resolution, so it also covers
 `ocp:play` / `stop:stop` / `common_query:common_query` before those get
-rewritten to their bus topics. When present, list the labels a model was
-trained on on its model card too, so users know what to expect without
-downloading it first.
+rewritten to their bus topics. `families`
+names the family each canonical label belongs to (`skill`, `ocp`,
+`common_query`, `stop` or `persona`), which is what the per-family claim
+filter keys on. A label missing from the map is logged once and treated as
+`skill`.
+
+When present, list the labels a model was trained on in its model card too, so users know
+what to expect without downloading it first.
 
 Three layers combine, each overriding the previous on a per-key basis:
 
@@ -232,3 +243,12 @@ a fund established by [NLnet](https://nlnet.nl) with financial support from the
 European Commission's [Next Generation Internet](https://ngi.eu) programme, under
 the aegis of [DG Communications Networks, Content and Technology](https://commission.europa.eu/about-european-commission/departments-and-executive-agencies/communications-networks-content-and-technology_en)
 under grant agreement No [101135429](https://cordis.europa.eu/project/id/101135429).
+
+---
+
+## Training your own model
+
+`train/` builds the intent corpus from pinned sources and fits a classifier on
+it. See [docs/training.md](docs/training.md) for the end-to-end recipe and the
+current hold on training runs, and [docs/labels.md](docs/labels.md) for the
+label scheme every model must follow.
