@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.8.2a1](https://github.com/OpenVoiceOS/ovos-m2v-pipeline/tree/0.8.2a1) (2026-09-01)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-m2v-pipeline/compare/0.8.1a1...0.8.2a1)
+
+**Merged pull requests:**
+
+- fix: defer model load and encoding until first use [\#79](https://github.com/OpenVoiceOS/ovos-m2v-pipeline/pull/79) ([JarbasAl](https://github.com/JarbasAl))
+
 ## [0.8.1a1](https://github.com/OpenVoiceOS/ovos-m2v-pipeline/tree/0.8.1a1) (2026-09-01)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-m2v-pipeline/compare/0.8.0a2...0.8.1a1)
