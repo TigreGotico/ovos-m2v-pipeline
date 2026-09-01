@@ -54,7 +54,8 @@ Any bare `StaticModel` on Hugging Face (or a local path) can be used as the embe
 
 | Key | Type | Default | Description |
 |-----|------|---------|-------------|
-| `model` | `str` | `"Jarbas/ovos-model2vec-intents-distiluse-base-multilingual-cased-v2"` | Hugging Face repo ID or local path. In classifier mode this must be a `StaticModelPipeline`. In prototype mode any bare `StaticModel` works. |
+| `model` | `str` | unset (defaults to `OpenVoiceOS/ovos-m2v-intents-multilingual`, see below) | Hugging Face repo ID or local path. In classifier mode this must be a `StaticModelPipeline`. In prototype mode any bare `StaticModel` works. Set explicitly to override the default. |
+| `models` | `dict[str, str]` | `{}` | Per-language default override, `{locale_or_lang: repo_id}` (e.g. `{"pt": "my-org/pt-model"}`). Matched against the full `lang` locale first, then its primary subtag. Only consulted when `model` is unset. |
 | `mode` | `str` | `"classifier"` | Operating mode: `"classifier"` or `"prototype"`. |
 | `prototype_k` | `int` | unset (keep all) | Maximum number of prototype embeddings stored per intent label (prototype mode only). Unset keeps every registered sample so exact training samples always match. Set an integer to cap memory. |
 | `prototype_strategy` | `str` | `"max_over_all"` | Scoring strategy for prototype mode. See [Prototype Strategies](#prototype-strategies-prototype-mode-only) below. |
@@ -65,6 +66,23 @@ Any bare `StaticModel` on Hugging Face (or a local path) can be used as the embe
 | `conf_low` | `float` | `0.15` | Minimum score for a `match_low` result. |
 | `ignore_intents` | `list[str]` | `[]` | Intent labels to always discard, regardless of confidence. |
 | `timeout` | `int` | `1` | Seconds to wait for Adapt / Padatious manifest responses (classifier mode only). |
+
+## Default model resolution
+
+With no `model` config, the plugin resolves to
+`OpenVoiceOS/ovos-m2v-intents-multilingual` for every language, unless
+`models[<full locale>]` or `models[<primary subtag>]` says otherwise.
+Setting `model` explicitly always wins and skips this resolution entirely.
+There is no fallback to the deprecated
+`Jarbas/ovos-model2vec-intents-distiluse-base-multilingual-cased-v2` model;
+deployments that need it must set `model` themselves.
+
+`OpenVoiceOS/ovos-m2v-intents-en` is a smaller (16 MB), English-only
+alternative available through `model` or `models["en"]`. It is not wired in
+as anyone's default, purely to keep the built-in per-language table small;
+its held-out accuracy is comparable to the multilingual model. Pick it
+where the smaller footprint is worth trading off broader language
+coverage.
 
 ## Prototype Strategies (prototype mode only)
 

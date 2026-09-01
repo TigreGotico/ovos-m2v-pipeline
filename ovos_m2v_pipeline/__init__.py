@@ -66,6 +66,59 @@ _SPECIAL_LABEL_MAP: Dict[str, Tuple[str, str]] = {
     "stop:stop": ("stop.openvoiceos", "mycroft.stop"),
 }
 
+#: Built-in per-language default model, keyed by primary lang subtag
+#: (e.g. ``"en"`` from ``"en-US"``). Empty: `DEFAULT_MULTILINGUAL` is the
+#: default for every language. `OpenVoiceOS/ovos-m2v-intents-en` scores
+#: worse than the multilingual model on paraphrase / prototype-mode
+#: dispatch ranking (e.g. "lights on now" failing to match prototypes
+#: trained on "turn on the lights") despite a comparable held-out
+#: accuracy, so it is not wired in as anyone's default; it remains
+#: selectable via `config["models"]` for size-constrained deployments
+#: that can accept that trade-off.
+DEFAULT_MODELS: Dict[str, str] = {}
+
+#: Default model for every language without a `DEFAULT_MODELS` entry
+#: (and without a `config["models"]` override) -- i.e. every language.
+DEFAULT_MULTILINGUAL = "OpenVoiceOS/ovos-m2v-intents-multilingual"
+
+
+def _resolve_model_id(config: Dict, lang: str) -> str:
+    """Resolve the Model2Vec repo id to load for *lang*.
+
+    Resolution order (highest priority first):
+
+    1. ``config["model"]`` -- an explicit single-model override, unchanged
+       from before this per-language roster existed.
+    2. ``config["models"]`` -- a ``{locale_or_lang: repo_id}`` map, matched
+       first against the full locale (``"pt-BR"``) then against the primary
+       subtag (``"pt"``); keys are matched case-insensitively.
+    3. `DEFAULT_MODELS`, matched against the primary subtag.
+    4. `DEFAULT_MULTILINGUAL`.
+
+    There is no fallback to the deprecated
+    ``Jarbas/ovos-model2vec-intents-distiluse-base-multilingual-cased-v2``
+    default: callers that relied on it must now set ``config["model"]``
+    explicitly.
+    """
+    if "model" in config:
+        # Explicitly set (including an explicit empty string, which the
+        # caller treats as "no model configured" and raises on): never
+        # overridden by a per-language default.
+        return config["model"]
+
+    lang = (lang or "en-US").lower()
+    primary = lang.split("-")[0]
+
+    models_cfg = {str(k).lower(): v for k, v in (config.get("models") or {}).items()}
+    if lang in models_cfg:
+        return models_cfg[lang]
+    if primary in models_cfg:
+        return models_cfg[primary]
+
+    if primary in DEFAULT_MODELS:
+        return DEFAULT_MODELS[primary]
+    return DEFAULT_MULTILINGUAL
+
 
 def _load_labels_manifest(model_path: str) -> Dict[str, Any]:
     """Load the optional ``labels.json`` a trained model ships alongside it.
@@ -652,7 +705,8 @@ class Model2VecIntentPipeline(ConfidenceMatcherPipeline):
                  config: Optional[Dict] = None):
         config = config or Configuration().get('intents', {}).get("ovos_m2v_pipeline") or dict()
         super().__init__(bus, config)
-        model_path = self.config.get("model", "Jarbas/ovos-model2vec-intents-distiluse-base-multilingual-cased-v2")
+        lang = Configuration().get("lang", "en-us")
+        model_path = _resolve_model_id(self.config, lang)
         if not model_path:
             raise FileNotFoundError("'model' not set in configuration for ovos_m2v_pipeline")
 
@@ -666,10 +720,13 @@ class Model2VecIntentPipeline(ConfidenceMatcherPipeline):
         manifest_map = {k: v for k, v in manifest.items() if k != "valid_labels"}
         user_map = self.config.get("label_map") or {}
         self.label_map: Dict[str, Any] = {**_SPECIAL_LABEL_MAP, **manifest_map, **user_map}
-        #: Allow-list of raw model labels eligible to match, checked BEFORE
-        #: `label_map` resolution (pre-mapping): a manifest's `valid_labels`
-        #: describes the model's label vocabulary, not the post-map bus
-        #: topics. `None` disables the allow-list check.
+        #: Allow-list of raw model labels eligible to match in classifier mode
+        #: (`_match_classifier`), checked BEFORE `label_map` resolution
+        #: (pre-mapping): a manifest's `valid_labels` describes the model's
+        #: label vocabulary, not the post-map bus topics. `None` disables the
+        #: allow-list check. Not consulted in prototype mode
+        #: (`_match_prototype`): the prototype store is itself the allow-list,
+        #: since it only ever holds runtime-registered labels.
         self.valid_labels: Optional[List[str]] = self.config.get("valid_labels")
         if self.valid_labels is None:
             manifest_valid = manifest.get("valid_labels")
@@ -1678,11 +1735,12 @@ class Model2VecIntentPipeline(ConfidenceMatcherPipeline):
             if label in _SPECIAL_LABELS and label not in special:
                 LOG.debug(f"discarding special label: {label} - not in session pipeline")
                 continue
-            # See `_match_classifier`: check against the raw label, before the
-            # special-label map rewrites it to a canonical bus topic.
-            if self.valid_labels is not None and label not in self.valid_labels:
-                LOG.debug(f"discarding match: {label} - not in valid_labels")
-                continue
+            # `valid_labels` is NOT applied here: it is a classifier-only
+            # allow-list drawn from the model manifest's frozen training
+            # vocabulary. Prototype labels are registered at runtime and are
+            # legitimately absent from that manifest, so the prototype store
+            # already IS the allow-list — every label it holds was explicitly
+            # registered.
             skill_id, label = self._apply_special_label_map(label)
             yield skill_id, label, score
 
@@ -1793,7 +1851,7 @@ class Model2VecPrototypePipeline(Model2VecIntentPipeline):
 
         "intents": {
             "ovos-m2v-pipeline": {
-                "model": "Jarbas/ovos-model2vec-intents-LaBSE"
+                "model": "OpenVoiceOS/ovos-m2v-intents-multilingual"
             },
             "ovos-m2v-prototype-pipeline": {
                 "model": "minishlab/M2V_multilingual_output",

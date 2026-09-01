@@ -56,7 +56,8 @@ Each plugin reads from its own key under `"intents"` in `mycroft.conf`, so both 
 
 | Key | Type | Default | Applies to | Description |
 |-----|------|---------|------------|-------------|
-| `model` | `str` | `"Jarbas/ovos-model2vec-intents-distiluse-base-multilingual-cased-v2"` | both | Hugging Face repo ID or local path. Classifier mode requires a `StaticModelPipeline`. Prototype mode accepts any bare `StaticModel`. |
+| `model` | `str` | unset (defaults to `OpenVoiceOS/ovos-m2v-intents-multilingual`) | both | Hugging Face repo ID or local path. Classifier mode requires a `StaticModelPipeline`. Prototype mode accepts any bare `StaticModel`. Set explicitly to override the default (e.g. the smaller, English-only `OpenVoiceOS/ovos-m2v-intents-en`, which trades language coverage for size at comparable held-out accuracy). |
+| `models` | `dict[str, str]` | `{}` | both | Per-language default override, `{locale_or_lang: repo_id}`. Matched against the full `lang` locale, then its primary subtag. Only consulted when `model` is unset. |
 | `prototype_k` | `int` | unset (keep all) | prototype | Maximum prototype embeddings stored per intent label. Unset keeps every registered sample so exact training samples always match. Set an integer to cap memory. |
 | `conf_high` | `float` | `0.7` | both | Minimum score for `match_high`. |
 | `conf_medium` | `float` | `0.5` | both | Minimum score for `match_medium`. |
