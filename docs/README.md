@@ -30,4 +30,5 @@ The pipeline works best as a fallback or confidence-based matcher. Use it when d
 | [Configuration](configuration.md) | All configuration options |
 | [Pipeline Internals](pipeline.md) | Architecture and runtime behaviour |
 | [Models](models.md) | Available pre-trained models and benchmark results |
-| [Training](training.md) | How to gather data and train/retrain models |
+| [Training](training.md) | How to build the dataset and train/retrain models |
+| [Label scheme](labels.md) | Label format, families, dedup rules, and renames |
