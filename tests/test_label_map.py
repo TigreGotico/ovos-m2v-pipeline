@@ -14,7 +14,8 @@ from unittest.mock import MagicMock, patch
 
 import numpy as np
 
-from tests.test_pipeline import _make_pipeline, _setup_model as _setup_classifier
+from tests.test_pipeline import (_make_pipeline, _make_prototype_pipeline,
+                                  _setup_model as _setup_classifier)
 
 
 class TestDefaultLabelMapUnchanged(unittest.TestCase):
@@ -124,6 +125,36 @@ class TestValidLabelsCheckedBeforeSpecialMap(unittest.TestCase):
         _setup_classifier(p, ["ocp:play"], [0.95])
         results = list(p._match("play some music"))
         self.assertEqual(results, [])
+
+
+class TestValidLabelsNotAppliedInPrototypeMode(unittest.TestCase):
+    """A model manifest's `valid_labels` describes the frozen classifier
+    training vocabulary. Prototype labels are registered at runtime and are
+    legitimately absent from that manifest, so the allow-list must not gate
+    prototype-mode candidates."""
+
+    def _manifest_prototype_pipeline(self, valid_labels, store):
+        with tempfile.TemporaryDirectory() as d:
+            with open(os.path.join(d, "labels.json"), "w") as f:
+                json.dump({"valid_labels": valid_labels}, f)
+            p = _make_prototype_pipeline(config={"model": d}, intents=[],
+                                          proto_store=store)
+        return p
+
+    def test_runtime_registered_label_absent_from_manifest_still_matches(self):
+        from ovos_m2v_pipeline import PrototypeIntentStore
+        store = PrototypeIntentStore(
+            np.array([[1.0, 0.0, 0.0, 0.0]], dtype=np.float32),
+            np.array(["skill_a:runtime.intent"]))
+        # manifest only lists the classifier's frozen training labels -
+        # the runtime-registered prototype label is not among them.
+        p = self._manifest_prototype_pipeline(["skill_a:trained.intent"], store)
+        p.model.encode.return_value = np.array([[1.0, 0.0, 0.0, 0.0]], dtype=np.float32)
+        results = list(p._match("some utterance"))
+        self.assertEqual(len(results), 1)
+        skill_id, label, score, _ = results[0]
+        self.assertEqual(label, "skill_a:runtime.intent")
+        self.assertAlmostEqual(score, 1.0, places=4)
 
 
 class TestModelManifestLayering(unittest.TestCase):

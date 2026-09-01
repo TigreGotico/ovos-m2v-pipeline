@@ -53,7 +53,7 @@ In your `mycroft.conf`:
 * `model`: Path to your pretrained Model2Vec model or huggingface repo.
 * `conf_xxx`: Minimum confidence threshold for intent matching.
 * `ignore_intents`: List of canonical labels to exclude from matching (deny-list, applied after `label_map`).
-* `valid_labels`: List of raw model labels eligible to match (allow-list, checked before `label_map` is applied). When unset, every label is eligible.
+* `valid_labels`: Classifier-mode only. List of raw model labels eligible to match (allow-list, checked before `label_map` is applied). When unset, every label is eligible. Not consulted in prototype mode: the prototype store already only holds runtime-registered labels, so it is its own allow-list.
 * `label_map`: Maps a raw model label to its canonical `skill_id:intent` label. Merges over (and can override) the built-in OCP/common-query/stop remaps and any labels the model itself declares in `labels.json`; see [Trained models document their labels](#trained-models-document-their-labels).
 * `prototype_strategy`: Scoring strategy for prototype mode (default `"max_over_all"`, back-compatible). See [docs/strategies.md](docs/strategies.md).
 * `prototype_top_k`: Top-k cosines averaged by the `top_k_mean` strategy (default `3`).
@@ -164,8 +164,7 @@ names the family each canonical label belongs to (`skill`, `ocp`,
 filter keys on. A label missing from the map is logged once and treated as
 `skill`.
 
-When present, list the labels a model was trained on in its model card too, so users know
-what to expect without downloading it first.
+`valid_labels` only gates classifier mode: a prototype-mode label is registered at runtime rather than trained into the model, so it is legitimately absent from `labels.json`, and the prototype store itself is the allow-list there. When present, list the labels a model was trained on in its model card too, so users know what to expect without downloading it first.
 
 Three layers combine, each overriding the previous on a per-key basis:
 

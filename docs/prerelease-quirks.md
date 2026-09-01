@@ -3,6 +3,34 @@
 Behavior changes since the last stable release, newest first. This file is
 reset at each stable release.
 
+## 0.8.2a2
+
+- The default model changed from the deprecated
+  `Jarbas/ovos-model2vec-intents-distiluse-base-multilingual-cased-v2` to
+  `OpenVoiceOS/ovos-m2v-intents-multilingual` for every language. There is
+  no fallback to the `Jarbas/` classifier; its model card carries a pointer
+  to the replacement. Deployments with an explicit `model` config key are
+  unaffected and keep loading whatever they already point at. A new
+  `models` config key (`{locale_or_lang: repo_id}`) lets a deployment pick
+  a different model per language without setting `model` outright; it is
+  matched against the full locale first, then the primary language subtag,
+  and is only consulted when `model` is unset.
+  `OpenVoiceOS/ovos-m2v-intents-en` is a smaller (16 MB), English-only
+  model from the same roster; it is not the default (nor wired into any
+  built-in per-language table) purely to keep that table small, since its
+  held-out accuracy is comparable to the multilingual model. It remains
+  available via `model` or `models["en"]` for deployments where the
+  smaller footprint is worth trading off broader language coverage.
+  Both models are frozen at dataset manifest `c6831002…` (pipeline commit
+  `173c1fe`) and will be refit after the Adapt → `.intent` refactors merge.
+- `valid_labels` is no longer consulted in prototype mode. It is an
+  allow-list drawn from a model manifest's frozen training vocabulary, and
+  prototype labels are registered at runtime rather than trained into the
+  model, so every runtime-registered prototype label was legitimately
+  absent from that manifest and was being silently discarded at match time
+  - even at cosine 1.0. The prototype store already only holds
+  explicitly-registered labels, so it is its own allow-list.
+
 ## 0.8.0a2
 
 - The model no longer loads in the constructor. ovos-core builds every

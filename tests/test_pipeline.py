@@ -461,10 +461,11 @@ class TestMatchPrototype(unittest.TestCase):
         self.assertGreater(results[0][2], results[1][2])
         self.assertIn("skill_b:b.intent", results[0][1])
 
-    def test_valid_labels_checked_before_special_map(self):
-        """`valid_labels` must be checked against the raw prototype label
-        (e.g. `ocp:play`), before `_apply_special_label_map` rewrites it to
-        its canonical bus topic - matching `_match_classifier`'s behaviour."""
+    def test_valid_labels_not_applied_to_special_prototype_label(self):
+        """`valid_labels` is a classifier-only allow-list (drawn from the
+        model manifest's frozen training vocabulary). A runtime-registered
+        prototype label such as `ocp:play` still matches and is mapped to
+        its canonical bus topic regardless of `valid_labels` contents."""
         store = self._make_store({"ocp:play": [1.0, 0.0, 0.0, 0.0]})
         p = self._make_proto_pipeline(store, intents=[])
         p.valid_labels = ["ocp:play"]
@@ -475,13 +476,20 @@ class TestMatchPrototype(unittest.TestCase):
         self.assertEqual(skill_id, "ovos.common_play")
         self.assertEqual(label, "ovos.common_play.play_search")
 
-    def test_valid_labels_drops_special_label_not_listed(self):
+    def test_valid_labels_does_not_drop_prototype_label_not_listed(self):
+        """A prototype label absent from `valid_labels` still matches: the
+        prototype store already IS the allow-list (it only ever holds
+        runtime-registered labels), so the manifest allow-list does not
+        apply here."""
         store = self._make_store({"ocp:play": [1.0, 0.0, 0.0, 0.0]})
         p = self._make_proto_pipeline(store, intents=[])
         p.valid_labels = ["stop:stop"]
         p.model.encode.return_value = np.array([[1.0, 0.0, 0.0, 0.0]], dtype=np.float32)
         results = list(p._match("play some music"))
-        self.assertEqual(results, [])
+        self.assertEqual(len(results), 1)
+        skill_id, label, _, _ = results[0]
+        self.assertEqual(skill_id, "ovos.common_play")
+        self.assertEqual(label, "ovos.common_play.play_search")
 
 
 # ---------------------------------------------------------------------------
