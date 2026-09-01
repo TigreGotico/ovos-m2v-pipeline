@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.8.0a2](https://github.com/OpenVoiceOS/ovos-m2v-pipeline/tree/0.8.0a2) (2026-09-01)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-m2v-pipeline/compare/0.8.0a1...0.8.0a2)
+
+**Merged pull requests:**
+
+- test: align e2e doubles and labels with the encode kwargs and no-suffix contract [\#81](https://github.com/OpenVoiceOS/ovos-m2v-pipeline/pull/81) ([JarbasAl](https://github.com/JarbasAl))
+
 ## [0.8.0a1](https://github.com/OpenVoiceOS/ovos-m2v-pipeline/tree/0.8.0a1) (2026-08-31)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-m2v-pipeline/compare/0.7.0a2...0.8.0a1)
