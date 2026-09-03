@@ -694,5 +694,76 @@ class TestPadatiousContextGating(unittest.TestCase):
         self.assertEqual(key_without_gate, key_with_gate)
 
 
+class TestPadatiousLegacyEntityExpansion(unittest.TestCase):
+    """Legacy ``padatious:register_intent`` templates that reference a
+    ``{slot}`` placeholder must be filled through the same
+    ``_expand_entities`` machinery as OVOS-INTENT-4 templates, using
+    whatever entities have been registered (currently only via the
+    INTENT-4 ``ovos.entity.register`` topic -- the legacy wire itself
+    delivers no entity value messages to this plugin). Before the fix the
+    legacy path never called ``_expand_entities`` at all, so the literal
+    ``"{color}"`` token was embedded as a prototype."""
+
+    def test_entity_fills_legacy_template_slots(self):
+        p = _make_prototype_pipeline({"prototype_cache": False})
+        p._handle_intent4_register_entity(Message(
+            SpecMessage.ENTITY_REGISTER.value,
+            data={"skill_id": "paint.skill", "entity_name": "color",
+                  "lang": "en-US", "samples": ["red", "blue"]}))
+        self.assertIn("color", p.entities)
+
+        encoded_sentences = []
+        p.model.encode.side_effect = lambda sents, **kw: (
+            encoded_sentences.extend(sents),
+            np.eye(len(sents), 4, dtype=np.float32))[1]
+
+        p._handle_register_padatious(Message(
+            "padatious:register_intent",
+            data={"name": "paint.skill:paint_it", "lang": "en-US",
+                  "samples": ["I like {color}"]},
+            context={"skill_id": "paint.skill"}))
+
+        labels = p.prototype_store.labels
+        self.assertIn("paint.skill:paint_it", p.intents)
+        # two entity values -> two filled prototypes, no literal placeholder
+        n = (labels == "paint.skill:paint_it").sum()
+        self.assertEqual(n, 2)
+        self.assertNotIn("I like {color}", encoded_sentences)
+        self.assertIn("I like red", encoded_sentences)
+        self.assertIn("I like blue", encoded_sentences)
+
+    def test_legacy_registration_cache_key_includes_entity_values(self):
+        """The cache key computed by the legacy handler itself (not just
+        ``_prototype_cache_key`` called directly) changes once the
+        referenced entity is registered, so a stale unexpanded cache
+        entry is invalidated rather than reused."""
+        p = _make_prototype_pipeline()
+        p._prototype_cache_enabled = True
+        cache = MagicMock()
+        cache.load.return_value = None
+        p.cache = cache
+        p.prototype_store.cache = cache
+
+        p._handle_register_padatious(Message(
+            "padatious:register_intent",
+            data={"name": "paint.skill:paint_it", "lang": "en-US",
+                  "samples": ["I like {color}"]},
+            context={"skill_id": "paint.skill"}))
+        key_without_entity = cache.load.call_args[0][1]
+
+        p._handle_intent4_register_entity(Message(
+            SpecMessage.ENTITY_REGISTER.value,
+            data={"skill_id": "paint.skill", "entity_name": "color",
+                  "lang": "en-US", "samples": ["red", "blue"]}))
+        p._handle_register_padatious(Message(
+            "padatious:register_intent",
+            data={"name": "paint.skill:paint_it", "lang": "en-US",
+                  "samples": ["I like {color}"]},
+            context={"skill_id": "paint.skill"}))
+        key_with_entity = cache.load.call_args[0][1]
+
+        self.assertNotEqual(key_without_entity, key_with_entity)
+
+
 if __name__ == "__main__":
     unittest.main()
