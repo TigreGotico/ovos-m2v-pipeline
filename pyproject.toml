@@ -26,7 +26,12 @@ dependencies = [
     "ovos-config",
     "ovos-utils>=0.3.4,<1.0.0",
     "ovos-spec-tools>=1.8.0a1",
-    "model2vec[inference]",
+    # model2vec 0.9.0 removed the `inference` extra; the classifier
+    # (StaticModelPipeline) load path now needs scikit-learn + skops
+    # directly to deserialize the legacy sklearn head.
+    "model2vec>=0.9.0",
+    "scikit-learn",
+    "skops",
 ]
 
 [project.optional-dependencies]
