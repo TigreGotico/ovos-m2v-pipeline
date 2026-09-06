@@ -683,6 +683,11 @@ class Model2VecIntentPipeline(ConfidenceMatcherPipeline):
         ``message.data["file_name"]``.  Adapt intents are tracked by label
         name only and are not matched in prototype mode.
 
+    ``revision`` : str, optional (default: ``None``)
+        Git revision (commit SHA, branch, or tag) to pin the Hugging Face
+        Hub model to, passed through to ``from_pretrained``. Unset loads
+        whatever revision the Hub currently resolves as latest.
+
     Configuration keys (prototype mode)
     ------------------------------------
     ``prototype_k`` : int, optional (default: unlimited)
@@ -861,6 +866,23 @@ class Model2VecIntentPipeline(ConfidenceMatcherPipeline):
         if preload:
             self._ensure_model(background_ok=False)
 
+    def _resolve_model_revision(self, model_path: str) -> str:
+        """Resolve ``config["revision"]`` to a path ``from_pretrained`` accepts.
+
+        model2vec's ``from_pretrained`` takes no ``revision`` argument: it
+        resolves a repo id to a local folder via a bare
+        ``huggingface_hub.snapshot_download(repo_id)`` (always "latest").
+        Pinning a revision therefore means downloading that snapshot
+        ourselves and handing ``from_pretrained`` the resulting local path
+        instead of the repo id. A local path (already on disk) or an unset
+        ``revision`` skip this and are returned unchanged.
+        """
+        revision = self.config.get("revision")
+        if not revision or Path(model_path).exists():
+            return model_path
+        import huggingface_hub
+        return huggingface_hub.snapshot_download(model_path, repo_type="model", revision=revision)
+
     def _load_model_now(self) -> None:
         """Load ``self.model`` and drain any buffered prototype registrations.
 
@@ -881,12 +903,13 @@ class Model2VecIntentPipeline(ConfidenceMatcherPipeline):
         cause (e.g. a network blip) clears.
         """
         start = time.monotonic()
+        model_path = self._resolve_model_revision(self._model_path)
         try:
             if self._mode == "prototype":
                 from model2vec import StaticModel
-                model = StaticModel.from_pretrained(self._model_path)
+                model = StaticModel.from_pretrained(model_path)
             else:
-                model = StaticModelPipeline.from_pretrained(self._model_path)
+                model = StaticModelPipeline.from_pretrained(model_path)
         except Exception:
             with self._model_lock:
                 self._model_load_failures += 1
